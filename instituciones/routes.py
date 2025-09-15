@@ -10,10 +10,11 @@ def get_instituciones():
     for row in result:
         instituciones.append({
             'id': row.id,
-            'categoria_id': row.categoria_id,
+            'institucion_categoria_id': row.institucion_categoria_id,
             'nombre': row.nombre,
             'siglas': row.siglas,
-            'estado': row.estado,
+            'observaciones': row.observaciones,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -27,16 +28,23 @@ def create_institucion():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO instituciones (categoria_id, nombre, siglas, estado, creador, creacion, modificador, modificacion)
-        VALUES (:categoria_id, :nombre, :siglas, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO instituciones (
+            institucion_categoria_id, nombre, siglas, observaciones, activo,
+            creador, creacion, modificador, modificacion
+        )
+        VALUES (
+            :institucion_categoria_id, :nombre, :siglas, :observaciones, :activo,
+            :creador, :creacion, :modificador, :modificacion
+        )
         RETURNING id
     """)
     
     result = db.session.execute(query, {
-        'categoria_id': data['categoria_id'],
+        'institucion_categoria_id': data['institucion_categoria_id'],
         'nombre': data['nombre'],
-        'siglas': data.get('siglas', ''),
-        'estado': data.get('estado', 'Activo'),
+        'siglas': data.get('siglas'),
+        'observaciones': data.get('observaciones'),
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -53,10 +61,11 @@ def create_institucion():
     
     return jsonify({
         'id': institucion.id,
-        'categoria_id': institucion.categoria_id,
+        'institucion_categoria_id': institucion.institucion_categoria_id,
         'nombre': institucion.nombre,
         'siglas': institucion.siglas,
-        'estado': institucion.estado,
+        'observaciones': institucion.observaciones,
+        'activo': institucion.activo,
         'creador': institucion.creador,
         'creacion': institucion.creacion.isoformat() if institucion.creacion else None,
         'modificador': institucion.modificador,
@@ -76,10 +85,11 @@ def get_institucion(id):
     
     return jsonify({
         'id': institucion.id,
-        'categoria_id': institucion.categoria_id,
+        'institucion_categoria_id': institucion.institucion_categoria_id,
         'nombre': institucion.nombre,
         'siglas': institucion.siglas,
-        'estado': institucion.estado,
+        'observaciones': institucion.observaciones,
+        'activo': institucion.activo,
         'creador': institucion.creador,
         'creacion': institucion.creacion.isoformat() if institucion.creacion else None,
         'modificador': institucion.modificador,
@@ -91,26 +101,22 @@ def update_institucion(id):
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
-    query = db.text("""
+    update_fields = []
+    params = {'id': id, 'modificador': data.get('modificador', 'Sistema'), 'modificacion': now}
+    for field in ['institucion_categoria_id','nombre','siglas','observaciones','activo']:
+        if field in data:
+            update_fields.append(f"{field} = :{field}")
+            params[field] = data[field]
+    update_fields.append('modificador = :modificador')
+    update_fields.append('modificacion = :modificacion')
+
+    query = db.text(f"""
         UPDATE instituciones 
-        SET categoria_id = :categoria_id, 
-            nombre = :nombre, 
-            siglas = :siglas, 
-            estado = :estado, 
-            modificador = :modificador, 
-            modificacion = :modificacion
+        SET {', '.join(update_fields)}
         WHERE id = :id
     """)
     
-    result = db.session.execute(query, {
-        'id': id,
-        'categoria_id': data.get('categoria_id'),
-        'nombre': data.get('nombre'),
-        'siglas': data.get('siglas'),
-        'estado': data.get('estado'),
-        'modificador': data.get('modificador', 'Sistema'),
-        'modificacion': now
-    })
+    result = db.session.execute(query, params)
     
     if result.rowcount == 0:
         return jsonify({'error': 'Institución no encontrada'}), 404
@@ -124,10 +130,11 @@ def update_institucion(id):
     
     return jsonify({
         'id': institucion.id,
-        'categoria_id': institucion.categoria_id,
+        'institucion_categoria_id': institucion.institucion_categoria_id,
         'nombre': institucion.nombre,
         'siglas': institucion.siglas,
-        'estado': institucion.estado,
+        'observaciones': institucion.observaciones,
+        'activo': institucion.activo,
         'creador': institucion.creador,
         'creacion': institucion.creacion.isoformat() if institucion.creacion else None,
         'modificador': institucion.modificador,

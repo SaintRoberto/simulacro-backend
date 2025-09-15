@@ -13,7 +13,7 @@ def get_provincias():
             'dpa': row.dpa,
             'nombre': row.nombre,
             'abreviatura': row.abreviatura,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -27,16 +27,16 @@ def create_provincia():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO provincias (dpa, nombre, abreviatura, estado, creador, creacion, modificador, modificacion)
-        VALUES (:dpa, :nombre, :abreviatura, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO provincias (dpa, nombre, abreviatura, activo, creador, creacion, modificador, modificacion)
+        VALUES (:dpa, :nombre, :abreviatura, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
-        'dpa': data['dpa'],
+        'dpa': data.get('dpa'),
         'nombre': data['nombre'],
-        'abreviatura': data.get('abreviatura', ''),
-        'estado': data.get('estado', 'Activo'),
+        'abreviatura': data['abreviatura'],
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -56,7 +56,7 @@ def create_provincia():
         'dpa': provincia.dpa,
         'nombre': provincia.nombre,
         'abreviatura': provincia.abreviatura,
-        'estado': provincia.estado,
+        'activo': provincia.activo,
         'creador': provincia.creador,
         'creacion': provincia.creacion.isoformat() if provincia.creacion else None,
         'modificador': provincia.modificador,
@@ -79,7 +79,7 @@ def get_provincia(id):
         'dpa': provincia.dpa,
         'nombre': provincia.nombre,
         'abreviatura': provincia.abreviatura,
-        'estado': provincia.estado,
+        'activo': provincia.activo,
         'creador': provincia.creador,
         'creacion': provincia.creacion.isoformat() if provincia.creacion else None,
         'modificador': provincia.modificador,
@@ -96,7 +96,7 @@ def update_provincia(id):
         SET dpa = :dpa, 
             nombre = :nombre, 
             abreviatura = :abreviatura, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -107,7 +107,7 @@ def update_provincia(id):
         'dpa': data.get('dpa'),
         'nombre': data.get('nombre'),
         'abreviatura': data.get('abreviatura'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -127,7 +127,7 @@ def update_provincia(id):
         'dpa': provincia.dpa,
         'nombre': provincia.nombre,
         'abreviatura': provincia.abreviatura,
-        'estado': provincia.estado,
+        'activo': provincia.activo,
         'creador': provincia.creador,
         'creacion': provincia.creacion.isoformat() if provincia.creacion else None,
         'modificador': provincia.modificador,

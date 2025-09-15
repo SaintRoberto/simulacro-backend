@@ -13,7 +13,7 @@ def get_coes():
             'nombre': row.nombre,
             'siglas': row.siglas,
             'descripcion': row.descripcion,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -27,16 +27,16 @@ def create_coe():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO coes (nombre, siglas, descripcion, estado, creador, creacion, modificador, modificacion)
-        VALUES (:nombre, :siglas, :descripcion, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO coes (nombre, siglas, descripcion, activo, creador, creacion, modificador, modificacion)
+        VALUES (:nombre, :siglas, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'nombre': data['nombre'],
-        'siglas': data.get('siglas', ''),
-        'descripcion': data.get('descripcion', ''),
-        'estado': data.get('estado', 'Activo'),
+        'siglas': data['siglas'],
+        'descripcion': data.get('descripcion'),
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -56,7 +56,7 @@ def create_coe():
         'nombre': coe.nombre,
         'siglas': coe.siglas,
         'descripcion': coe.descripcion,
-        'estado': coe.estado,
+        'activo': coe.activo,
         'creador': coe.creador,
         'creacion': coe.creacion.isoformat() if coe.creacion else None,
         'modificador': coe.modificador,
@@ -79,7 +79,7 @@ def get_coe(id):
         'nombre': coe.nombre,
         'siglas': coe.siglas,
         'descripcion': coe.descripcion,
-        'estado': coe.estado,
+        'activo': coe.activo,
         'creador': coe.creador,
         'creacion': coe.creacion.isoformat() if coe.creacion else None,
         'modificador': coe.modificador,
@@ -96,7 +96,7 @@ def update_coe(id):
         SET nombre = :nombre, 
             siglas = :siglas, 
             descripcion = :descripcion, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -107,7 +107,7 @@ def update_coe(id):
         'nombre': data.get('nombre'),
         'siglas': data.get('siglas'),
         'descripcion': data.get('descripcion'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -127,7 +127,7 @@ def update_coe(id):
         'nombre': coe.nombre,
         'siglas': coe.siglas,
         'descripcion': coe.descripcion,
-        'estado': coe.estado,
+        'activo': coe.activo,
         'creador': coe.creador,
         'creacion': coe.creacion.isoformat() if coe.creacion else None,
         'modificador': coe.modificador,

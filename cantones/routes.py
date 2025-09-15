@@ -14,7 +14,7 @@ def get_cantones():
             'dpa': row.dpa,
             'nombre': row.nombre,
             'abreviatura': row.abreviatura,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -28,8 +28,8 @@ def create_canton():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO cantones (provincia_id, dpa, nombre, abreviatura, estado, creador, creacion, modificador, modificacion)
-        VALUES (:provincia_id, :dpa, :nombre, :abreviatura, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO cantones (provincia_id, dpa, nombre, abreviatura, activo, creador, creacion, modificador, modificacion)
+        VALUES (:provincia_id, :dpa, :nombre, :abreviatura, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
@@ -37,8 +37,8 @@ def create_canton():
         'provincia_id': data['provincia_id'],
         'dpa': data['dpa'],
         'nombre': data['nombre'],
-        'abreviatura': data.get('abreviatura', ''),
-        'estado': data.get('estado', 'Activo'),
+        'abreviatura': data.get('abreviatura'),
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -59,7 +59,7 @@ def create_canton():
         'dpa': canton.dpa,
         'nombre': canton.nombre,
         'abreviatura': canton.abreviatura,
-        'estado': canton.estado,
+        'activo': canton.activo,
         'creador': canton.creador,
         'creacion': canton.creacion.isoformat() if canton.creacion else None,
         'modificador': canton.modificador,
@@ -83,7 +83,7 @@ def get_canton(id):
         'dpa': canton.dpa,
         'nombre': canton.nombre,
         'abreviatura': canton.abreviatura,
-        'estado': canton.estado,
+        'activo': canton.activo,
         'creador': canton.creador,
         'creacion': canton.creacion.isoformat() if canton.creacion else None,
         'modificador': canton.modificador,
@@ -101,7 +101,7 @@ def update_canton(id):
             dpa = :dpa, 
             nombre = :nombre, 
             abreviatura = :abreviatura, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -113,7 +113,7 @@ def update_canton(id):
         'dpa': data.get('dpa'),
         'nombre': data.get('nombre'),
         'abreviatura': data.get('abreviatura'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -134,7 +134,7 @@ def update_canton(id):
         'dpa': canton.dpa,
         'nombre': canton.nombre,
         'abreviatura': canton.abreviatura,
-        'estado': canton.estado,
+        'activo': canton.activo,
         'creador': canton.creador,
         'creacion': canton.creacion.isoformat() if canton.creacion else None,
         'modificador': canton.modificador,

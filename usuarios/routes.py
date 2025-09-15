@@ -5,6 +5,31 @@ from datetime import datetime, timezone
 
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
 def get_usuarios():
+    """Listar usuarios
+    ---
+    tags:
+      - Usuarios
+    responses:
+      200:
+        description: Lista de usuarios
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              institucion_id: {type: integer}
+              usuario: {type: string}
+              descripcion: {type: string}
+              celular: {type: string}
+              correo: {type: string}
+              activo: {type: boolean}
+              aprobado: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
     result = db.session.execute(db.text("SELECT * FROM usuarios"))
     usuarios = []
     for row in result:
@@ -12,12 +37,10 @@ def get_usuarios():
             'id': row.id,
             'institucion_id': row.institucion_id,
             'usuario': row.usuario,
-            'correo': row.correo,
-            'nombres': row.nombres,
-            'apellidos': row.apellidos,
-            'cedula': row.cedula,
+            'descripcion': row.descripcion,
             'celular': row.celular,
-            'estado': row.estado,
+            'correo': row.correo,
+            'activo': row.activo,
             'aprobado': row.aprobado,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -28,25 +51,56 @@ def get_usuarios():
 
 @usuarios_bp.route('/api/usuarios', methods=['POST'])
 def create_usuario():
+    """Crear usuario
+    ---
+    tags:
+      - Usuarios
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [institucion_id, usuario, clave]
+          properties:
+            institucion_id: {type: integer}
+            usuario: {type: string}
+            clave: {type: string}
+            descripcion: {type: string}
+            celular: {type: string}
+            correo: {type: string}
+            activo: {type: boolean}
+            aprobado: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Usuario creado
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO usuarios (institucion_id, usuario, contrasena, correo, nombres, apellidos, cedula, celular, estado, aprobado, creador, creacion, modificador, modificacion)
-        VALUES (:institucion_id, :usuario, :contrasena, :correo, :nombres, :apellidos, :cedula, :celular, :estado, :aprobado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO usuarios (
+            institucion_id, usuario, clave, descripcion, celular, correo,
+            activo, aprobado, creador, creacion, modificador, modificacion
+        )
+        VALUES (
+            :institucion_id, :usuario, :clave, :descripcion, :celular, :correo,
+            :activo, :aprobado, :creador, :creacion, :modificador, :modificacion
+        )
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'institucion_id': data['institucion_id'],
         'usuario': data['usuario'],
-        'contrasena': data['contrasena'],
-        'correo': data['correo'],
-        'nombres': data['nombres'],
-        'apellidos': data['apellidos'],
-        'cedula': data['cedula'],
-        'celular': data.get('celular', ''),
-        'estado': data.get('estado', 'Activo'),
+        'clave': data['clave'],
+        'descripcion': data.get('descripcion', ''),
+        'celular': data.get('celular'),
+        'correo': data.get('correo'),
+        'activo': data.get('activo', True),
         'aprobado': data.get('aprobado', False),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -66,12 +120,10 @@ def create_usuario():
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'correo': usuario.correo,
-        'nombres': usuario.nombres,
-        'apellidos': usuario.apellidos,
-        'cedula': usuario.cedula,
+        'descripcion': usuario.descripcion,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'correo': usuario.correo,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
@@ -81,6 +133,21 @@ def create_usuario():
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['GET'])
 def get_usuario(id):
+    """Obtener usuario por ID
+    ---
+    tags:
+      - Usuarios
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Usuario
+      404:
+        description: No encontrado
+    """
     result = db.session.execute(
         db.text("SELECT * FROM usuarios WHERE id = :id"), 
         {'id': id}
@@ -94,12 +161,10 @@ def get_usuario(id):
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'correo': usuario.correo,
-        'nombres': usuario.nombres,
-        'apellidos': usuario.apellidos,
-        'cedula': usuario.cedula,
+        'descripcion': usuario.descripcion,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'correo': usuario.correo,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
@@ -109,43 +174,48 @@ def get_usuario(id):
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['PUT'])
 def update_usuario(id):
+    """Actualizar usuario
+    ---
+    tags:
+      - Usuarios
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            institucion_id: {type: integer}
+            usuario: {type: string}
+            clave: {type: string}
+            descripcion: {type: string}
+            celular: {type: string}
+            correo: {type: string}
+            activo: {type: boolean}
+            aprobado: {type: boolean}
+            modificador: {type: string}
+    responses:
+      200:
+        description: Usuario actualizado
+      404:
+        description: No encontrado
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
-    # Construir query dinámicamente
     update_fields = []
     params = {'id': id, 'modificador': data.get('modificador', 'Sistema'), 'modificacion': now}
     
-    if 'institucion_id' in data:
-        update_fields.append('institucion_id = :institucion_id')
-        params['institucion_id'] = data['institucion_id']
-    if 'usuario' in data:
-        update_fields.append('usuario = :usuario')
-        params['usuario'] = data['usuario']
-    if 'correo' in data:
-        update_fields.append('correo = :correo')
-        params['correo'] = data['correo']
-    if 'nombres' in data:
-        update_fields.append('nombres = :nombres')
-        params['nombres'] = data['nombres']
-    if 'apellidos' in data:
-        update_fields.append('apellidos = :apellidos')
-        params['apellidos'] = data['apellidos']
-    if 'cedula' in data:
-        update_fields.append('cedula = :cedula')
-        params['cedula'] = data['cedula']
-    if 'celular' in data:
-        update_fields.append('celular = :celular')
-        params['celular'] = data['celular']
-    if 'estado' in data:
-        update_fields.append('estado = :estado')
-        params['estado'] = data['estado']
-    if 'aprobado' in data:
-        update_fields.append('aprobado = :aprobado')
-        params['aprobado'] = data['aprobado']
-    if 'contrasena' in data:
-        update_fields.append('contrasena = :contrasena')
-        params['contrasena'] = data['contrasena']
+    for field in ['institucion_id','usuario','clave','descripcion','celular','correo','activo','aprobado']:
+        if field in data:
+            update_fields.append(f"{field} = :{field}")
+            params[field] = data[field]
     
     update_fields.append('modificador = :modificador')
     update_fields.append('modificacion = :modificacion')
@@ -172,12 +242,10 @@ def update_usuario(id):
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'correo': usuario.correo,
-        'nombres': usuario.nombres,
-        'apellidos': usuario.apellidos,
-        'cedula': usuario.cedula,
+        'descripcion': usuario.descripcion,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'correo': usuario.correo,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
@@ -187,6 +255,21 @@ def update_usuario(id):
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['DELETE'])
 def delete_usuario(id):
+    """Eliminar usuario
+    ---
+    tags:
+      - Usuarios
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado
+      404:
+        description: No encontrado
+    """
     result = db.session.execute(
         db.text("DELETE FROM usuarios WHERE id = :id"), 
         {'id': id}

@@ -10,10 +10,11 @@ def get_mesas():
     for row in result:
         mesas.append({
             'id': row.id,
+            'coe_id': row.coe_id,
+            'mesa_grupo_id': row.mesa_grupo_id,
             'nombre': row.nombre,
             'siglas': row.siglas,
-            'tipo_id': row.tipo_id,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -27,16 +28,17 @@ def create_mesa():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO mesas (nombre, siglas, tipo_id, estado, creador, creacion, modificador, modificacion)
-        VALUES (:nombre, :siglas, :tipo_id, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO mesas (coe_id, mesa_grupo_id, nombre, siglas, activo, creador, creacion, modificador, modificacion)
+        VALUES (:coe_id, :mesa_grupo_id, :nombre, :siglas, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
+        'coe_id': data['coe_id'],
+        'mesa_grupo_id': data['mesa_grupo_id'],
         'nombre': data['nombre'],
-        'siglas': data.get('siglas', ''),
-        'tipo_id': data.get('tipo_id'),
-        'estado': data.get('estado', 'Activo'),
+        'siglas': data['siglas'],
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -53,10 +55,11 @@ def create_mesa():
     
     return jsonify({
         'id': mesa.id,
+        'coe_id': mesa.coe_id,
+        'mesa_grupo_id': mesa.mesa_grupo_id,
         'nombre': mesa.nombre,
         'siglas': mesa.siglas,
-        'tipo_id': mesa.tipo_id,
-        'estado': mesa.estado,
+        'activo': mesa.activo,
         'creador': mesa.creador,
         'creacion': mesa.creacion.isoformat() if mesa.creacion else None,
         'modificador': mesa.modificador,
@@ -76,10 +79,11 @@ def get_mesa(id):
     
     return jsonify({
         'id': mesa.id,
+        'coe_id': mesa.coe_id,
+        'mesa_grupo_id': mesa.mesa_grupo_id,
         'nombre': mesa.nombre,
         'siglas': mesa.siglas,
-        'tipo_id': mesa.tipo_id,
-        'estado': mesa.estado,
+        'activo': mesa.activo,
         'creador': mesa.creador,
         'creacion': mesa.creacion.isoformat() if mesa.creacion else None,
         'modificador': mesa.modificador,
@@ -93,10 +97,11 @@ def update_mesa(id):
     
     query = db.text("""
         UPDATE mesas 
-        SET nombre = :nombre, 
+        SET coe_id = :coe_id, 
+            mesa_grupo_id = :mesa_grupo_id, 
+            nombre = :nombre, 
             siglas = :siglas, 
-            tipo_id = :tipo_id, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -104,10 +109,11 @@ def update_mesa(id):
     
     result = db.session.execute(query, {
         'id': id,
+        'coe_id': data.get('coe_id'),
+        'mesa_grupo_id': data.get('mesa_grupo_id'),
         'nombre': data.get('nombre'),
         'siglas': data.get('siglas'),
-        'tipo_id': data.get('tipo_id'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -124,10 +130,11 @@ def update_mesa(id):
     
     return jsonify({
         'id': mesa.id,
+        'coe_id': mesa.coe_id,
+        'mesa_grupo_id': mesa.mesa_grupo_id,
         'nombre': mesa.nombre,
         'siglas': mesa.siglas,
-        'tipo_id': mesa.tipo_id,
-        'estado': mesa.estado,
+        'activo': mesa.activo,
         'creador': mesa.creador,
         'creacion': mesa.creacion.isoformat() if mesa.creacion else None,
         'modificador': mesa.modificador,

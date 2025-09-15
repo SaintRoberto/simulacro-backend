@@ -15,7 +15,7 @@ def get_parroquias():
             'dpa': row.dpa,
             'nombre': row.nombre,
             'abreviatura': row.abreviatura,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -29,18 +29,18 @@ def create_parroquia():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO parroquias (provincia_id, canton_id, dpa, nombre, abreviatura, estado, creador, creacion, modificador, modificacion)
-        VALUES (:provincia_id, :canton_id, :dpa, :nombre, :abreviatura, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO parroquias (provincia_id, canton_id, dpa, nombre, abreviatura, activo, creador, creacion, modificador, modificacion)
+        VALUES (:provincia_id, :canton_id, :dpa, :nombre, :abreviatura, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'provincia_id': data['provincia_id'],
         'canton_id': data['canton_id'],
-        'dpa': data['dpa'],
+        'dpa': data.get('dpa'),
         'nombre': data['nombre'],
-        'abreviatura': data.get('abreviatura', ''),
-        'estado': data.get('estado', 'Activo'),
+        'abreviatura': data.get('abreviatura'),
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
         'modificador': data.get('creador', 'Sistema'),
@@ -62,7 +62,7 @@ def create_parroquia():
         'dpa': parroquia.dpa,
         'nombre': parroquia.nombre,
         'abreviatura': parroquia.abreviatura,
-        'estado': parroquia.estado,
+        'activo': parroquia.activo,
         'creador': parroquia.creador,
         'creacion': parroquia.creacion.isoformat() if parroquia.creacion else None,
         'modificador': parroquia.modificador,
@@ -87,7 +87,7 @@ def get_parroquia(id):
         'dpa': parroquia.dpa,
         'nombre': parroquia.nombre,
         'abreviatura': parroquia.abreviatura,
-        'estado': parroquia.estado,
+        'activo': parroquia.activo,
         'creador': parroquia.creador,
         'creacion': parroquia.creacion.isoformat() if parroquia.creacion else None,
         'modificador': parroquia.modificador,
@@ -106,7 +106,7 @@ def update_parroquia(id):
             dpa = :dpa, 
             nombre = :nombre, 
             abreviatura = :abreviatura, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -119,7 +119,7 @@ def update_parroquia(id):
         'dpa': data.get('dpa'),
         'nombre': data.get('nombre'),
         'abreviatura': data.get('abreviatura'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -141,7 +141,7 @@ def update_parroquia(id):
         'dpa': parroquia.dpa,
         'nombre': parroquia.nombre,
         'abreviatura': parroquia.abreviatura,
-        'estado': parroquia.estado,
+        'activo': parroquia.activo,
         'creador': parroquia.creador,
         'creacion': parroquia.creacion.isoformat() if parroquia.creacion else None,
         'modificador': parroquia.modificador,
