@@ -90,6 +90,92 @@ def get_mesa(id):
         'modificacion': mesa.modificacion.isoformat() if mesa.modificacion else None
     })
 
+
+@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>', methods=['GET'])
+def get_mesa_lista(coe_id, mesa_id):
+    """
+    Obtener lista de mesas por COE y mesa específica
+    ---
+    tags:
+      - Mesas
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+        description: ID COE
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+        description: ID mesa
+    responses:
+      200:
+        description: Lista de mesas obtenida exitosamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              coe_id:
+                type: integer
+                description: ID del COE
+              siglas:
+                type: string
+                description: Siglas del COE
+              mesa_id:
+                type: integer
+                description: ID de la mesa
+              mesa_nombre:
+                type: string
+                description: Nombre de la mesa
+              mesa_siglas:
+                type: string
+                description: Siglas de la mesa
+        examples:
+          application/json: [
+            {
+              "coe_id": 1,
+              "siglas": "COE-01",
+              "mesa_id": 2,
+              "mesa_nombre": "Mesa de Comunicación",
+              "mesa_siglas": "COM"
+            }
+          ]
+      404:
+        description: Lista de mesa no encontrada
+        examples:
+          application/json: {"error": "listaod de mesa no encontrada"}
+    """
+    result = db.session.execute(
+        db.text("""SELECT m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas 
+                    FROM public.mesas m
+                    INNER JOIN public.coes c ON m.coe_id = c.id
+                    WHERE m.coe_id = :coe_id
+                    AND m.id <> :mesa_id
+                    UNION 
+                    SELECT m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
+                    FROM public.mesas m1
+                    INNER JOIN public.coes c1 ON m1.coe_id = c1.id
+                    WHERE m1.coe_id = (:coe_id-1)
+                    AND m1.id = :mesa_id"""), 
+        {'coe_id': coe_id, 'mesa_id': mesa_id}
+    )
+    mesas = []
+    if not result:
+        return jsonify({'error': 'listaod de mesa no encontrada'}), 404
+    for row in result:     
+        mesas.append({
+            'coe_id': row.coe_id,
+            'siglas': row.siglas,
+            'mesa_id': row.mesa_id,
+            'mesa_nombre': row.mesa_nombre,
+            'mesa_siglas': row.mesa_siglas,
+        })
+    return jsonify(mesas)
+
+    
+
 @mesas_bp.route('/api/mesas/<int:id>', methods=['PUT'])
 def update_mesa(id):
     data = request.get_json()
