@@ -91,8 +91,8 @@ def get_mesa(id):
     })
 
 
-@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>', methods=['GET'])
-def get_mesa_lista(coe_id, mesa_id):
+@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>/<int:mesa_grupo_id>', methods=['GET'])
+def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
     """
     Obtener lista de mesas por COE y mesa específica
     ---
@@ -109,6 +109,11 @@ def get_mesa_lista(coe_id, mesa_id):
         type: integer
         required: true
         description: ID mesa
+      - name: mesa_grupo_id
+        in: path
+        type: integer
+        required: true
+        description: ID grupo de mesa
     responses:
       200:
         description: Lista de mesas obtenida exitosamente
@@ -147,20 +152,21 @@ def get_mesa_lista(coe_id, mesa_id):
         examples:
           application/json: {"error": "listaod de mesa no encontrada"}
     """
-    result = db.session.execute(
-        db.text("""SELECT m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas 
-                    FROM public.mesas m
-                    INNER JOIN public.coes c ON m.coe_id = c.id
-                    WHERE m.coe_id = :coe_id
-                    AND m.id <> :mesa_id
-                    UNION 
-                    SELECT m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
-                    FROM public.mesas m1
-                    INNER JOIN public.coes c1 ON m1.coe_id = c1.id
-                    WHERE m1.coe_id = (:coe_id-1)
-                    AND m1.id = :mesa_id"""), 
-        {'coe_id': coe_id, 'mesa_id': mesa_id}
-    )
+    params = {'coe_id': coe_id, 'mesa_id': mesa_id, 'mesa_grupo_id': mesa_grupo_id}
+    query = db.text("""SELECT m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
+                        FROM public.mesas m
+                        INNER JOIN public.coes c ON m.coe_id = c.id
+                        WHERE m.coe_id = :coe_id
+                        AND m.id <> :mesa_id
+                        UNION
+                        SELECT m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
+                        FROM public.mesas m1
+                        INNER JOIN public.coes c1 ON m1.coe_id = c1.id
+                        WHERE m1.coe_id = (:coe_id - 1)
+                        AND m1.mesa_grupo_id = :mesa_grupo_id""")
+    # Debug: print the compiled query with substituted parameters
+  
+    result = db.session.execute(query, params)
     mesas = []
     if not result:
         return jsonify({'error': 'listaod de mesa no encontrada'}), 404
