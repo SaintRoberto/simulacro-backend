@@ -280,3 +280,108 @@ def delete_usuario(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Usuario eliminado correctamente'})
+
+@usuarios_bp.route('/api/usuarios/<int:usuario_id>/datos-login', methods=['GET'])
+def get_datos_login(usuario_id):
+    """Obtener datos de login por usuario ID
+    ---
+    tags:
+      - Usuarios
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Datos de login
+      404:
+        description: No encontrado
+    """
+    query = db.text("""
+        SELECT
+            nick_name,
+            usuario_id,
+            usuario_nombre,
+            nivel_coe,
+            coe_abreviatura,
+            perfil_id,
+            perfil_nombre,
+            provincia_id,
+            provincia_nombre,
+            canton_id,
+            canton_nombre,
+            mesa_id,
+            mesa_nombre,
+            mesa_siglas
+        FROM
+            VW_DATOS_LOGIN
+        WHERE usuario_id = :usuario_id
+    """)
+    result = db.session.execute(query, {'usuario_id': usuario_id})
+    row = result.fetchone()
+    if not row:
+        return jsonify({'error': 'Datos de login no encontrados'}), 404
+    return jsonify({
+        'nick_name': row.nick_name,
+        'usuario_id': row.usuario_id,
+        'usuario_nombre': row.usuario_nombre, 
+        'nivel_coe': row.nivel_coe,
+        'coe_abreviatura': row.coe_abreviatura,
+        'perfil_id': row.perfil_id,
+        'perfil_nombre': row.perfil_nombre,
+        'provincia_id': row.provincia_id,
+        'provincia_nombre': row.provincia_nombre,
+        'canton_id': row.canton_id,
+        'canton_nombre': row.canton_nombre,
+        'mesa_id': row.mesa_id,
+        'mesa_nombre': row.mesa_nombre,
+        'mesa_siglas': row.mesa_siglas
+    })
+
+@usuarios_bp.route('/api/usuarios/login', methods=['POST'])
+def login_usuario():
+    """Validar usuario y contraseña
+    ---
+    tags:
+      - Usuarios
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [usuario, clave]
+          properties:
+            usuario: {type: string}
+            clave: {type: string}
+    responses:
+      200:
+        description: Status de login
+        schema:
+          type: object
+          properties:
+            success: {type: boolean}
+      400:
+        description: Datos faltantes
+    """
+    data = request.get_json()
+    if not data or 'usuario' not in data or 'clave' not in data:
+        return jsonify({'error': 'Usuario y clave requeridos'}), 400
+
+    # Validar credenciales en tabla usuarios
+    query_usuario = db.text("""
+        SELECT id
+        FROM usuarios
+        WHERE usuario = :usuario AND clave = :clave AND activo = true
+    """)
+    result_usuario = db.session.execute(query_usuario, {
+        'usuario': data['usuario'],
+        'clave': data['clave']
+    })
+    usuario_row = result_usuario.fetchone()
+
+    success = usuario_row is not None
+    return jsonify({'success': success}), 200
