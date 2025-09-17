@@ -266,7 +266,7 @@ def get_recurso_tipos_by_grupo(grupo_id):
               descripcion: {type: string} 
     """
     params = {'grupo_id': grupo_id}
-    query = db.text("""SELECT * FROM recurso_tipos WHERE recurso_grupo_id = :grupo_id""")
+    query = db.text("""SELECT id, nombre, descripcion, costo, complemento FROM recurso_tipos WHERE recurso_grupo_id = :grupo_id""")
     result = db.session.execute(query, params)
     tipos = []
     if not result:
@@ -275,6 +275,8 @@ def get_recurso_tipos_by_grupo(grupo_id):
         tipos.append({
             'id': row.id,
             'nombre': row.nombre,
-            'descripcion': row.descripcion
+            'descripcion': row.descripcion,
+            'costo': row.costo,
+            'complemento': row.complemento
         })
     return jsonify(tipos) 
