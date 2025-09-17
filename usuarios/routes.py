@@ -313,7 +313,9 @@ def get_datos_login(usuario_id):
             canton_nombre,
             mesa_id,
             mesa_nombre,
-            mesa_siglas
+            mesa_siglas,
+            mesa_grupo_id,
+            mesa_grupo_nombre
         FROM
             VW_DATOS_LOGIN
         WHERE usuario_id = :usuario_id
@@ -336,7 +338,9 @@ def get_datos_login(usuario_id):
         'canton_nombre': row.canton_nombre,
         'mesa_id': row.mesa_id,
         'mesa_nombre': row.mesa_nombre,
-        'mesa_siglas': row.mesa_siglas
+        'mesa_siglas': row.mesa_siglas,
+        'mesa_grupo_id': row.mesa_grupo_id,
+        'mesa_grupo_nombre': row.mesa_grupo_nombre
     })
 
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
