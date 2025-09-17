@@ -19,10 +19,11 @@ def get_requerimiento_recursos():
             properties:
               id: {type: integer}
               requerimiento_id: {type: integer}
-              recurso_humano_id: {type: integer}
-              recurso_material_id: {type: integer}
-              cantidad_asignada: {type: integer}
-              observaciones: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              cantidad: {type: integer}
+              especificaciones: {type: string}
+              destino: {type: string}
               activo: {type: boolean}
               creador: {type: string}
               creacion: {type: string}
@@ -35,10 +36,11 @@ def get_requerimiento_recursos():
         relaciones.append({
             'id': row.id,
             'requerimiento_id': row.requerimiento_id,
-            'recurso_humano_id': row.recurso_humano_id,
-            'recurso_material_id': row.recurso_material_id,
-            'cantidad_asignada': row.cantidad_asignada,
-            'observaciones': row.observaciones,
+            'recurso_grupo_id': row.recurso_grupo_id,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'cantidad': row.cantidad,
+            'especificaciones': row.especificaciones,
+            'destino': row.destino,
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -61,13 +63,14 @@ def create_requerimiento_recurso():
         required: true
         schema:
           type: object
-          required: [requerimiento_id]
+          required: [requerimiento_id, recurso_grupo_id, recurso_tipo_id]
           properties:
             requerimiento_id: {type: integer}
-            recurso_humano_id: {type: integer}
-            recurso_material_id: {type: integer}
-            cantidad_asignada: {type: integer}
-            observaciones: {type: string}
+            recurso_grupo_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            cantidad: {type: integer}
+            especificaciones: {type: string}
+            destino: {type: string}
             activo: {type: boolean}
             creador: {type: string}
     responses:
@@ -79,22 +82,23 @@ def create_requerimiento_recurso():
     
     query = db.text("""
         INSERT INTO requerimiento_recursos (
-            requerimiento_id, recurso_humano_id, recurso_material_id, cantidad_asignada,
-            observaciones, activo, creador, creacion, modificador, modificacion
+            requerimiento_id, recurso_grupo_id, recurso_tipo_id, cantidad,
+            especificaciones, destino, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :requerimiento_id, :recurso_humano_id, :recurso_material_id, :cantidad_asignada,
-            :observaciones, :activo, :creador, :creacion, :modificador, :modificacion
+            :requerimiento_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad,
+            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'requerimiento_id': data['requerimiento_id'],
-        'recurso_humano_id': data.get('recurso_humano_id'),
-        'recurso_material_id': data.get('recurso_material_id'),
-        'cantidad_asignada': data.get('cantidad_asignada', 0),
-        'observaciones': data.get('observaciones'),
+        'recurso_grupo_id': data['recurso_grupo_id'],
+        'recurso_tipo_id': data['recurso_tipo_id'],
+        'cantidad': data.get('cantidad', 1),
+        'especificaciones': data.get('especificaciones'),
+        'destino': data.get('destino'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -113,10 +117,11 @@ def create_requerimiento_recurso():
     return jsonify({
         'id': relacion.id,
         'requerimiento_id': relacion.requerimiento_id,
-        'recurso_humano_id': relacion.recurso_humano_id,
-        'recurso_material_id': relacion.recurso_material_id,
-        'cantidad_asignada': relacion.cantidad_asignada,
-        'observaciones': relacion.observaciones,
+        'recurso_grupo_id': relacion.recurso_grupo_id,
+        'recurso_tipo_id': relacion.recurso_tipo_id,
+        'cantidad': relacion.cantidad,
+        'especificaciones': relacion.especificaciones,
+        'destino': relacion.destino,
         'activo': relacion.activo,
         'creador': relacion.creador,
         'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
@@ -153,10 +158,11 @@ def get_requerimiento_recurso(id):
     return jsonify({
         'id': relacion.id,
         'requerimiento_id': relacion.requerimiento_id,
-        'recurso_humano_id': relacion.recurso_humano_id,
-        'recurso_material_id': relacion.recurso_material_id,
-        'cantidad_asignada': relacion.cantidad_asignada,
-        'observaciones': relacion.observaciones,
+        'recurso_grupo_id': relacion.recurso_grupo_id,
+        'recurso_tipo_id': relacion.recurso_tipo_id,
+        'cantidad': relacion.cantidad,
+        'especificaciones': relacion.especificaciones,
+        'destino': relacion.destino,
         'activo': relacion.activo,
         'creador': relacion.creador,
         'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
@@ -184,10 +190,11 @@ def update_requerimiento_recurso(id):
           type: object
           properties:
             requerimiento_id: {type: integer}
-            recurso_humano_id: {type: integer}
-            recurso_material_id: {type: integer}
-            cantidad_asignada: {type: integer}
-            observaciones: {type: string}
+            recurso_grupo_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            cantidad: {type: integer}
+            especificaciones: {type: string}
+            destino: {type: string}
             activo: {type: boolean}
             modificador: {type: string}
     responses:
@@ -202,10 +209,11 @@ def update_requerimiento_recurso(id):
     query = db.text("""
         UPDATE requerimiento_recursos 
         SET requerimiento_id = :requerimiento_id, 
-            recurso_humano_id = :recurso_humano_id, 
-            recurso_material_id = :recurso_material_id, 
-            cantidad_asignada = :cantidad_asignada, 
-            observaciones = :observaciones, 
+            recurso_grupo_id = :recurso_grupo_id, 
+            recurso_tipo_id = :recurso_tipo_id, 
+            cantidad = :cantidad, 
+            especificaciones = :especificaciones, 
+            destino = :destino, 
             activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
@@ -215,10 +223,11 @@ def update_requerimiento_recurso(id):
     result = db.session.execute(query, {
         'id': id,
         'requerimiento_id': data.get('requerimiento_id'),
-        'recurso_humano_id': data.get('recurso_humano_id'),
-        'recurso_material_id': data.get('recurso_material_id'),
-        'cantidad_asignada': data.get('cantidad_asignada'),
-        'observaciones': data.get('observaciones'),
+        'recurso_grupo_id': data.get('recurso_grupo_id'),
+        'recurso_tipo_id': data.get('recurso_tipo_id'),
+        'cantidad': data.get('cantidad'),
+        'especificaciones': data.get('especificaciones'),
+        'destino': data.get('destino'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
@@ -237,10 +246,11 @@ def update_requerimiento_recurso(id):
     return jsonify({
         'id': relacion.id,
         'requerimiento_id': relacion.requerimiento_id,
-        'recurso_humano_id': relacion.recurso_humano_id,
-        'recurso_material_id': relacion.recurso_material_id,
-        'cantidad_asignada': relacion.cantidad_asignada,
-        'observaciones': relacion.observaciones,
+        'recurso_grupo_id': relacion.recurso_grupo_id,
+        'recurso_tipo_id': relacion.recurso_tipo_id,
+        'cantidad': relacion.cantidad,
+        'especificaciones': relacion.especificaciones,
+        'destino': relacion.destino,
         'activo': relacion.activo,
         'creador': relacion.creador,
         'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
