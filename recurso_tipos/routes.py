@@ -263,7 +263,9 @@ def get_recurso_tipos_by_grupo(grupo_id):
             properties:
               id: {type: integer}
               nombre: {type: string}
-              descripcion: {type: string} 
+              descripcion: {type: string}
+              costo: {type: string}
+              complemento: {type: string}
     """
     params = {'grupo_id': grupo_id}
     query = db.text("""SELECT id, nombre, descripcion, costo, complemento FROM recurso_tipos WHERE recurso_grupo_id = :grupo_id""")
