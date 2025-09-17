@@ -3,8 +3,8 @@ from requerimientos import requerimientos_bp
 from models import db
 from datetime import datetime, timezone
 
-@requerimientos_bp.route('/api/requerimientos', methods=['GET'])
-def get_requerimientos():
+@requerimientos_bp.route('/api/requerimientos/<int:usuario_id>', methods=['GET'])
+def get_requerimientos(usuario_id):
     """Listar requerimientos
     ---
     tags:
@@ -32,7 +32,9 @@ def get_requerimientos():
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM requerimientos"))
+    result = db.session.execute(db.text("SELECT * FROM requerimientos WHERE usuario_id = :usuario_id"), 
+    {'usuario_id': usuario_id}
+    )
     requerimientos = []
     for row in result:
         requerimientos.append({

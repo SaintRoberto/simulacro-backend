@@ -302,7 +302,7 @@ def get_datos_login(usuario_id):
         SELECT
             nick_name,
             usuario_id,
-            usuario_nombre,
+            usuario_descripcion,
             nivel_coe,
             coe_abreviatura,
             perfil_id,
@@ -325,7 +325,7 @@ def get_datos_login(usuario_id):
     return jsonify({
         'nick_name': row.nick_name,
         'usuario_id': row.usuario_id,
-        'usuario_nombre': row.usuario_nombre, 
+        'usuario_descripcion': row.usuario_descripcion, 
         'nivel_coe': row.nivel_coe,
         'coe_abreviatura': row.coe_abreviatura,
         'perfil_id': row.perfil_id,

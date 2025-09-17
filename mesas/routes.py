@@ -90,11 +90,10 @@ def get_mesa(id):
         'modificacion': mesa.modificacion.isoformat() if mesa.modificacion else None
     })
 
-
 @mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>/<int:mesa_grupo_id>', methods=['GET'])
 def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
     """
-    Obtener lista de mesas por COE y mesa específica
+    Obtener lista de mesas receptoras en función de la mesa actual
     ---
     tags:
       - Mesas
@@ -116,7 +115,7 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
         description: ID grupo de mesa
     responses:
       200:
-        description: Lista de mesas obtenida exitosamente
+        description: Lista de mesas receptoras obtenida exitosamente
         schema:
           type: array
           items:
@@ -148,9 +147,9 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
             }
           ]
       404:
-        description: Lista de mesa no encontrada
+        description: Lista de mesa receptoras no encontrada
         examples:
-          application/json: {"error": "listaod de mesa no encontrada"}
+          application/json: {"error": "listado de mesa receptoras no encontrada"}
     """
     params = {'coe_id': coe_id, 'mesa_id': mesa_id, 'mesa_grupo_id': mesa_grupo_id}
     query = db.text("""SELECT m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
@@ -169,7 +168,7 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
     result = db.session.execute(query, params)
     mesas = []
     if not result:
-        return jsonify({'error': 'listaod de mesa no encontrada'}), 404
+        return jsonify({'error': 'listado de mesa receptoras no encontrada'}), 404
     for row in result:     
         mesas.append({
             'coe_id': row.coe_id,
@@ -179,9 +178,7 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
             'mesa_siglas': row.mesa_siglas,
         })
     return jsonify(mesas)
-
-    
-
+  
 @mesas_bp.route('/api/mesas/<int:id>', methods=['PUT'])
 def update_mesa(id):
     data = request.get_json()
