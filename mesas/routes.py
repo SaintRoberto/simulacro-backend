@@ -166,6 +166,17 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
           application/json: {"error": "listado de mesa receptoras no encontrada"}
     """
     params = {'coe_id': coe_id, 'mesa_id': mesa_id, 'mesa_grupo_id': mesa_grupo_id, 'provincia_id': provincia_id, 'canton_id': canton_id}
+    
+    # Add separate params for UNION part validation
+    level = coe_id - 1
+    params['provincia_id2'] = provincia_id
+    params['canton_id2'] = canton_id
+    if level == 1:  # nacional
+        params['provincia_id2'] = 0
+        params['canton_id2'] = 0
+    elif level == 2:  # provincial
+        params['canton_id2'] = 0
+    
     query = db.text("""SELECT ux.usuario_id, m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
       FROM public.mesas m
       INNER JOIN public.coes c ON m.coe_id = c.id
@@ -178,8 +189,8 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
       FROM public.mesas m1
       INNER JOIN public.coes c1 ON m1.coe_id = c1.id
       INNER JOIN public.usuario_perfil_coe_dpa_mesa ux1 ON m1.coe_id = ux1.coe_id AND m1.id = ux1.mesa_id 
-      AND (ux1.provincia_id = :provincia_id OR :provincia_id = 0) AND (ux1.canton_id = :canton_id OR :canton_id = 0)
-      WHERE m1.coe_id = (:mesa_id - 1)
+      AND (ux1.provincia_id = :provincia_id2 OR :provincia_id2 = 0) AND (ux1.canton_id = :canton_id2 OR :canton_id2 = 0)
+      WHERE m1.coe_id = (:coe_id - 1)
       AND m1.mesa_grupo_id = :mesa_grupo_id""")
 
     # Debug: print the compiled query with substituted parameters
