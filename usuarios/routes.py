@@ -300,10 +300,10 @@ def get_datos_login(usuario_id):
     """
     query = db.text("""
         SELECT
-            nick_name,
+            usuario_login,
             usuario_id,
             usuario_descripcion,
-            nivel_coe,
+            coe_id,
             coe_abreviatura,
             perfil_id,
             perfil_nombre,
@@ -325,10 +325,10 @@ def get_datos_login(usuario_id):
     if not row:
         return jsonify({'error': 'Datos de login no encontrados'}), 404
     return jsonify({
-        'nick_name': row.nick_name,
+        'usuario_login': row.usuario_login,
         'usuario_id': row.usuario_id,
         'usuario_descripcion': row.usuario_descripcion, 
-        'nivel_coe': row.nivel_coe,
+        'coe_id': row.coe_id,
         'coe_abreviatura': row.coe_abreviatura,
         'perfil_id': row.perfil_id,
         'perfil_nombre': row.perfil_nombre,
