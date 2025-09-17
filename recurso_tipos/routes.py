@@ -241,3 +241,40 @@ def delete_recurso_tipo(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Tipo eliminado correctamente'})
+
+@recurso_tipos_bp.route('/api/recurso-tipos/grupo/<int:grupo_id>', methods=['GET'])
+def get_recurso_tipos_by_grupo(grupo_id):
+    """Obtener tipos de recursos por el grupo de recursos seleccionado
+    ---
+    tags:
+      - Recurso Tipos
+    parameters:
+      - name: grupo_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Tipos de recursos por el grupo de recursos seleccionado 
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string} 
+    """
+    params = {'grupo_id': grupo_id}
+    query = db.text("""SELECT * FROM recurso_tipos WHERE recurso_grupo_id = :grupo_id""")
+    result = db.session.execute(query, params)
+    tipos = []
+    if not result:
+        return jsonify({'error': 'Tipos de recursos por el grupo de recursos seleccionado no encontrados'}), 404
+    for row in result:
+        tipos.append({
+            'id': row.id,
+            'nombre': row.nombre,
+            'descripcion': row.descripcion
+        })
+    return jsonify(tipos) 
