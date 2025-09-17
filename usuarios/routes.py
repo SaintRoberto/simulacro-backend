@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, make_response
 from usuarios import usuarios_bp
 from models import db
 from datetime import datetime, timezone
@@ -343,6 +343,14 @@ def get_datos_login(usuario_id):
         'mesa_grupo_nombre': row.mesa_grupo_nombre
     })
 
+@usuarios_bp.route('/api/usuarios/login', methods=['OPTIONS'])
+def login_options():
+    response = make_response()
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
+
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
 def login_usuario():
     """Validar usuario y contraseña
@@ -373,11 +381,13 @@ def login_usuario():
     """
     data = request.get_json()
     if not data or 'usuario' not in data or 'clave' not in data:
-        return jsonify({'error': 'Usuario y clave requeridos'}), 400
+        response = jsonify({'error': 'Usuario y clave requeridos'})
+        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+        return response, 400
 
     # Validar credenciales en tabla usuarios
     query_usuario = db.text("""
-        SELECT id
+        SELECT id, usuario, descripcion
         FROM usuarios
         WHERE usuario = :usuario AND clave = :clave AND activo = true
     """)
@@ -388,4 +398,9 @@ def login_usuario():
     usuario_row = result_usuario.fetchone()
 
     success = usuario_row is not None
-    return jsonify({'success': success}), 200
+    response = jsonify({'success': success, 
+    'id': usuario_row.id,
+    'usuario': usuario_row.usuario,
+    'descripcion': usuario_row.descripcion})
+    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+    return response, 200

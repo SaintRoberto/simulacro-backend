@@ -2,8 +2,10 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from config import DATABASE_URL
 from flasgger import Swagger
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000"])
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
