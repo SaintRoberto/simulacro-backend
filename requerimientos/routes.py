@@ -19,20 +19,17 @@ def get_requerimientos(usuario_id):
             properties:
               id: {type: integer}
               emergencia_id: {type: integer}
-              mesa_id: {type: integer}
-              institucion_id: {type: integer}
-              descripcion: {type: string}
-              cantidad_solicitada: {type: integer}
-              cantidad_aprobada: {type: integer}
-              cantidad_entregada: {type: integer}
-              observaciones: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_receptor_id: {type: integer}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
               activo: {type: boolean}
               creador: {type: string}
               creacion: {type: string}
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM requerimientos WHERE usuario_id = :usuario_id"), 
+    result = db.session.execute(db.text("SELECT * FROM requerimientos WHERE usuario_emisor_id = :usuario_id OR usuario_receptor_id = :usuario_id"), 
     {'usuario_id': usuario_id}
     )
     requerimientos = []
@@ -40,13 +37,10 @@ def get_requerimientos(usuario_id):
         requerimientos.append({
             'id': row.id,
             'emergencia_id': row.emergencia_id,
-            'mesa_id': row.mesa_id,
-            'institucion_id': row.institucion_id,
-            'descripcion': row.descripcion,
-            'cantidad_solicitada': row.cantidad_solicitada,
-            'cantidad_aprobada': row.cantidad_aprobada,
-            'cantidad_entregada': row.cantidad_entregada,
-            'observaciones': row.observaciones,
+            'usuario_emisor_id': row.usuario_emisor_id,
+            'usuario_receptor_id': row.usuario_receptor_id,
+            'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
+            'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -69,48 +63,54 @@ def create_requerimiento():
         required: true
         schema:
           type: object
-          required: [emergencia_id, mesa_id, institucion_id, descripcion]
+          required: [emergencia_id, usuario_emisor_id, usuario_receptor_id]
           properties:
             emergencia_id: {type: integer}
-            mesa_id: {type: integer}
-            institucion_id: {type: integer}
-            descripcion: {type: string}
-            cantidad_solicitada: {type: integer}
-            cantidad_aprobada: {type: integer}
-            cantidad_entregada: {type: integer}
-            observaciones: {type: string}
+            usuario_emisor_id: {type: integer}
+            usuario_receptor_id: {type: integer}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
             activo: {type: boolean}
             creador: {type: string}
     responses:
       201:
         description: Requerimiento creado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            usuario_emisor_id: {type: integer}
+            usuario_receptor_id: {type: integer}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
     query = db.text("""
         INSERT INTO requerimientos (
-            emergencia_id, mesa_id, institucion_id, descripcion, cantidad_solicitada,
-            cantidad_aprobada, cantidad_entregada, observaciones, activo,
-            creador, creacion, modificador, modificacion
+            emergencia_id, usuario_emisor_id, usuario_receptor_id, fecha_inicio,
+            fecha_fin, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :emergencia_id, :mesa_id, :institucion_id, :descripcion, :cantidad_solicitada,
-            :cantidad_aprobada, :cantidad_entregada, :observaciones, :activo,
-            :creador, :creacion, :modificador, :modificacion
+            :emergencia_id, :usuario_emisor_id, :usuario_receptor_id, :fecha_inicio,
+            :fecha_fin, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'emergencia_id': data['emergencia_id'],
-        'mesa_id': data['mesa_id'],
-        'institucion_id': data['institucion_id'],
-        'descripcion': data['descripcion'],
-        'cantidad_solicitada': data.get('cantidad_solicitada', 0),
-        'cantidad_aprobada': data.get('cantidad_aprobada', 0),
-        'cantidad_entregada': data.get('cantidad_entregada', 0),
-        'observaciones': data.get('observaciones'),
+        'usuario_emisor_id': data['usuario_emisor_id'],
+        'usuario_receptor_id': data['usuario_receptor_id'],
+        'fecha_inicio': data.get('fecha_inicio', now),
+        'fecha_fin': data.get('fecha_fin'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -129,13 +129,10 @@ def create_requerimiento():
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
-        'mesa_id': requerimiento.mesa_id,
-        'institucion_id': requerimiento.institucion_id,
-        'descripcion': requerimiento.descripcion,
-        'cantidad_solicitada': requerimiento.cantidad_solicitada,
-        'cantidad_aprobada': requerimiento.cantidad_aprobada,
-        'cantidad_entregada': requerimiento.cantidad_entregada,
-        'observaciones': requerimiento.observaciones,
+        'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'usuario_receptor_id': requerimiento.usuario_receptor_id,
+        'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
+        'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'activo': requerimiento.activo,
         'creador': requerimiento.creador,
         'creacion': requerimiento.creacion.isoformat() if requerimiento.creacion else None,
@@ -172,13 +169,10 @@ def get_requerimiento(id):
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
-        'mesa_id': requerimiento.mesa_id,
-        'institucion_id': requerimiento.institucion_id,
-        'descripcion': requerimiento.descripcion,
-        'cantidad_solicitada': requerimiento.cantidad_solicitada,
-        'cantidad_aprobada': requerimiento.cantidad_aprobada,
-        'cantidad_entregada': requerimiento.cantidad_entregada,
-        'observaciones': requerimiento.observaciones,
+        'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'usuario_receptor_id': requerimiento.usuario_receptor_id,
+        'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
+        'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'activo': requerimiento.activo,
         'creador': requerimiento.creador,
         'creacion': requerimiento.creacion.isoformat() if requerimiento.creacion else None,
@@ -206,13 +200,10 @@ def update_requerimiento(id):
           type: object
           properties:
             emergencia_id: {type: integer}
-            mesa_id: {type: integer}
-            institucion_id: {type: integer}
-            descripcion: {type: string}
-            cantidad_solicitada: {type: integer}
-            cantidad_aprobada: {type: integer}
-            cantidad_entregada: {type: integer}
-            observaciones: {type: string}
+            usuario_emisor_id: {type: integer}
+            usuario_receptor_id: {type: integer}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
             activo: {type: boolean}
             modificador: {type: string}
     responses:
@@ -227,13 +218,10 @@ def update_requerimiento(id):
     query = db.text("""
         UPDATE requerimientos 
         SET emergencia_id = :emergencia_id, 
-            mesa_id = :mesa_id, 
-            institucion_id = :institucion_id, 
-            descripcion = :descripcion, 
-            cantidad_solicitada = :cantidad_solicitada, 
-            cantidad_aprobada = :cantidad_aprobada, 
-            cantidad_entregada = :cantidad_entregada, 
-            observaciones = :observaciones, 
+            usuario_emisor_id = :usuario_emisor_id, 
+            usuario_receptor_id = :usuario_receptor_id, 
+            fecha_inicio = :fecha_inicio, 
+            fecha_fin = :fecha_fin, 
             activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
@@ -243,13 +231,10 @@ def update_requerimiento(id):
     result = db.session.execute(query, {
         'id': id,
         'emergencia_id': data.get('emergencia_id'),
-        'mesa_id': data.get('mesa_id'),
-        'institucion_id': data.get('institucion_id'),
-        'descripcion': data.get('descripcion'),
-        'cantidad_solicitada': data.get('cantidad_solicitada'),
-        'cantidad_aprobada': data.get('cantidad_aprobada'),
-        'cantidad_entregada': data.get('cantidad_entregada'),
-        'observaciones': data.get('observaciones'),
+        'usuario_emisor_id': data.get('usuario_emisor_id'),
+        'usuario_receptor_id': data.get('usuario_receptor_id'),
+        'fecha_inicio': data.get('fecha_inicio'),
+        'fecha_fin': data.get('fecha_fin'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
@@ -268,13 +253,10 @@ def update_requerimiento(id):
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
-        'mesa_id': requerimiento.mesa_id,
-        'institucion_id': requerimiento.institucion_id,
-        'descripcion': requerimiento.descripcion,
-        'cantidad_solicitada': requerimiento.cantidad_solicitada,
-        'cantidad_aprobada': requerimiento.cantidad_aprobada,
-        'cantidad_entregada': requerimiento.cantidad_entregada,
-        'observaciones': requerimiento.observaciones,
+        'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'usuario_receptor_id': requerimiento.usuario_receptor_id,
+        'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
+        'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'activo': requerimiento.activo,
         'creador': requerimiento.creador,
         'creacion': requerimiento.creacion.isoformat() if requerimiento.creacion else None,

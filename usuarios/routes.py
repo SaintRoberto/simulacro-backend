@@ -1,4 +1,4 @@
-from flask import request, jsonify, make_response
+from flask import request, jsonify
 from usuarios import usuarios_bp
 from models import db
 from datetime import datetime, timezone
@@ -343,13 +343,7 @@ def get_datos_login(usuario_id):
         'mesa_grupo_nombre': row.mesa_grupo_nombre
     })
 
-@usuarios_bp.route('/api/usuarios/login', methods=['OPTIONS'])
-def login_options():
-    response = make_response()
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-    return response
+# Las opciones CORS preflight son manejadas por la configuración global de CORS
 
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
 def login_usuario():
@@ -381,9 +375,7 @@ def login_usuario():
     """
     data = request.get_json()
     if not data or 'usuario' not in data or 'clave' not in data:
-        response = jsonify({'error': 'Usuario y clave requeridos'})
-        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-        return response, 400
+        return jsonify({'error': 'Usuario y clave requeridos'}), 400
 
     # Validar credenciales en tabla usuarios
     query_usuario = db.text("""
@@ -398,9 +390,7 @@ def login_usuario():
     usuario_row = result_usuario.fetchone()
 
     success = usuario_row is not None
-    response = jsonify({'success': success, 
-    'id': usuario_row.id,
-    'usuario': usuario_row.usuario,
-    'descripcion': usuario_row.descripcion})
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-    return response, 200
+    return jsonify({'success': success,
+    'id': usuario_row.id if usuario_row else None,
+    'usuario': usuario_row.usuario if usuario_row else None,
+    'descripcion': usuario_row.descripcion if usuario_row else None}), 200
