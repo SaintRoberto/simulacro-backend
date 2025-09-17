@@ -90,8 +90,8 @@ def get_mesa(id):
         'modificacion': mesa.modificacion.isoformat() if mesa.modificacion else None
     })
 
-@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>/<int:mesa_grupo_id>', methods=['GET'])
-def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
+@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>/<int:mesa_grupo_id>/<int:provincia_id>/<int:canton_id>', methods=['GET'])
+def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
     """
     Obtener lista de mesas receptoras en función de la mesa actual
     ---
@@ -113,6 +113,16 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
         type: integer
         required: true
         description: ID grupo de mesa
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la provincia
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+        description: ID del canton
     responses:
       200:
         description: Lista de mesas receptoras obtenida exitosamente
@@ -121,6 +131,9 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
           items:
             type: object
             properties:
+              usuario_id:
+                type: integer
+                description: ID del usuario
               coe_id:
                 type: integer
                 description: ID del COE
@@ -139,6 +152,7 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
         examples:
           application/json: [
             {
+              "usuario_id": 1,
               "coe_id": 1,
               "siglas": "COE-01",
               "mesa_id": 2,
@@ -151,18 +165,23 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
         examples:
           application/json: {"error": "listado de mesa receptoras no encontrada"}
     """
-    params = {'coe_id': coe_id, 'mesa_id': mesa_id, 'mesa_grupo_id': mesa_grupo_id}
-    query = db.text("""SELECT m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
-                        FROM public.mesas m
-                        INNER JOIN public.coes c ON m.coe_id = c.id
-                        WHERE m.coe_id = :coe_id
-                        AND m.id <> :mesa_id
-                        UNION
-                        SELECT m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
-                        FROM public.mesas m1
-                        INNER JOIN public.coes c1 ON m1.coe_id = c1.id
-                        WHERE m1.coe_id = (:coe_id - 1)
-                        AND m1.mesa_grupo_id = :mesa_grupo_id""")
+    params = {'coe_id': coe_id, 'mesa_id': mesa_id, 'mesa_grupo_id': mesa_grupo_id, 'provincia_id': provincia_id, 'canton_id': canton_id}
+    query = db.text("""SELECT ux.usuario_id, m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
+      FROM public.mesas m
+      INNER JOIN public.coes c ON m.coe_id = c.id
+      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON m.coe_id = ux.coe_id AND m.id = ux.mesa_id 
+      AND ux.provincia_id = :provincia_id AND ux.canton_id = :canton_id
+      WHERE m.coe_id = :coe_id
+      AND m.id <> :mesa_id
+      UNION 
+      SELECT ux1.usuario_id, m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
+      FROM public.mesas m1
+      INNER JOIN public.coes c1 ON m1.coe_id = c1.id
+      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux1 ON m1.coe_id = ux1.coe_id AND m1.id = ux1.mesa_id 
+      AND (ux1.provincia_id = :provincia_id OR :provincia_id = 0) AND (ux1.canton_id = :canton_id OR :canton_id = 0)
+      WHERE m1.coe_id = (:mesa_id - 1)
+      AND m1.mesa_grupo_id = :mesa_grupo_id""")
+
     # Debug: print the compiled query with substituted parameters
   
     result = db.session.execute(query, params)
@@ -171,6 +190,7 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id):
         return jsonify({'error': 'listado de mesa receptoras no encontrada'}), 404
     for row in result:     
         mesas.append({
+            'usuario_id': row.usuario_id,
             'coe_id': row.coe_id,
             'siglas': row.siglas,
             'mesa_id': row.mesa_id,
