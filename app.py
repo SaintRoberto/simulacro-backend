@@ -43,6 +43,7 @@ from requerimiento_recursos import requerimiento_recursos_bp
 from requerimiento_respuestas import requerimiento_respuestas_bp
 from respuestas_avances import respuestas_avances_bp
 from respuesta_estados import respuesta_estados_bp
+from requerimiento_estados import requerimiento_estados_bp
 from usuario_perfil import usuario_perfil_bp
 from perfil_menu import perfil_menu_bp
 
@@ -70,6 +71,7 @@ app.register_blueprint(requerimiento_recursos_bp)
 app.register_blueprint(requerimiento_respuestas_bp)
 app.register_blueprint(respuestas_avances_bp)
 app.register_blueprint(respuesta_estados_bp)
+app.register_blueprint(requerimiento_estados_bp)
 app.register_blueprint(usuario_perfil_bp)
 app.register_blueprint(perfil_menu_bp)
 
