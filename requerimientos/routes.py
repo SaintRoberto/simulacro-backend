@@ -9,6 +9,11 @@ def get_requerimientos(usuario_id):
     ---
     tags:
       - Requerimientos
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
     responses:
       200:
         description: Lista de requerimientos
@@ -29,23 +34,31 @@ def get_requerimientos(usuario_id):
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM requerimientos WHERE usuario_emisor_id = :usuario_id OR usuario_receptor_id = :usuario_id"), 
-    {'usuario_id': usuario_id}
-    )
+    params = {'usuario_id': usuario_id}
+    query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id, 
+        r.usuario_emisor_id, ue.usuario usuario_emisor,
+        r.usuario_receptor_id, ur.usuario usuario_receptor,
+        r.fecha_inicio, r.fecha_fin, r.activo
+        FROM public.requerimientos r
+        INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
+        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
+        WHERE r.usuario_emisor_id = :usuario_id""")
+
+    result = db.session.execute(query, params)
     requerimientos = []
+    if not result:
+        return jsonify({'error': 'Requerimientos no encontrados'}), 404
     for row in result:
         requerimientos.append({
-            'id': row.id,
             'emergencia_id': row.emergencia_id,
+            'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
+            'usuario_emisor': row.usuario_emisor,
             'usuario_receptor_id': row.usuario_receptor_id,
+            'usuario_receptor': row.usuario_receptor,
             'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
             'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+            'activo': row.activo
         })
     return jsonify(requerimientos)
 
