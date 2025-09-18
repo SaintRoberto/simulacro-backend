@@ -3,20 +3,20 @@ from requerimientos import requerimientos_bp
 from models import db
 from datetime import datetime, timezone
 
-@requerimientos_bp.route('/api/requerimientos/<int:usuario_id>', methods=['GET'])
-def get_requerimientos(usuario_id):
+@requerimientos_bp.route('/api/requerimientos/enviados/<int:usuario_emisor_id>', methods=['GET'])
+def get_requerimientos_enviados(usuario_emisor_id):
     """Listar requerimientos
     ---
     tags:
       - Requerimientos
     parameters:
-      - name: usuario_id
+      - name: usuario_emisor_id
         in: path
         type: integer
         required: true
     responses:
         200:
-          description: Lista de requerimientos
+          description: Lista de requerimientos enviados
         schema:
           type: array
           items:
@@ -36,7 +36,7 @@ def get_requerimientos(usuario_id):
               modificador: {type: string}
               modificacion: {type: string}
     """
-    params = {'usuario_id': usuario_id}
+    params = {'usuario_emisor_id': usuario_emisor_id}
     query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id, 
         r.usuario_emisor_id, ue.usuario usuario_emisor,
         r.usuario_receptor_id, ur.usuario usuario_receptor,
@@ -44,8 +44,70 @@ def get_requerimientos(usuario_id):
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
         INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
-        WHERE r.usuario_emisor_id = :usuario_id""")
+        WHERE r.usuario_emisor_id = :usuario_emisor_id""")
 
+    result = db.session.execute(query, params)
+    requerimientos = []
+    if not result:
+        return jsonify({'error': 'Requerimientos no encontrados'}), 404
+    for row in result:
+        requerimientos.append({
+            'emergencia_id': row.emergencia_id,
+            'requerimiento_id': row.requerimiento_id,
+            'usuario_emisor_id': row.usuario_emisor_id,
+            'usuario_emisor': row.usuario_emisor,
+            'usuario_receptor_id': row.usuario_receptor_id,
+            'usuario_receptor': row.usuario_receptor,
+            'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
+            'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
+            'porcentaje_avance': row.porcentaje_avance,
+            'requerimiento_estado_id': row.requerimiento_estado_id,
+            'activo': row.activo
+        })
+    return jsonify(requerimientos)
+
+@requerimientos_bp.route('/api/requerimientos/recibidos/<int:usuario_receptor_id>', methods=['GET'])
+def get_requerimientos_recibidos(usuario_receptor_id):
+    """Listar requerimientos recibidos
+    ---
+    tags:
+      - Requerimientos
+    parameters:
+      - name: usuario_receptor_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de requerimientos recibidos
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                emergencia_id: {type: integer}
+                usuario_emisor_id: {type: integer}
+                usuario_receptor_id: {type: integer}
+                fecha_inicio: {type: string}
+                fecha_fin: {type: string}
+                porcentaje_avance: {type: integer}
+                requerimiento_estado_id: {type: integer}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+      """
+    params = {'usuario_receptor_id': usuario_receptor_id}
+    query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id, 
+        r.usuario_emisor_id, ue.usuario usuario_emisor,
+        r.usuario_receptor_id, ur.usuario usuario_receptor,
+        r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo
+        FROM public.requerimientos r
+        INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
+        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
+        WHERE r.usuario_receptor_id = :usuario_receptor_id""")
     result = db.session.execute(query, params)
     requerimientos = []
     if not result:
