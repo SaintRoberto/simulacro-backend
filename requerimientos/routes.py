@@ -167,7 +167,7 @@ def create_requerimiento():
         'modificacion': requerimiento.modificacion.isoformat() if requerimiento.modificacion else None
     }), 201
 
-@requerimientos_bp.route('/api/requerimientos/<int:id>', methods=['GET'])
+@requerimientos_bp.route('/api/requerimientos/id/<int:id>', methods=['GET'])
 def get_requerimiento(id):
     """Obtener requerimiento por ID
     ---
