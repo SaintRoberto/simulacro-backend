@@ -129,7 +129,48 @@ def create_requerimiento_recurso():
         'modificacion': relacion.modificacion.isoformat() if relacion.modificacion else None
     }), 201
 
-@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['GET'])
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:requerimiento_id>', methods=['GET'])
+def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
+    """Obtener requerimiento recurso por ID
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+      - name: requerimiento_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Requerimiento recurso
+      404:
+        description: No encontrado
+    """
+    result = db.session.execute(
+        db.text("SELECT * FROM requerimiento_recursos WHERE requerimiento_id = :requerimiento_id"), 
+        {'requerimiento_id': requerimiento_id}
+    )
+    requerimiento_recursos = []
+    if not result:
+        return jsonify({'error': 'Relación no encontrada'}), 404
+    for row in result:
+        requerimiento_recursos.append({
+            'id': row.id,
+            'requerimiento_id': row.requerimiento_id,
+            'recurso_grupo_id': row.recurso_grupo_id,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'cantidad': row.cantidad,
+            'especificaciones': row.especificaciones,
+            'destino': row.destino,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(requerimiento_recursos)
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/id/<int:id>', methods=['GET'])
 def get_requerimiento_recurso(id):
     """Obtener requerimiento recurso por ID
     ---
