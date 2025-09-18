@@ -177,29 +177,30 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
     elif level == 2:  # provincial
         params['canton_id2'] = 0
     
-    query = db.text("""SELECT ux.usuario_id, m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
+    # Params for third query
+    level3 = coe_id - 2
+    params['provincia_id3'] = provincia_id
+    params['canton_id3'] = canton_id
+    if level3 == 1:  # nacional
+        params['provincia_id3'] = 0
+        params['canton_id3'] = 0
+    elif level3 == 2:  # provincial
+        params['canton_id3'] = 0
+    mesas = []
+    mesas2 = []
+    mesas3 = []
+
+    # First query (same level)
+    query1 = db.text("""SELECT ux.usuario_id, m.coe_id, c.siglas, m.id mesa_id, m.nombre mesa_nombre, m.siglas mesa_siglas
       FROM public.mesas m
       INNER JOIN public.coes c ON m.coe_id = c.id
-      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON m.coe_id = ux.coe_id AND m.id = ux.mesa_id 
+      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON m.coe_id = ux.coe_id AND m.id = ux.mesa_id
       AND ux.provincia_id = :provincia_id AND ux.canton_id = :canton_id
       WHERE m.coe_id = :coe_id
-      AND m.id <> :mesa_id
-      UNION 
-      SELECT ux1.usuario_id, m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
-      FROM public.mesas m1
-      INNER JOIN public.coes c1 ON m1.coe_id = c1.id
-      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux1 ON m1.coe_id = ux1.coe_id AND m1.id = ux1.mesa_id 
-      AND (ux1.provincia_id = :provincia_id2 OR :provincia_id2 = 0) AND (ux1.canton_id = :canton_id2 OR :canton_id2 = 0)
-      WHERE m1.coe_id = (:coe_id - 1)
-      AND m1.mesa_grupo_id = :mesa_grupo_id""")
-
-    # Debug: print the compiled query with substituted parameters
-  
-    result = db.session.execute(query, params)
-    mesas = []
-    if not result:
-        return jsonify({'error': 'listado de mesa receptoras no encontrada'}), 404
-    for row in result:     
+      AND m.id <> :mesa_id""")
+    
+    result1 = db.session.execute(query1, params)
+    for row in result1:
         mesas.append({
             'usuario_id': row.usuario_id,
             'coe_id': row.coe_id,
@@ -208,7 +209,56 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
             'mesa_nombre': row.mesa_nombre,
             'mesa_siglas': row.mesa_siglas,
         })
-    return jsonify(mesas)
+    
+    # Second query (lower level)
+    query2 = db.text("""SELECT ux1.usuario_id, m1.coe_id, c1.siglas, m1.id mesa_id, m1.nombre mesa_nombre, m1.siglas mesa_siglas
+      FROM public.mesas m1
+      INNER JOIN public.coes c1 ON m1.coe_id = c1.id
+      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux1 ON m1.coe_id = ux1.coe_id AND m1.id = ux1.mesa_id
+      AND (ux1.provincia_id = :provincia_id2 OR :provincia_id2 = 0) AND (ux1.canton_id = :canton_id2 OR :canton_id2 = 0)
+      WHERE m1.coe_id = (:coe_id - 1)
+      AND m1.mesa_grupo_id = :mesa_grupo_id""")
+
+    result2 = db.session.execute(query2, params)
+    for row in result2:
+        mesas2.append({
+            'usuario_id': row.usuario_id,
+            'coe_id': row.coe_id,
+            'siglas': row.siglas,
+            'mesa_id': row.mesa_id,
+            'mesa_nombre': row.mesa_nombre,
+            'mesa_siglas': row.mesa_siglas,
+        })
+
+    # Third query (even lower level) only if second is empty
+    if not mesas2:
+        query3 = db.text("""SELECT ux2.usuario_id, m2.coe_id, c2.siglas, m2.id mesa_id, m2.nombre mesa_nombre, m2.siglas mesa_siglas
+          FROM public.mesas m2
+          INNER JOIN public.coes c2 ON m2.coe_id = c2.id
+          INNER JOIN public.usuario_perfil_coe_dpa_mesa ux2 ON m2.coe_id = ux2.coe_id AND m2.id = ux2.mesa_id
+          AND (ux2.provincia_id = :provincia_id3 OR :provincia_id3 = 0) AND (ux2.canton_id = :canton_id3 OR :canton_id3 = 0)
+          WHERE m2.coe_id = (:coe_id - 2)
+          AND m2.mesa_grupo_id = :mesa_grupo_id""")
+
+        result3 = db.session.execute(query3, params)
+
+        for row in result3:
+            mesas3.append({
+                'usuario_id': row.usuario_id,
+                'coe_id': row.coe_id,
+                'siglas': row.siglas,
+                'mesa_id': row.mesa_id,
+                'mesa_nombre': row.mesa_nombre,
+                'mesa_siglas': row.mesa_siglas,
+            })
+
+    # Combine all results
+    combined_mesas = mesas + mesas2 + mesas3
+
+    if not combined_mesas:
+        return jsonify({'error': 'listado de mesa receptoras no encontrada'}), 404
+
+    return jsonify(combined_mesas)
   
 @mesas_bp.route('/api/mesas/<int:id>', methods=['PUT'])
 def update_mesa(id):
