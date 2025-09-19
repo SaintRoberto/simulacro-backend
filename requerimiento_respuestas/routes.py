@@ -60,24 +60,47 @@ def create_requerimiento_respuesta():
           required: [requerimiento_id, respuesta_estado_id]
           properties:
             requerimiento_id: {type: integer}
+            porcentaje_avance: {type: integer}
             respuesta_estado_id: {type: integer}
-            observaciones: {type: string}
+            situacion_actual: {type: string}
+            responsable: {type: string}
+            respuesta_fecha: {type: string}
             activo: {type: boolean}
             creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}            
     responses:
       201:
         description: Respuesta de requerimiento creada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            requerimiento_id: {type: integer}
+            porcentaje_avance: {type: integer}
+            respuesta_estado_id: {type: integer}
+            situacion_actual: {type: string}
+            responsable: {type: string}
+            respuesta_fecha: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}            
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
     query = db.text("""
         INSERT INTO requerimiento_respuestas (
-            requerimiento_id, respuesta_estado_id, observaciones, activo,
+            requerimiento_id, porcentaje_avance, respuesta_estado_id, 
+            situacion_actual, responsable, respuesta_fecha, activo, 
             creador, creacion, modificador, modificacion
         )
         VALUES (
-            :requerimiento_id, :respuesta_estado_id, :observaciones, :activo,
+            :requerimiento_id, :porcentaje_avance, :respuesta_estado_id, 
+            :situacion_actual, :responsable, :respuesta_fecha, :activo, 
             :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
@@ -85,8 +108,11 @@ def create_requerimiento_respuesta():
     
     result = db.session.execute(query, {
         'requerimiento_id': data['requerimiento_id'],
+        'porcentaje_avance': data['porcentaje_avance'],
         'respuesta_estado_id': data['respuesta_estado_id'],
-        'observaciones': data.get('observaciones'),
+        'situacion_actual': data.get('situacion_actual'),
+        'responsable': data.get('responsable'),
+        'respuesta_fecha': data.get('respuesta_fecha', now),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -105,8 +131,11 @@ def create_requerimiento_respuesta():
     return jsonify({
         'id': respuesta.id,
         'requerimiento_id': respuesta.requerimiento_id,
+        'porcentaje_avance': respuesta.porcentaje_avance,
         'respuesta_estado_id': respuesta.respuesta_estado_id,
-        'observaciones': respuesta.observaciones,
+        'situacion_actual': respuesta.situacion_actual,
+        'responsable': respuesta.responsable,
+        'respuesta_fecha': respuesta.respuesta_fecha.isoformat() if respuesta.respuesta_fecha else None,
         'activo': respuesta.activo,
         'creador': respuesta.creador,
         'creacion': respuesta.creacion.isoformat() if respuesta.creacion else None,
@@ -114,32 +143,64 @@ def create_requerimiento_respuesta():
         'modificacion': respuesta.modificacion.isoformat() if respuesta.modificacion else None
     }), 201
 
-@requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['GET'])
-def get_requerimiento_respuesta(id):
-    """Obtener respuesta de requerimiento por ID
+@requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:requerimiento_id>', methods=['GET'])
+def get_requerimiento_respuesta(requerimiento_id):
+    """Obtener el histórico de respuestas del requerimiento seleccionado
     ---
     tags:
       - Requerimiento Respuestas
     parameters:
-      - name: id
+      - name: requerimiento_id
         in: path
         type: integer
         required: true
     responses:
       200:
-        description: Respuesta de requerimiento
+        description: Histórico de Respuestas de requerimiento
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_id: {type: integer}
+              porcentaje_avance: {type: integer}
+              respuesta_estado_id: {type: integer}
+              respuesta_estado_nombre: {type: string}
+              situacion_actual: {type: string}
+              responsable: {type: string}
+              respuesta_fecha: {type: string}
+              activo: {type: boolean}
       404:
         description: No encontrada
     """
-    result = db.session.execute(
-        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"), 
-        {'id': id}
-    )
-    respuesta = result.fetchone()
-    
-    if not respuesta:
-        return jsonify({'error': 'Respuesta no encontrada'}), 404
-    
+    params = {'requerimiento_id': requerimiento_id}
+    query = db.text("""SELECT r.id, r.requerimiento_id, r.porcentaje_avance, r.respuesta_estado_id,
+        e.nombre respuesta_estado_nombre, r.situacion_actual, r.responsable, 
+        r.respuesta_fecha, r.activo
+        FROM public.requerimiento_respuestas r
+        INNER JOIN public.respuesta_estados e ON r.respuesta_estado_id = e.id 
+        WHERE r.requerimiento_id = :requerimiento_id""")
+    result = db.session.execute(query, params)
+    respuestas = []
+ 
+    if not result:
+        return jsonify({'error': 'Respuestas de requerimiento no encontradas'}), 404
+    for row in result:
+      respuestas.append({
+            'id': row.id,
+            'requerimiento_id': row.requerimiento_id,
+            'porcentaje_avance': row.porcentaje_avance,
+            'respuesta_estado_id': row.respuesta_estado_id,
+            'respuesta_estado_nombre': row.respuesta_estado_nombre,
+            'situacion_actual': row.situacion_actual,
+            'responsable': row.responsable,
+            'respuesta_fecha': row.respuesta_fecha.isoformat() if row.respuesta_fecha else None,
+            'activo': row.activo
+        })
+    return jsonify(respuestas)
+
+
     return jsonify({
         'id': respuesta.id,
         'requerimiento_id': respuesta.requerimiento_id,

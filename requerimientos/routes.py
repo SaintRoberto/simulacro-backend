@@ -290,15 +290,8 @@ def update_requerimiento(id):
         schema:
           type: object
           properties:
-            emergencia_id: {type: integer}
-            usuario_emisor_id: {type: integer}
-            usuario_receptor_id: {type: integer}
-            fecha_inicio: {type: string}
-            fecha_fin: {type: string}
             porcentaje_avance: {type: integer}
             requerimiento_estado_id: {type: integer}
-            activo: {type: boolean}
-            modificador: {type: string}
     responses:
       200:
         description: Requerimiento actualizado
@@ -310,31 +303,15 @@ def update_requerimiento(id):
     
     query = db.text("""
         UPDATE requerimientos
-        SET emergencia_id = :emergencia_id,
-            usuario_emisor_id = :usuario_emisor_id,
-            usuario_receptor_id = :usuario_receptor_id,
-            fecha_inicio = :fecha_inicio,
-            fecha_fin = :fecha_fin,
-            porcentaje_avance = :porcentaje_avance,
-            requerimiento_estado_id = :requerimiento_estado_id,
-            activo = :activo,
-            modificador = :modificador,
-            modificacion = :modificacion
+        SET porcentaje_avance = :porcentaje_avance,
+            requerimiento_estado_id = :requerimiento_estado_id
         WHERE id = :id
     """)
 
     result = db.session.execute(query, {
-        'id': id,
-        'emergencia_id': data.get('emergencia_id'),
-        'usuario_emisor_id': data.get('usuario_emisor_id'),
-        'usuario_receptor_id': data.get('usuario_receptor_id'),
-        'fecha_inicio': data.get('fecha_inicio'),
-        'fecha_fin': data.get('fecha_fin'),
         'porcentaje_avance': data.get('porcentaje_avance'),
         'requerimiento_estado_id': data.get('requerimiento_estado_id'),
-        'activo': data.get('activo'),
-        'modificador': data.get('modificador', 'Sistema'),
-        'modificacion': now
+        'id': id
     })
     
     if result.rowcount == 0:
