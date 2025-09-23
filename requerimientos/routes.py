@@ -128,6 +128,67 @@ def get_requerimientos_recibidos(usuario_receptor_id):
         })
     return jsonify(requerimientos)
 
+@requerimientos_bp.route('/api/requerimientos/recibidos/notificacion/<int:usuario_receptor_id>', methods=['GET'])
+def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
+    """Listar requerimientos recibidos para mostrar como notificación (estado 1 o 2)
+    ---
+    tags:
+      - Requerimientos
+    parameters:
+      - name: usuario_receptor_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de requerimientos recibidos para notificación
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                emergencia_id: {type: integer}
+                usuario_emisor_id: {type: integer}
+                usuario_receptor_id: {type: integer}
+                porcentaje_avance: {type: integer}
+                requerimiento_estado_id: {type: integer}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+      """
+    params = {'usuario_receptor_id': usuario_receptor_id}
+    query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id,
+        r.usuario_emisor_id, ue.usuario usuario_emisor,
+        r.usuario_receptor_id, ur.usuario usuario_receptor,
+        r.porcentaje_avance, r.requerimiento_estado_id, 
+        r.activo, r.creador, r.creacion
+        FROM public.requerimientos r
+        INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
+        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
+        WHERE r.usuario_receptor_id = :usuario_receptor_id 
+        AND r.requerimiento_estado_id IN (1,2) AND r.activo = true""")
+    result = db.session.execute(query, params)
+    requerimientos = []
+    if not result:
+        return jsonify({'error': 'Requerimientos no encontrados'}), 404
+    for row in result:
+        requerimientos.append({
+            'emergencia_id': row.emergencia_id,
+            'requerimiento_id': row.requerimiento_id,
+            'usuario_emisor_id': row.usuario_emisor_id,
+            'usuario_emisor': row.usuario_emisor,
+            'usuario_receptor_id': row.usuario_receptor_id,
+            'usuario_receptor': row.usuario_receptor,
+            'porcentaje_avance': row.porcentaje_avance,
+            'requerimiento_estado_id': row.requerimiento_estado_id,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None
+        })
+    return jsonify(requerimientos)
+
+
 @requerimientos_bp.route('/api/requerimientos', methods=['POST'])
 def create_requerimiento():
     """Crear requerimiento
@@ -204,8 +265,12 @@ def create_requerimiento():
         'porcentaje_avance': data.get('porcentaje_avance', 0),
         'requerimiento_estado_id': data.get('requerimiento_estado_id', 1)
     })
-    
-    requerimiento_id = result.fetchone()[0]
+
+    row = result.fetchone()
+    if row is None:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create requerimiento'}), 500
+    requerimiento_id = row[0]
     db.session.commit()
     
     requerimiento = db.session.execute(
@@ -367,3 +432,4 @@ def delete_requerimiento(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Requerimiento eliminado correctamente'})
+
