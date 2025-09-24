@@ -53,13 +53,17 @@ def get_afectacion_variable_registros():
         })
     return jsonify(registros)
 
-@afectacion_variable_registros_bp.route('/api/afectaciones_registros/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', methods=['GET'])
-def get_data_afectaciones_registro(canton_id, mesa_grupo_id):
+@afectacion_variable_registros_bp.route('/api/afectaciones_registros/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', methods=['GET'])
+def get_data_afectaciones_registro(emergencia_id, canton_id, mesa_grupo_id):
     """Obtener data afectaciones registro por canton y mesa_grupo
     ---
     tags:
       - Afectacion Variable Registros
     parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
       - name: canton_id
         in: path
         type: integer
@@ -82,6 +86,8 @@ def get_data_afectaciones_registro(canton_id, mesa_grupo_id):
                 canton_id: {type: integer}
                 parroquia_id: {type: integer}
                 afectacion_variable_id: {type: integer}
+                variable_nombre: {type: string}
+                requiere_gis: {type: boolean}
                 cantidad: {type: integer}
                 costo: {type: integer}
                 activo: {type: boolean}
@@ -92,15 +98,15 @@ def get_data_afectaciones_registro(canton_id, mesa_grupo_id):
     """
     query = db.text("""
         SELECT p.id as parroquia_id, p.nombre as parroquia_nombre,
-               v.id as afectacion_variable_id, v.nombre as variable_nombre,
+               v.id as afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
                COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
         FROM parroquias p
         CROSS JOIN afectacion_variables v
-        LEFT JOIN afectacion_variable_registros r ON r.parroquia_id = p.id AND r.afectacion_variable_id = v.id
+        LEFT JOIN afectacion_variable_registros r ON r.parroquia_id = p.id AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
         WHERE p.canton_id = :canton_id AND v.mesa_grupo_id = :mesa_grupo_id
         ORDER BY p.id, v.id
     """)
-    result = db.session.execute(query, {'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
     registros = []
     for row in result:
         registros.append({  # type: ignore
@@ -108,6 +114,7 @@ def get_data_afectaciones_registro(canton_id, mesa_grupo_id):
             'parroquia_nombre': row.parroquia_nombre,
             'afectacion_variable_id': row.afectacion_variable_id,
             'variable_nombre': row.variable_nombre,
+            'requiere_gis': row.requiere_gis,
             'cantidad': row.cantidad,
             'costo': row.costo
         })
