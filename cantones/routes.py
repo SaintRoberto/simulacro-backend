@@ -329,7 +329,7 @@ def delete_canton(id):
     db.session.commit()
     return jsonify({'mensaje': 'Cantón eliminado correctamente'})
 
-@cantones_bp.route('/api/cantones/provincia/<int:provincia_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+@cantones_bp.route('/api/provincia/<int:provincia_id>/cantones/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_cantones_by_emergencia_by_provincia(emergencia_id, provincia_id):
     """Obtener cantones por emergencia y provincia
     ---
