@@ -100,9 +100,10 @@ def get_data_afectaciones_registro(emergencia_id, canton_id, mesa_grupo_id):
         SELECT p.id as parroquia_id, p.nombre as parroquia_nombre,
                v.id as afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
                COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
-        FROM parroquias p
+        FROM parroquias p        
         CROSS JOIN afectacion_variables v
         LEFT JOIN afectacion_variable_registros r ON r.parroquia_id = p.id AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
+        INNER JOIN emergencia_parroquias x ON p.id = x.parroquia_id
         WHERE p.canton_id = :canton_id AND v.mesa_grupo_id = :mesa_grupo_id
         ORDER BY p.id, v.id
     """)
