@@ -5,10 +5,83 @@ from datetime import datetime, timezone
 
 @parroquias_bp.route('/api/parroquias', methods=['GET'])
 def get_parroquias():
+    """Listar parroquias
+    ---
+    tags:
+      - Parroquias
+    responses:
+        200:
+          description: Lista de parroquias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                provincia_id: {type: integer}
+                canton_id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
     result = db.session.execute(db.text("SELECT * FROM parroquias"))
     parroquias = []
     for row in result:
-        parroquias.append({
+        parroquias.append({  # type: ignore
+            'id': row.id,
+            'provincia_id': row.provincia_id,
+            'canton_id': row.canton_id,
+            'dpa': row.dpa,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(parroquias)
+
+@parroquias_bp.route('/api/canton/<int:canton_id>/parroquias/', methods=['GET'])
+def get_parroquias_by_canton(canton_id):
+    """Listar parroquias por canton
+    ---
+    tags:
+      - Parroquias
+    parameters:
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de parroquias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                provincia_id: {type: integer}
+                canton_id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
+    result = db.session.execute(db.text("SELECT * FROM parroquias WHERE canton_id = :canton_id"), {'canton_id': canton_id})
+    parroquias = []
+    for row in result:
+        parroquias.append({  # type: ignore
             'id': row.id,
             'provincia_id': row.provincia_id,
             'canton_id': row.canton_id,
@@ -25,6 +98,45 @@ def get_parroquias():
 
 @parroquias_bp.route('/api/parroquias', methods=['POST'])
 def create_parroquia():
+    """Crear parroquia
+    ---
+    tags:
+      - Parroquias
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [provincia_id, canton_id, nombre]
+          properties:
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Parroquia creada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -47,15 +159,22 @@ def create_parroquia():
         'modificacion': now
     })
     
-    parroquia_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create parroquia'}), 500
+    parroquia_id = row[0]
     db.session.commit()
-    
+
     parroquia = db.session.execute(
-        db.text("SELECT * FROM parroquias WHERE id = :id"), 
+        db.text("SELECT * FROM parroquias WHERE id = :id"),
         {'id': parroquia_id}
     ).fetchone()
-    
-    return jsonify({
+
+    if not parroquia:
+        return jsonify({'error': 'Parroquia not found after creation'}), 404
+
+    return jsonify({  # type: ignore
         'id': parroquia.id,
         'provincia_id': parroquia.provincia_id,
         'canton_id': parroquia.canton_id,
@@ -71,6 +190,21 @@ def create_parroquia():
 
 @parroquias_bp.route('/api/parroquias/<int:id>', methods=['GET'])
 def get_parroquia(id):
+    """Obtener parroquia por ID
+    ---
+    tags:
+      - Parroquias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Parroquia
+      404:
+        description: No encontrada
+    """
     result = db.session.execute(
         db.text("SELECT * FROM parroquias WHERE id = :id"), 
         {'id': id}
@@ -96,6 +230,35 @@ def get_parroquia(id):
 
 @parroquias_bp.route('/api/parroquias/<int:id>', methods=['PUT'])
 def update_parroquia(id):
+    """Actualizar parroquia
+    ---
+    tags:
+      - Parroquias
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+    responses:
+      200:
+        description: Parroquia actualizada
+      404:
+        description: No encontrada
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -124,17 +287,20 @@ def update_parroquia(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore
         return jsonify({'error': 'Parroquia no encontrada'}), 404
-    
+
     db.session.commit()
-    
+
     parroquia = db.session.execute(
-        db.text("SELECT * FROM parroquias WHERE id = :id"), 
+        db.text("SELECT * FROM parroquias WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
-    return jsonify({
+
+    if not parroquia:
+        return jsonify({'error': 'Parroquia not found after update'}), 404
+
+    return jsonify({  # type: ignore
         'id': parroquia.id,
         'provincia_id': parroquia.provincia_id,
         'canton_id': parroquia.canton_id,
@@ -150,12 +316,27 @@ def update_parroquia(id):
 
 @parroquias_bp.route('/api/parroquias/<int:id>', methods=['DELETE'])
 def delete_parroquia(id):
+    """Eliminar parroquia
+    ---
+    tags:
+      - Parroquias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminada
+      404:
+        description: No encontrada
+    """
     result = db.session.execute(
         db.text("DELETE FROM parroquias WHERE id = :id"), 
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore
         return jsonify({'error': 'Parroquia no encontrada'}), 404
     
     db.session.commit()

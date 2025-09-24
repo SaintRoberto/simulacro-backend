@@ -5,10 +5,32 @@ from datetime import datetime, timezone
 
 @provincias_bp.route('/api/provincias', methods=['GET'])
 def get_provincias():
+    """Listar provincias
+    ---
+    tags:
+      - Provincias
+    responses:
+        200:
+          description: Lista de provincias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
     result = db.session.execute(db.text("SELECT * FROM provincias"))
     provincias = []
     for row in result:
-        provincias.append({
+        provincias.append({  # type: ignore
             'id': row.id,
             'dpa': row.dpa,
             'nombre': row.nombre,
@@ -23,6 +45,41 @@ def get_provincias():
 
 @provincias_bp.route('/api/provincias', methods=['POST'])
 def create_provincia():
+    """Crear provincia
+    ---
+    tags:
+      - Provincias
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre, abreviatura]
+          properties:
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Provincia creada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -43,15 +100,22 @@ def create_provincia():
         'modificacion': now
     })
     
-    provincia_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create provincia'}), 500
+    provincia_id = row[0]
     db.session.commit()
-    
+
     provincia = db.session.execute(
-        db.text("SELECT * FROM provincias WHERE id = :id"), 
+        db.text("SELECT * FROM provincias WHERE id = :id"),
         {'id': provincia_id}
     ).fetchone()
-    
-    return jsonify({
+
+    if not provincia:
+        return jsonify({'error': 'Provincia not found after creation'}), 404
+
+    return jsonify({  # type: ignore
         'id': provincia.id,
         'dpa': provincia.dpa,
         'nombre': provincia.nombre,
@@ -65,6 +129,21 @@ def create_provincia():
 
 @provincias_bp.route('/api/provincias/<int:id>', methods=['GET'])
 def get_provincia(id):
+    """Obtener provincia por ID
+    ---
+    tags:
+      - Provincias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Provincia
+      404:
+        description: No encontrada
+    """
     result = db.session.execute(
         db.text("SELECT * FROM provincias WHERE id = :id"), 
         {'id': id}
@@ -88,6 +167,33 @@ def get_provincia(id):
 
 @provincias_bp.route('/api/provincias/<int:id>', methods=['PUT'])
 def update_provincia(id):
+    """Actualizar provincia
+    ---
+    tags:
+      - Provincias
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+    responses:
+      200:
+        description: Provincia actualizada
+      404:
+        description: No encontrada
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -112,17 +218,20 @@ def update_provincia(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore
         return jsonify({'error': 'Provincia no encontrada'}), 404
-    
+
     db.session.commit()
-    
+
     provincia = db.session.execute(
-        db.text("SELECT * FROM provincias WHERE id = :id"), 
+        db.text("SELECT * FROM provincias WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
-    return jsonify({
+
+    if not provincia:
+        return jsonify({'error': 'Provincia not found after update'}), 404
+
+    return jsonify({  # type: ignore
         'id': provincia.id,
         'dpa': provincia.dpa,
         'nombre': provincia.nombre,
@@ -136,12 +245,27 @@ def update_provincia(id):
 
 @provincias_bp.route('/api/provincias/<int:id>', methods=['DELETE'])
 def delete_provincia(id):
+    """Eliminar provincia
+    ---
+    tags:
+      - Provincias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminada
+      404:
+        description: No encontrada
+    """
     result = db.session.execute(
         db.text("DELETE FROM provincias WHERE id = :id"), 
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore
         return jsonify({'error': 'Provincia no encontrada'}), 404
     
     db.session.commit()

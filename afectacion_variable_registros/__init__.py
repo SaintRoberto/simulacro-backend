@@ -1,0 +1,1 @@
+from .routes import afectacion_variable_registros_bp
