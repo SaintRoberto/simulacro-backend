@@ -270,3 +270,46 @@ def delete_provincia(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Provincia eliminada correctamente'})
+
+@provincias_bp.route('/api/provincias/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_provincias_by_emergencia(emergencia_id):
+    """Obtener provincias por emergencia
+    ---
+    tags:
+      - Provincias
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de provincias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+    """
+    query = db.text("""
+        SELECT DISTINCT p.id, p.dpa, p.nombre, p.abreviatura
+        FROM public.parroquias q
+        INNER JOIN public.emergencia_parroquias x ON q.id = x.parroquia_id
+        INNER JOIN public.provincias p ON q.provincia_id = p.id
+        WHERE x.emergencia_id = :emergencia_id
+        ORDER BY p.id ASC
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+    provincias = []
+    for row in result:
+        provincias.append({  # type: ignore
+            'id': row.id,
+            'dpa': row.dpa,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura
+        })
+    return jsonify(provincias)

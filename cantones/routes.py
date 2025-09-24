@@ -328,3 +328,50 @@ def delete_canton(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Cantón eliminado correctamente'})
+
+@cantones_bp.route('/api/cantones/provincia/<int:provincia_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_cantones_by_emergencia_by_provincia(emergencia_id, provincia_id):
+    """Obtener cantones por emergencia y provincia
+    ---
+    tags:
+      - Cantones
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de cantones
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+    """
+    query = db.text("""
+        SELECT DISTINCT c.id, c.dpa, c.nombre, c.abreviatura
+        FROM public.parroquias q
+        INNER JOIN public.emergencia_parroquias x ON q.id = x.parroquia_id
+        INNER JOIN public.cantones c ON q.canton_id = c.id
+        WHERE c.provincia_id = :provincia_id AND x.emergencia_id = :emergencia_id
+        ORDER BY c.id ASC
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'provincia_id': provincia_id})
+    cantones = []
+    for row in result:
+        cantones.append({  # type: ignore
+            'id': row.id,
+            'dpa': row.dpa,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura
+        })
+    return jsonify(cantones)

@@ -167,8 +167,12 @@ def create_afectacion_variable_registro():
             modificacion: {type: string}
     """
     data = request.get_json()
+    required_fields = ['emergencia_id', 'provincia_id', 'canton_id', 'parroquia_id', 'afectacion_variable_id', 'cantidad', 'costo']
+    for field in required_fields:
+        if field not in data:
+            return jsonify({'error': f'{field} is required'}), 400
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         INSERT INTO afectacion_variable_registros (
             emergencia_id, provincia_id, canton_id, parroquia_id, afectacion_variable_id,
@@ -306,11 +310,13 @@ def update_afectacion_variable_registro(id):
         WHERE id = :id
     """)
 
-    result = db.session.execute(query, {
-        'cantidad': data.get('cantidad'),
-        'costo': data.get('costo'),
-        'id': id
-    })
+    params = {}
+    if 'cantidad' in data:
+        params['cantidad'] = data['cantidad']
+    if 'costo' in data:
+        params['costo'] = data['costo']
+    params['id'] = id
+    result = db.session.execute(query, params)
     
     if result.rowcount == 0:  # type: ignore
         return jsonify({'error': 'Registro no encontrado'}), 404

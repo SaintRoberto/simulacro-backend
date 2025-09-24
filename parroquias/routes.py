@@ -96,6 +96,59 @@ def get_parroquias_by_canton(canton_id):
         })
     return jsonify(parroquias)
 
+@parroquias_bp.route('/api/parroquias/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_parroquias_by_emergencia_by_canton(emergencia_id, canton_id):
+    """Obtener parroquias por emergencia y canton
+    ---
+    tags:
+      - Parroquias
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de parroquias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                provincia_id: {type: integer}
+                canton_id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT DISTINCT q.id, q.dpa, q.nombre, q.abreviatura
+        FROM public.parroquias q
+        INNER JOIN public.emergencia_parroquias x ON q.id = x.parroquia_id
+        WHERE q.canton_id = :canton_id AND x.emergencia_id = :emergencia_id
+        ORDER BY q.id ASC
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id})
+    parroquias = []
+    for row in result:
+        parroquias.append({  # type: ignore
+            'id': row.id,
+            'dpa': row.dpa,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura
+        })
+    return jsonify(parroquias)
+
 @parroquias_bp.route('/api/parroquias', methods=['POST'])
 def create_parroquia():
     """Crear parroquia
