@@ -57,9 +57,9 @@ def get_infraestructuras():
         })
     return jsonify(infraestructuras)
 
-@infraestructuras_bp.route('/api/infraestructuras/parroquia/<int:parroquia_id>/infraestructura_tipo/<int:infraestructura_tipo_id>', methods=['GET'])
-def get_infraestructuras_by_parroquia_by_infraestructura_tipo(parroquia_id, infraestructura_tipo_id):
-    """Obtener infraestructuras por parroquia e infraestructura tipo
+@infraestructuras_bp.route('/api/infraestructuras/parroquia/<int:parroquia_id>/infraestructura_tipo/<int:infraestructura_tipo_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_infraestructuras_by_parroquia_by_infraestructura_tipo_by_emergencia(parroquia_id, infraestructura_tipo_id, emergencia_id):
+    """Obtener infraestructuras por parroquia, infraestructura tipo y emergencia
     ---
     tags:
       - Infraestructuras
@@ -72,6 +72,10 @@ def get_infraestructuras_by_parroquia_by_infraestructura_tipo(parroquia_id, infr
         in: path
         type: integer
         required: true
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
     responses:
         200:
           description: Lista de infraestructuras
@@ -81,42 +85,36 @@ def get_infraestructuras_by_parroquia_by_infraestructura_tipo(parroquia_id, infr
               type: object
               properties:
                 id: {type: integer}
-                infraestructura_tipo_id: {type: integer}
                 nombre: {type: string}
                 direccion: {type: string}
-                provincia_id: {type: integer}
-                canton_id: {type: integer}
-                parroquia_id: {type: integer}
                 tipologia: {type: string}
                 institucion: {type: string}
                 longitud: {type: number}
                 latitud: {type: number}
-                activo: {type: boolean}
-                creador: {type: string}
-                creacion: {type: string}
-                modificador: {type: string}
-                modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM infraestructuras WHERE parroquia_id = :parroquia_id AND infraestructura_tipo_id = :infraestructura_tipo_id"), {'parroquia_id': parroquia_id, 'infraestructura_tipo_id': infraestructura_tipo_id})
+    query = db.text("""
+        SELECT id, nombre, direccion, tipologia, institucion, longitud, latitud
+        FROM infraestructuras i
+        WHERE parroquia_id = :parroquia_id
+        AND infraestructura_tipo_id = :infraestructura_tipo_id
+        AND id NOT IN (
+        SELECT d.infraestructura_id
+        FROM afectacion_variable_registro_detalles d
+        INNER JOIN afectacion_variable_registros r ON d.afectacion_variable_registro_id = r.id
+        WHERE r.emergencia_id = :emergencia_id
+        )
+    """)
+    result = db.session.execute(query, {'parroquia_id': parroquia_id, 'infraestructura_tipo_id': infraestructura_tipo_id, 'emergencia_id': emergencia_id})
     infraestructuras = []
     for row in result:
         infraestructuras.append({  # type: ignore
             'id': row.id,
-            'infraestructura_tipo_id': row.infraestructura_tipo_id,
             'nombre': row.nombre,
             'direccion': row.direccion,
-            'provincia_id': row.provincia_id,
-            'canton_id': row.canton_id,
-            'parroquia_id': row.parroquia_id,
             'tipologia': row.tipologia,
             'institucion': row.institucion,
             'longitud': float(row.longitud) if row.longitud else None,
-            'latitud': float(row.latitud) if row.latitud else None,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+            'latitud': float(row.latitud) if row.latitud else None
         })
     return jsonify(infraestructuras)
 
