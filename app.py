@@ -27,6 +27,7 @@ from menus import menus_bp
 from provincias import provincias_bp
 from cantones import cantones_bp
 from parroquias import parroquias_bp
+from infraestructuras import infraestructuras_bp
 from coes import coes_bp
 from mesas import mesas_bp
 from institucion_categorias import institucion_categorias_bp
@@ -57,6 +58,7 @@ app.register_blueprint(menus_bp)
 app.register_blueprint(provincias_bp)
 app.register_blueprint(cantones_bp)
 app.register_blueprint(parroquias_bp)
+app.register_blueprint(infraestructuras_bp)
 app.register_blueprint(coes_bp)
 app.register_blueprint(mesas_bp)
 app.register_blueprint(institucion_categorias_bp)

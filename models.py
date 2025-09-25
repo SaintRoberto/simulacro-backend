@@ -236,6 +236,50 @@ class Parroquia(db.Model):
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
 
+class Infraestructura(db.Model):
+    __tablename__ = 'infraestructuras'
+    id = db.Column(db.Integer, primary_key=True)
+    infraestructura_tipo_id = db.Column(db.Integer, nullable=False)
+    nombre = db.Column(db.Text)
+    direccion = db.Column(db.Text)
+    provincia_id = db.Column(db.Integer, db.ForeignKey('provincias.id'), nullable=False)
+    canton_id = db.Column(db.Integer, db.ForeignKey('cantones.id'), nullable=False)
+    parroquia_id = db.Column(db.Integer, db.ForeignKey('parroquias.id'), nullable=False)
+    tipologia = db.Column(db.Text)
+    institucion = db.Column(db.Text)
+    longitud = db.Column(db.Numeric(15, 12), nullable=False, default=0)
+    latitud = db.Column(db.Numeric(15, 12), nullable=False, default=0)
+    activo = db.Column(db.Boolean, default=True)
+    creador = db.Column(db.Text)
+    creacion = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    modificador = db.Column(db.Text)
+    modificacion = db.Column(db.DateTime(timezone=True))
+
+    # Relaciones
+    provincia = db.relationship('Provincia', backref='infraestructuras')
+    canton = db.relationship('Canton', backref='infraestructuras')
+    parroquia = db.relationship('Parroquia', backref='infraestructuras')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'infraestructura_tipo_id': self.infraestructura_tipo_id,
+            'nombre': self.nombre,
+            'direccion': self.direccion,
+            'provincia_id': self.provincia_id,
+            'canton_id': self.canton_id,
+            'parroquia_id': self.parroquia_id,
+            'tipologia': self.tipologia,
+            'institucion': self.institucion,
+            'longitud': float(self.longitud) if self.longitud else None,
+            'latitud': float(self.latitud) if self.latitud else None,
+            'activo': self.activo,
+            'creador': self.creador,
+            'creacion': self.creacion.isoformat() if self.creacion else None,
+            'modificador': self.modificador,
+            'modificacion': self.modificacion.isoformat() if self.modificacion else None
+        }
+
 class Coe(db.Model):
     __tablename__ = 'coes'
     id = db.Column(db.Integer, primary_key=True)
