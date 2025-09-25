@@ -22,6 +22,56 @@ def get_mesas():
         })
     return jsonify(mesas)
 
+@mesas_bp.route('/api/mesas/coe/<int:coe_id>', methods=['GET'])
+def get_mesas_by_coe(coe_id):
+    """Obtener mesas por coe
+    ---
+    tags:
+      - Mesas
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de mesas
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                nombre: {type: string}
+                siglas: {type: string}
+                tipo_id: {type: integer}
+                estado: {type: string}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT m.id, m.nombre, m.siglas
+        FROM mesas m
+        WHERE m.coe_id = :coe_id
+    """)
+    result = db.session.execute(query, {'coe_id': coe_id})
+    mesas = []
+    for row in result:
+        mesas.append({  # type: ignore
+            'id': row.id,
+            'nombre': row.nombre,
+            'siglas': row.siglas,
+            'tipo_id': row.tipo_id,
+            'estado': row.estado,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(mesas)
+
 @mesas_bp.route('/api/mesas', methods=['POST'])
 def create_mesa():
     data = request.get_json()
@@ -44,15 +94,22 @@ def create_mesa():
         'modificador': data.get('creador', 'Sistema'),
         'modificacion': now
     })
-    
-    mesa_id = result.fetchone()[0]
+
+    row = result.fetchone()
+    if row is None:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create mesa'}), 500
+    mesa_id = row[0]
     db.session.commit()
     
     mesa = db.session.execute(
-        db.text("SELECT * FROM mesas WHERE id = :id"), 
+        db.text("SELECT * FROM mesas WHERE id = :id"),
         {'id': mesa_id}
     ).fetchone()
-    
+
+    if mesa is None:
+        return jsonify({'error': 'Mesa not found after creation'}), 404
+
     return jsonify({
         'id': mesa.id,
         'coe_id': mesa.coe_id,
@@ -288,16 +345,19 @@ def update_mesa(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Mesa no encontrada'}), 404
     
     db.session.commit()
     
     mesa = db.session.execute(
-        db.text("SELECT * FROM mesas WHERE id = :id"), 
+        db.text("SELECT * FROM mesas WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    if mesa is None:
+        return jsonify({'error': 'Mesa not found after update'}), 404
+
     return jsonify({
         'id': mesa.id,
         'coe_id': mesa.coe_id,
@@ -318,7 +378,7 @@ def delete_mesa(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if result.rowcount == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Mesa no encontrada'}), 404
     
     db.session.commit()

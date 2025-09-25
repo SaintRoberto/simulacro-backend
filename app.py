@@ -49,6 +49,9 @@ from usuario_perfil import usuario_perfil_bp
 from perfil_menu import perfil_menu_bp
 from afectacion_variable_registros import afectacion_variable_registros_bp
 from afectacion_variables import afectacion_variables_bp
+from coe_actas import coe_actas_bp
+from coe_acta_resoluciones import coe_acta_resoluciones_bp
+from resolucion_estados import resolucion_estados_bp
 
 app.register_blueprint(categorias_bp)
 app.register_blueprint(instituciones_bp)
@@ -80,6 +83,9 @@ app.register_blueprint(usuario_perfil_bp)
 app.register_blueprint(perfil_menu_bp)
 app.register_blueprint(afectacion_variable_registros_bp)
 app.register_blueprint(afectacion_variables_bp)
+app.register_blueprint(coe_actas_bp)
+app.register_blueprint(coe_acta_resoluciones_bp)
+app.register_blueprint(resolucion_estados_bp)
 
 # Ruta de salud
 @app.route('/api/health', methods=['GET'])
