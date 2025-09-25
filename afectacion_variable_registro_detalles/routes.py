@@ -32,8 +32,8 @@ def get_afectacion_variable_registro_detalles():
     for row in result:
         afectacion_variable_registro_detalles.append({  # type: ignore
             'id': row.id,
-            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,
-            'infraestructura_id': row.infraestructura_id,
+            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,  # type: ignore[attr-defined]
+            'infraestructura_id': row.infraestructura_id,  # type: ignore[attr-defined]
             'costo': row.costo,
             'activo': row.activo,
             'creador': row.creador,
@@ -42,6 +42,55 @@ def get_afectacion_variable_registro_detalles():
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
     return jsonify(afectacion_variable_registro_detalles)
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles/parroquia/<int:parroquia_id>/variable/<int:afectacion_variable_id>', methods=['GET'])
+def get_afectacion_variable_registro_detalles_by_variable_by_parroquia(parroquia_id, afectacion_variable_id):
+    """Obtener afectacion_variable_registro_detalles por parroquia y variable
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    parameters:
+      - name: parroquia_id
+        in: path
+        type: integer
+        required: true
+      - name: afectacion_variable_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de detalles
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                registro_id: {type: integer}
+                registro_detalle_id: {type: integer}
+                infraestructura_id: {type: integer}
+                infraestructura_tipo_id: {type: integer}
+                nombre: {type: string}
+    """
+    query = db.text("""
+        SELECT r.id registro_id, d.id registro_detalle_id, i.id infraestructura_id, i.infraestructura_tipo_id, i.nombre
+        FROM public.afectacion_variable_registro_detalles d
+        INNER JOIN public.afectacion_variable_registros r ON d.afectacion_variable_registro_id = r.id
+        INNER JOIN infraestructuras i ON d.infraestructura_id = i.id
+        WHERE r.parroquia_id = :parroquia_id AND r.afectacion_variable_id = :afectacion_variable_id
+        ORDER BY d.id ASC
+    """)
+    result = db.session.execute(query, {'parroquia_id': parroquia_id, 'afectacion_variable_id': afectacion_variable_id})
+    detalles = []
+    for row in result:
+        detalles.append({  # type: ignore
+            'registro_id': row.registro_id,
+            'registro_detalle_id': row.registro_detalle_id,
+            'infraestructura_id': row.infraestructura_id,
+            'infraestructura_tipo_id': row.infraestructura_tipo_id,
+            'nombre': row.nombre
+        })
+    return jsonify(detalles)
 
 @afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles', methods=['POST'])
 def create_afectacion_variable_registro_detalle():
