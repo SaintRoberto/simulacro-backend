@@ -520,3 +520,32 @@ class CoeActaResolucion(db.Model):
             'modificador': self.modificador,
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
+
+class AfectacionVariableRegistroDetalle(db.Model):
+    __tablename__ = 'afectacion_variable_registro_detalles'
+    id = db.Column(db.Integer, primary_key=True)
+    afectacion_variable_registro_id = db.Column(db.Integer, db.ForeignKey('afectacion_variable_registros.id'), nullable=False)
+    infraestructura_id = db.Column(db.Integer, db.ForeignKey('infraestructuras.id'), nullable=False)
+    costo = db.Column(db.Integer, nullable=False)
+    activo = db.Column(db.Boolean, default=True)
+    creador = db.Column(db.Text)
+    creacion = db.Column(db.DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    modificador = db.Column(db.Text)
+    modificacion = db.Column(db.DateTime(timezone=True))
+
+    # Relaciones
+    afectacion_variable_registro = db.relationship('AfectacionVariableRegistro', backref='detalles')
+    infraestructura = db.relationship('Infraestructura', backref='afectacion_detalles')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'afectacion_variable_registro_id': self.afectacion_variable_registro_id,
+            'infraestructura_id': self.infraestructura_id,
+            'costo': self.costo,
+            'activo': self.activo,
+            'creador': self.creador,
+            'creacion': self.creacion.isoformat() if self.creacion else None,
+            'modificador': self.modificador,
+            'modificacion': self.modificacion.isoformat() if self.modificacion else None
+        }

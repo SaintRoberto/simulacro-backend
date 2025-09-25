@@ -1,0 +1,272 @@
+from flask import request, jsonify
+from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
+from models import db
+from datetime import datetime, timezone
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles', methods=['GET'])
+def get_afectacion_variable_registro_detalles():
+    """Listar afectacion_variable_registro_detalles
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    responses:
+        200:
+          description: Lista de afectacion_variable_registro_detalles
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                afectacion_variable_registro_id: {type: integer}
+                infraestructura_id: {type: integer}
+                costo: {type: integer}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
+    """
+    result = db.session.execute(db.text("SELECT * FROM afectacion_variable_registro_detalles"))
+    afectacion_variable_registro_detalles = []
+    for row in result:
+        afectacion_variable_registro_detalles.append({  # type: ignore
+            'id': row.id,
+            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,
+            'infraestructura_id': row.infraestructura_id,
+            'costo': row.costo,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(afectacion_variable_registro_detalles)
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles', methods=['POST'])
+def create_afectacion_variable_registro_detalle():
+    """Crear afectacion_variable_registro_detalle
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [afectacion_variable_registro_id, infraestructura_id, costo]
+          properties:
+            afectacion_variable_registro_id: {type: integer}
+            infraestructura_id: {type: integer}
+            costo: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Afectacion variable registro detalle creado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            afectacion_variable_registro_id: {type: integer}
+            infraestructura_id: {type: integer}
+            costo: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    """
+    data = request.get_json()
+    now = datetime.now(timezone.utc)
+
+    query = db.text("""
+        INSERT INTO afectacion_variable_registro_detalles (afectacion_variable_registro_id, infraestructura_id, costo, activo, creador, creacion, modificador, modificacion)
+        VALUES (:afectacion_variable_registro_id, :infraestructura_id, :costo, :activo, :creador, :creacion, :modificador, :modificacion)
+        RETURNING id
+    """)
+
+    result = db.session.execute(query, {
+        'afectacion_variable_registro_id': data['afectacion_variable_registro_id'],
+        'infraestructura_id': data['infraestructura_id'],
+        'costo': data['costo'],
+        'activo': data.get('activo', True),
+        'creador': data.get('creador', 'Sistema'),
+        'creacion': now,
+        'modificador': data.get('creador', 'Sistema'),
+        'modificacion': now
+    })
+
+    row = result.fetchone()
+    if row is None:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create afectacion_variable_registro_detalle'}), 500
+    afectacion_variable_registro_detalle_id = row[0]
+    db.session.commit()
+
+    afectacion_variable_registro_detalle = db.session.execute(
+        db.text("SELECT * FROM afectacion_variable_registro_detalles WHERE id = :id"),
+        {'id': afectacion_variable_registro_detalle_id}
+    ).fetchone()
+
+    if not afectacion_variable_registro_detalle:
+        return jsonify({'error': 'Afectacion variable registro detalle not found after creation'}), 404
+
+    return jsonify({  # type: ignore
+        'id': afectacion_variable_registro_detalle.id,
+        'afectacion_variable_registro_id': afectacion_variable_registro_detalle.afectacion_variable_registro_id,
+        'infraestructura_id': afectacion_variable_registro_detalle.infraestructura_id,
+        'costo': afectacion_variable_registro_detalle.costo,
+        'activo': afectacion_variable_registro_detalle.activo,
+        'creador': afectacion_variable_registro_detalle.creador,
+        'creacion': afectacion_variable_registro_detalle.creacion.isoformat() if afectacion_variable_registro_detalle.creacion else None,
+        'modificador': afectacion_variable_registro_detalle.modificador,
+        'modificacion': afectacion_variable_registro_detalle.modificacion.isoformat() if afectacion_variable_registro_detalle.modificacion else None
+    }), 201
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles/<int:id>', methods=['GET'])
+def get_afectacion_variable_registro_detalle(id):
+    """Obtener afectacion_variable_registro_detalle por ID
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Afectacion variable registro detalle
+      404:
+        description: No encontrado
+    """
+    result = db.session.execute(
+        db.text("SELECT * FROM afectacion_variable_registro_detalles WHERE id = :id"),
+        {'id': id}
+    )
+    afectacion_variable_registro_detalle = result.fetchone()
+
+    if not afectacion_variable_registro_detalle:
+        return jsonify({'error': 'Afectacion variable registro detalle no encontrado'}), 404
+
+    return jsonify({
+        'id': afectacion_variable_registro_detalle.id,
+        'afectacion_variable_registro_id': afectacion_variable_registro_detalle.afectacion_variable_registro_id,
+        'infraestructura_id': afectacion_variable_registro_detalle.infraestructura_id,
+        'costo': afectacion_variable_registro_detalle.costo,
+        'activo': afectacion_variable_registro_detalle.activo,
+        'creador': afectacion_variable_registro_detalle.creador,
+        'creacion': afectacion_variable_registro_detalle.creacion.isoformat() if afectacion_variable_registro_detalle.creacion else None,
+        'modificador': afectacion_variable_registro_detalle.modificador,
+        'modificacion': afectacion_variable_registro_detalle.modificacion.isoformat() if afectacion_variable_registro_detalle.modificacion else None
+    })
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles/<int:id>', methods=['PUT'])
+def update_afectacion_variable_registro_detalle(id):
+    """Actualizar afectacion_variable_registro_detalle
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            afectacion_variable_registro_id: {type: integer}
+            infraestructura_id: {type: integer}
+            costo: {type: integer}
+            activo: {type: boolean}
+    responses:
+      200:
+        description: Afectacion variable registro detalle actualizado
+      404:
+        description: No encontrado
+    """
+    data = request.get_json()
+    now = datetime.now(timezone.utc)
+
+    query = db.text("""
+        UPDATE afectacion_variable_registro_detalles
+        SET afectacion_variable_registro_id = :afectacion_variable_registro_id,
+            infraestructura_id = :infraestructura_id,
+            costo = :costo,
+            activo = :activo,
+            modificador = :modificador,
+            modificacion = :modificacion
+        WHERE id = :id
+    """)
+
+    result = db.session.execute(query, {
+        'id': id,
+        'afectacion_variable_registro_id': data.get('afectacion_variable_registro_id'),
+        'infraestructura_id': data.get('infraestructura_id'),
+        'costo': data.get('costo'),
+        'activo': data.get('activo'),
+        'modificador': data.get('modificador', 'Sistema'),
+        'modificacion': now
+    })
+
+    if result.rowcount == 0:  # type: ignore[attr-defined]
+        return jsonify({'error': 'Afectacion variable registro detalle no encontrado'}), 404
+
+    db.session.commit()
+
+    afectacion_variable_registro_detalle = db.session.execute(
+        db.text("SELECT * FROM afectacion_variable_registro_detalles WHERE id = :id"),
+        {'id': id}
+    ).fetchone()
+
+    if not afectacion_variable_registro_detalle:
+        return jsonify({'error': 'Afectacion variable registro detalle not found after update'}), 404
+
+    return jsonify({  # type: ignore
+        'id': afectacion_variable_registro_detalle.id,
+        'afectacion_variable_registro_id': afectacion_variable_registro_detalle.afectacion_variable_registro_id,
+        'infraestructura_id': afectacion_variable_registro_detalle.infraestructura_id,
+        'costo': afectacion_variable_registro_detalle.costo,
+        'activo': afectacion_variable_registro_detalle.activo,
+        'creador': afectacion_variable_registro_detalle.creador,
+        'creacion': afectacion_variable_registro_detalle.creacion.isoformat() if afectacion_variable_registro_detalle.creacion else None,
+        'modificador': afectacion_variable_registro_detalle.modificador,
+        'modificacion': afectacion_variable_registro_detalle.modificacion.isoformat() if afectacion_variable_registro_detalle.modificacion else None
+    })
+
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles/<int:id>', methods=['DELETE'])
+def delete_afectacion_variable_registro_detalle(id):
+    """Eliminar afectacion_variable_registro_detalle
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado
+      404:
+        description: No encontrado
+    """
+    result = db.session.execute(
+        db.text("DELETE FROM afectacion_variable_registro_detalles WHERE id = :id"),
+        {'id': id}
+    )
+
+    if result.rowcount == 0:  # type: ignore[attr-defined]
+        return jsonify({'error': 'Afectacion variable registro detalle no encontrado'}), 404
+
+    db.session.commit()
+    return jsonify({'mensaje': 'Afectacion variable registro detalle eliminado correctamente'})
