@@ -96,7 +96,7 @@ def get_parroquias_by_canton(canton_id):
         })
     return jsonify(parroquias)
 
-@parroquias_bp.route('/api/parroquias/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+@parroquias_bp.route('/api/canton/<int:canton_id>/parroquias/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_parroquias_by_emergencia_by_canton(emergencia_id, canton_id):
     """Obtener parroquias por emergencia y canton
     ---
