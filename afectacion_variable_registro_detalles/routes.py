@@ -124,36 +124,43 @@ def get_afectacion_variable_registro_detalles_by_emergencia_by_variable_by_parro
                 registrada: {type: boolean}
     """
     query = db.text("""
-        WITH base AS (
-          SELECT i.id, i.nombre
-          FROM infraestructuras i
-          WHERE i.parroquia_id = :parroquia_id
-        ),
-        marcadas AS (
-          SELECT d.infraestructura_id
-          FROM afectacion_variable_registros r
-          JOIN afectacion_variable_registro_detalles d
-            ON d.afectacion_variable_registro_id = r.id
-          WHERE r.parroquia_id = :parroquia_id
-            AND r.emergencia_id = :emergencia_id
-            AND r.afectacion_variable_id = :afectacion_variable_id
-        )
-        SELECT
-          b.id,
-          b.nombre,
-          (m.infraestructura_id IS NOT NULL) AS registrada
-        FROM base b
-        LEFT JOIN marcadas m
-          ON m.infraestructura_id = b.id
-        ORDER BY registrada DESC, b.nombre;
+      WITH base AS (
+        SELECT i.id infraestructura_id, i.nombre
+        FROM infraestructuras i
+        WHERE i.parroquia_id = :parroquia_id
+      ),
+      marcadas AS (
+        SELECT DISTINCT
+              d.infraestructura_id,
+              r.id  AS registro_id,
+              d.id  AS detalle_id
+        FROM afectacion_variable_registros r
+        JOIN afectacion_variable_registro_detalles d
+          ON d.afectacion_variable_registro_id = r.id
+        WHERE r.parroquia_id = :parroquia_id
+          AND r.emergencia_id = :emergencia_id
+          AND r.afectacion_variable_id = :afectacion_variable_id
+      )
+      SELECT
+        b.infraestructura_id,
+        b.nombre,
+        (m.infraestructura_id IS NOT NULL) AS registrada, -- true = ya registrada; false = aún no
+        m.registro_id  AS afectacion_variable_registro_id,
+        m.detalle_id   AS afectacion_variable_registro_detalle_id
+      FROM base b
+      LEFT JOIN marcadas m
+        ON m.infraestructura_id = b.infraestructura_id
+      ORDER BY registrada DESC, b.nombre;
     """)
     result = db.session.execute(query, {'emergencia_id': emergencia_id, 'afectacion_variable_id': afectacion_variable_id, 'parroquia_id': parroquia_id})
     detalles = []
     for row in result:
         detalles.append({  # type: ignore
-            'id': row.id,
+            'infraestructura_id': row.infraestructura_id,
             'nombre': row.nombre,
-            'registrada': row.registrada
+            'registrada': row.registrada,
+            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,
+            'afectacion_variable_registro_detalle_id': row.afectacion_variable_registro_detalle_id 
         })
     return jsonify(detalles)
 
