@@ -124,33 +124,46 @@ def get_afectacion_variable_registro_detalles_by_emergencia_by_variable_by_parro
                 registrada: {type: boolean}
     """
     query = db.text("""
-      WITH base AS (
-        SELECT i.id infraestructura_id, i.nombre
-        FROM infraestructuras i
-        WHERE i.parroquia_id = :parroquia_id
-      ),
-      marcadas AS (
-        SELECT DISTINCT
+      WITH registradas_sel AS (
+        -- Infraestructuras registradas en la VARIABLE SELECCIONADA (para la misma emergencia)
+        SELECT DISTINCT ON (d.infraestructura_id)
               d.infraestructura_id,
-              r.id  AS registro_id,
-              d.id  AS detalle_id
+              r.id AS registro_id,
+              d.id AS detalle_id
         FROM afectacion_variable_registros r
         JOIN afectacion_variable_registro_detalles d
           ON d.afectacion_variable_registro_id = r.id
         WHERE r.parroquia_id = :parroquia_id
           AND r.emergencia_id = :emergencia_id
           AND r.afectacion_variable_id = :afectacion_variable_id
+        ORDER BY d.infraestructura_id, d.id DESC
+      ),
+      comprometidas_otras AS (
+        -- Infraestructuras comprometidas en OTRAS variables (misma emergencia),
+        -- que debemos excluir si NO pertenecen a la variable seleccionada
+        SELECT DISTINCT d.infraestructura_id
+        FROM afectacion_variable_registros r
+        JOIN afectacion_variable_registro_detalles d
+          ON d.afectacion_variable_registro_id = r.id
+        WHERE r.parroquia_id = :parroquia_id
+          AND r.emergencia_id = :emergencia_id
+          AND r.afectacion_variable_id <> :afectacion_variable_id
       )
       SELECT
-        b.infraestructura_id,
-        b.nombre,
-        (m.infraestructura_id IS NOT NULL) AS registrada, -- true = ya registrada; false = aún no
-        m.registro_id  AS afectacion_variable_registro_id,
-        m.detalle_id   AS afectacion_variable_registro_detalle_id
-      FROM base b
-      LEFT JOIN marcadas m
-        ON m.infraestructura_id = b.infraestructura_id
-      ORDER BY registrada DESC, b.nombre;
+        i.id infraestructura_id,
+        i.nombre,
+        (rs.infraestructura_id IS NOT NULL) AS registrada, -- true si ya está en la variable seleccionada
+        rs.registro_id  AS afectacion_variable_registro_id,
+        rs.detalle_id   AS afectacion_variable_registro_detalle_id
+      FROM infraestructuras i
+      LEFT JOIN registradas_sel   rs ON rs.infraestructura_id = i.id
+      LEFT JOIN comprometidas_otras co ON co.infraestructura_id = i.id
+      WHERE i.parroquia_id = :parroquia_id
+        -- Quita el comentario si quieres filtrar por tipo (ej. escuelas):
+        -- AND i.infraestructura_tipo_id = $4
+        -- Regla de selección:
+        AND (co.infraestructura_id IS NULL OR rs.infraestructura_id IS NOT NULL)
+      ORDER BY registrada DESC, i.nombre;
     """)
     result = db.session.execute(query, {'emergencia_id': emergencia_id, 'afectacion_variable_id': afectacion_variable_id, 'parroquia_id': parroquia_id})
     detalles = []
