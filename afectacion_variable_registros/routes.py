@@ -148,6 +148,7 @@ def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mes
             items:
               type: object
               properties:
+                afectacion_variable_registro_id: {type: integer}
                 parroquia_id: {type: integer}
                 parroquia_nombre: {type: string}
                 afectacion_variable_id: {type: integer}
@@ -157,7 +158,7 @@ def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mes
                 costo: {type: integer}
     """
     query = db.text("""
-        SELECT p.id as parroquia_id, p.nombre as parroquia_nombre,
+        SELECT r.id as afectacion_variable_registro_id, p.id as parroquia_id, p.nombre as parroquia_nombre,
                v.id as afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
                COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
         FROM parroquias p
@@ -171,6 +172,7 @@ def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mes
     registros = []
     for row in result:
         registros.append({  # type: ignore
+            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,  # type: ignore[attr-defined]
             'parroquia_id': row.parroquia_id,
             'parroquia_nombre': row.parroquia_nombre,
             'afectacion_variable_id': row.afectacion_variable_id,
