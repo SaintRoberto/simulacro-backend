@@ -92,6 +92,71 @@ def get_afectacion_variable_registro_detalles_by_variable_by_parroquia(parroquia
         })
     return jsonify(detalles)
 
+@afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles/emergencia/<int:emergencia_id>/variable/<int:afectacion_variable_id>/parroquia/<int:parroquia_id>', methods=['GET'])
+def get_afectacion_variable_registro_detalles_by_emergencia_by_variable_by_parroquia(emergencia_id, afectacion_variable_id, parroquia_id):
+    """Obtener afectacion_variable_registro_detalles por emergencia, variable y parroquia
+    ---
+    tags:
+      - Afectacion Variable Registro Detalles
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: afectacion_variable_id
+        in: path
+        type: integer
+        required: true
+      - name: parroquia_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de infraestructuras con estado de registro
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                nombre: {type: string}
+                registrada: {type: boolean}
+    """
+    query = db.text("""
+        WITH base AS (
+          SELECT i.id, i.nombre
+          FROM infraestructuras i
+          WHERE i.parroquia_id = :parroquia_id
+        ),
+        marcadas AS (
+          SELECT d.infraestructura_id
+          FROM afectacion_variable_registros r
+          JOIN afectacion_variable_registro_detalles d
+            ON d.afectacion_variable_registro_id = r.id
+          WHERE r.parroquia_id = :parroquia_id
+            AND r.emergencia_id = :emergencia_id
+            AND r.afectacion_variable_id = :afectacion_variable_id
+        )
+        SELECT
+          b.id,
+          b.nombre,
+          (m.infraestructura_id IS NOT NULL) AS registrada
+        FROM base b
+        LEFT JOIN marcadas m
+          ON m.infraestructura_id = b.id
+        ORDER BY registrada DESC, b.nombre;
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'afectacion_variable_id': afectacion_variable_id, 'parroquia_id': parroquia_id})
+    detalles = []
+    for row in result:
+        detalles.append({  # type: ignore
+            'id': row.id,
+            'nombre': row.nombre,
+            'registrada': row.registrada
+        })
+    return jsonify(detalles)
+
 @afectacion_variable_registro_detalles_bp.route('/api/afectacion_variable_registro_detalles', methods=['POST'])
 def create_afectacion_variable_registro_detalle():
     """Crear afectacion_variable_registro_detalle
