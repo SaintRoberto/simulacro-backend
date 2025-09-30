@@ -2,6 +2,8 @@ from flask import request, jsonify
 from usuarios import usuarios_bp
 from models import db
 from datetime import datetime, timezone
+from schemas import UsuarioCreateSchema, UsuarioUpdateSchema, LoginSchema, UsuarioResponseSchema
+from auth import hash_password, verify_password, generate_token
 
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
 def get_usuarios():
@@ -32,21 +34,23 @@ def get_usuarios():
     """
     result = db.session.execute(db.text("SELECT * FROM usuarios"))
     usuarios = []
+    response_schema = UsuarioResponseSchema()
     for row in result:
-        usuarios.append({
+        # Use schema for safe output encoding
+        safe_data = response_schema.dump({
             'id': row.id,
             'institucion_id': row.institucion_id,
             'usuario': row.usuario,
-            'descripcion': row.descripcion,
-            'celular': row.celular,
             'correo': row.correo,
-            'activo': row.activo,
+            'celular': row.celular,
+            'estado': row.estado,
             'aprobado': row.aprobado,
             'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'creacion': row.creacion,
             'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+            'modificacion': row.modificacion
         })
+        usuarios.append(safe_data)
     return jsonify(usuarios)
 
 @usuarios_bp.route('/api/usuarios', methods=['POST'])
@@ -80,6 +84,16 @@ def create_usuario():
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
+
+    # Validate input
+    schema = UsuarioCreateSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
+
+    # Hash the password before storing
+    hashed = hash_password(validated_data['clave'])
     
     query = db.text("""
         INSERT INTO usuarios (
@@ -94,17 +108,17 @@ def create_usuario():
     """)
     
     result = db.session.execute(query, {
-        'institucion_id': data['institucion_id'],
-        'usuario': data['usuario'],
-        'clave': data['clave'],
-        'descripcion': data.get('descripcion', ''),
-        'celular': data.get('celular'),
-        'correo': data.get('correo'),
-        'activo': data.get('activo', True),
-        'aprobado': data.get('aprobado', False),
-        'creador': data.get('creador', 'Sistema'),
+        'institucion_id': validated_data['institucion_id'],
+        'usuario': validated_data['usuario'],
+        'clave': hashed,
+        'descripcion': validated_data.get('descripcion', ''),
+        'celular': validated_data.get('celular'),
+        'correo': validated_data.get('correo'),
+        'activo': validated_data.get('activo', True),
+        'aprobado': validated_data.get('aprobado', False),
+        'creador': validated_data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
+        'modificador': validated_data.get('creador', 'Sistema'),
         'modificacion': now
     })
     
@@ -116,20 +130,22 @@ def create_usuario():
         {'id': usuario_id}
     ).fetchone()
     
-    return jsonify({
+    # Use schema for safe output encoding
+    response_schema = UsuarioResponseSchema()
+    safe_data = response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'descripcion': usuario.descripcion,
-        'celular': usuario.celular,
         'correo': usuario.correo,
-        'activo': usuario.activo,
+        'celular': usuario.celular,
+        'estado': usuario.estado,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
-        'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
+        'creacion': usuario.creacion,
         'modificador': usuario.modificador,
-        'modificacion': usuario.modificacion.isoformat() if usuario.modificacion else None
-    }), 201
+        'modificacion': usuario.modificacion
+    })
+    return jsonify(safe_data), 201
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['GET'])
 def get_usuario(id):
@@ -156,21 +172,23 @@ def get_usuario(id):
     
     if not usuario:
         return jsonify({'error': 'Usuario no encontrado'}), 404
-    
-    return jsonify({
+
+    # Use schema for safe output encoding
+    response_schema = UsuarioResponseSchema()
+    safe_data = response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'descripcion': usuario.descripcion,
-        'celular': usuario.celular,
         'correo': usuario.correo,
-        'activo': usuario.activo,
+        'celular': usuario.celular,
+        'estado': usuario.estado,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
-        'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
+        'creacion': usuario.creacion,
         'modificador': usuario.modificador,
-        'modificacion': usuario.modificacion.isoformat() if usuario.modificacion else None
+        'modificacion': usuario.modificacion
     })
+    return jsonify(safe_data)
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['PUT'])
 def update_usuario(id):
@@ -208,14 +226,25 @@ def update_usuario(id):
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
-    
+
+    # Validate input
+    schema = UsuarioUpdateSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
+
     update_fields = []
-    params = {'id': id, 'modificador': data.get('modificador', 'Sistema'), 'modificacion': now}
+    params = {'id': id, 'modificador': validated_data.get('modificador', 'Sistema'), 'modificacion': now}
     
     for field in ['institucion_id','usuario','clave','descripcion','celular','correo','activo','aprobado']:
-        if field in data:
+        if field in validated_data and validated_data[field] is not None:
+            if field == 'clave':
+                # Hash the password if it's being updated
+                params[field] = hash_password(validated_data[field])
+            else:
+                params[field] = validated_data[field]
             update_fields.append(f"{field} = :{field}")
-            params[field] = data[field]
     
     update_fields.append('modificador = :modificador')
     update_fields.append('modificacion = :modificacion')
@@ -238,20 +267,22 @@ def update_usuario(id):
         {'id': id}
     ).fetchone()
     
-    return jsonify({
+    # Use schema for safe output encoding
+    response_schema = UsuarioResponseSchema()
+    safe_data = response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
-        'descripcion': usuario.descripcion,
-        'celular': usuario.celular,
         'correo': usuario.correo,
-        'activo': usuario.activo,
+        'celular': usuario.celular,
+        'estado': usuario.estado,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
-        'creacion': usuario.creacion.isoformat() if usuario.creacion else None,
+        'creacion': usuario.creacion,
         'modificador': usuario.modificador,
-        'modificacion': usuario.modificacion.isoformat() if usuario.modificacion else None
+        'modificacion': usuario.modificacion
     })
+    return jsonify(safe_data)
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['DELETE'])
 def delete_usuario(id):
@@ -374,23 +405,46 @@ def login_usuario():
         description: Datos faltantes
     """
     data = request.get_json()
-    if not data or 'usuario' not in data or 'clave' not in data:
-        return jsonify({'error': 'Usuario y clave requeridos'}), 400
+    if not data:
+        return jsonify({'error': 'Datos requeridos'}), 400
 
-    # Validar credenciales en tabla usuarios
+    # Validate input
+    schema = LoginSchema()
+    try:
+        validated_data = schema.load(data)
+    except ValidationError as err:
+        return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
+    
+    # Validar credenciales en tabla usuarios (compare hashed password)
     query_usuario = db.text("""
-        SELECT id, usuario, descripcion
+        SELECT id, usuario, descripcion, clave
         FROM usuarios
-        WHERE usuario = :usuario AND clave = :clave AND activo = true
+        WHERE usuario = :usuario AND activo = true
     """)
     result_usuario = db.session.execute(query_usuario, {
-        'usuario': data['usuario'],
-        'clave': data['clave']
+        'usuario': validated_data['usuario']
     })
     usuario_row = result_usuario.fetchone()
-
-    success = usuario_row is not None
-    return jsonify({'success': success,
-    'id': usuario_row.id if usuario_row else None,
-    'usuario': usuario_row.usuario if usuario_row else None,
-    'descripcion': usuario_row.descripcion if usuario_row else None}), 200
+    
+    if usuario_row and verify_password(validated_data['clave'], usuario_row.clave):
+        # Build token payload; include roles later (example: fetch perfiles)
+        payload = {
+            'user_id': usuario_row.id,
+            'usuario': usuario_row.usuario,
+            # 'roles': ['user'],  # optionally fetch real roles from DB
+        }
+        token = generate_token(payload)
+        # Use schema for safe output encoding
+        response_schema = UsuarioResponseSchema()
+        safe_data = response_schema.dump({
+            'id': usuario_row.id,
+            'usuario': usuario_row.usuario,
+            'descripcion': usuario_row.descripcion
+        })
+        return jsonify({
+            'success': True,
+            'token': token,
+            **safe_data
+        }), 200
+    else:
+        return jsonify({'success': False}), 200

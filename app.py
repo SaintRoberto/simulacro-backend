@@ -1,8 +1,9 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from config import DATABASE_URL
 from flasgger import Swagger
 from flask_cors import CORS
+from auth import decode_token
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:3000"], methods=["GET","POST","PUT","DELETE","OPTIONS"], allow_headers=["Content-Type","Authorization"], supports_credentials=True)
@@ -89,19 +90,41 @@ app.register_blueprint(coe_acta_resoluciones_bp)
 app.register_blueprint(resolucion_estados_bp)
 app.register_blueprint(afectacion_variable_registro_detalles_bp)
 
+# Global before_request: require JWT for all endpoints except whitelist
+WHITELIST_PATHS = [
+    '/api/health',
+    '/api/usuarios/login',
+    '/api/usuarios'  # allow user creation (POST) - if you want it public
+    # add other public endpoints as needed (Swagger UI, static files, etc.)
+]
+
+@app.before_request
+def require_jwt_for_all():
+    # Allow OPTIONS for CORS preflight
+    if request.method == 'OPTIONS':
+        return None
+    path = request.path
+    # Allow whitelisted paths
+    if path in WHITELIST_PATHS:
+        return None
+    # Extract token
+    auth = request.headers.get('Authorization', None)
+    if not auth:
+        return jsonify({'error': 'Authorization header required'}), 401
+    parts = auth.split()
+    if parts[0].lower() != 'bearer' or len(parts) != 2:
+        return jsonify({'error': 'Authorization header must be Bearer token'}), 401
+    token = parts[1]
+    decoded = decode_token(token)
+    if not decoded:
+        return jsonify({'error': 'Invalid or expired token'}), 401
+    # Attach decoded to request for downstream handlers
+    request.user = decoded
+
 # Ruta de salud
 @app.route('/api/health', methods=['GET'])
 def health_check():
-    """Health check
-    ---
-    tags:
-      - Salud
-    responses:
-      200:
-        description: Estado de la API
-        examples:
-          application/json: {"estado": "OK", "mensaje": "API funcionando correctamente"}
-    """
+    # Health check
     return jsonify({'estado': 'OK', 'mensaje': 'API funcionando correctamente'})
 
 # Inicializar base de datos
