@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
 from config import DATABASE_URL
 from flasgger import Swagger
@@ -20,7 +20,6 @@ db.init_app(app)
 swagger = Swagger(app)
 
 # Registrar todos los módulos (Blueprints)
-from categorias import categorias_bp
 from instituciones import instituciones_bp
 from usuarios import usuarios_bp
 from perfiles import perfiles_bp
@@ -55,7 +54,6 @@ from coe_acta_resoluciones import coe_acta_resoluciones_bp
 from resolucion_estados import resolucion_estados_bp
 from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
 
-app.register_blueprint(categorias_bp)
 app.register_blueprint(instituciones_bp)
 app.register_blueprint(usuarios_bp)
 app.register_blueprint(perfiles_bp)
@@ -119,7 +117,7 @@ def require_jwt_for_all():
     if not decoded:
         return jsonify({'error': 'Invalid or expired token'}), 401
     # Attach decoded to request for downstream handlers
-    request.user = decoded
+    g.user = decoded
 
 # Ruta de salud
 @app.route('/api/health', methods=['GET'])
