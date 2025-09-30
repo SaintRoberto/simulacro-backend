@@ -5,10 +5,6 @@ from flask import request, jsonify, current_app
 import jwt
 from passlib.hash import bcrypt
 
-# bcrypt has a 72-byte input limit. Helper to safely prepare passwords for verify/hash.
-BCRYPT_MAX_BYTES = 72
-
-
 
 # Load secret from env or fallback (do NOT use fallback in production)
 JWT_SECRET = os.environ.get('JWT_SECRET', 'change_this_secret_in_production')

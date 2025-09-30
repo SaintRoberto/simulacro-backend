@@ -92,8 +92,11 @@ app.register_blueprint(afectacion_variable_registro_detalles_bp)
 WHITELIST_PATHS = [
     '/api/health',
     '/api/usuarios/login',
-    '/api/usuarios'  # allow user creation (POST) - if you want it public
-    # add other public endpoints as needed (Swagger UI, static files, etc.)
+    '/api/usuarios',  # allow user creation (POST) - if you want it public
+    '/apidocs',             # UI Swagger
+    '/apidocs/',            # por si acaso
+    '/flasgger_static',     # archivos estáticos de Swagger UI
+    '/apispec_1.json'       # especificación de la API que consume Swagger
 ]
 
 @app.before_request
@@ -103,7 +106,12 @@ def require_jwt_for_all():
         return None
     path = request.path
     # Allow whitelisted paths
-    if path in WHITELIST_PATHS:
+    if (
+        path in WHITELIST_PATHS
+        or path.startswith("/apidocs")
+        or path.startswith("/flasgger_static")
+        or path.startswith("/apispec")
+    ):
         return None
     # Extract token
     auth = request.headers.get('Authorization', None)
