@@ -3,7 +3,9 @@ from usuarios import usuarios_bp
 from models import db
 from datetime import datetime, timezone
 from schemas import UsuarioCreateSchema, UsuarioUpdateSchema, LoginSchema, UsuarioResponseSchema
+from marshmallow import ValidationError
 from auth import hash_password, verify_password, generate_token
+from typing import cast, Dict, Any
 
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
 def get_usuarios():
@@ -37,7 +39,7 @@ def get_usuarios():
     response_schema = UsuarioResponseSchema()
     for row in result:
         # Use schema for safe output encoding
-        safe_data = response_schema.dump({
+        safe_data = cast(Dict[str, Any], response_schema.dump({
             'id': row.id,
             'institucion_id': row.institucion_id,
             'usuario': row.usuario,
@@ -49,7 +51,7 @@ def get_usuarios():
             'creacion': row.creacion,
             'modificador': row.modificador,
             'modificacion': row.modificacion
-        })
+        }))
         usuarios.append(safe_data)
     return jsonify(usuarios)
 
@@ -88,7 +90,7 @@ def create_usuario():
     # Validate input
     schema = UsuarioCreateSchema()
     try:
-        validated_data = schema.load(data)
+        validated_data = cast(Dict[str, Any], schema.load(data))
     except ValidationError as err:
         return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
 
@@ -122,17 +124,21 @@ def create_usuario():
         'modificacion': now
     })
     
-    usuario_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Failed to create usuario'}), 500
+    usuario_id = row[0]
     db.session.commit()
     
     usuario = db.session.execute(
-        db.text("SELECT * FROM usuarios WHERE id = :id"), 
+        db.text("SELECT * FROM usuarios WHERE id = :id"),
         {'id': usuario_id}
     ).fetchone()
+    assert usuario is not None
     
     # Use schema for safe output encoding
     response_schema = UsuarioResponseSchema()
-    safe_data = response_schema.dump({
+    safe_data = cast(Dict[str, Any], response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
@@ -144,7 +150,7 @@ def create_usuario():
         'creacion': usuario.creacion,
         'modificador': usuario.modificador,
         'modificacion': usuario.modificacion
-    })
+    }))
     return jsonify(safe_data), 201
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['GET'])
@@ -175,7 +181,7 @@ def get_usuario(id):
 
     # Use schema for safe output encoding
     response_schema = UsuarioResponseSchema()
-    safe_data = response_schema.dump({
+    safe_data = cast(Dict[str, Any], response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
@@ -187,7 +193,7 @@ def get_usuario(id):
         'creacion': usuario.creacion,
         'modificador': usuario.modificador,
         'modificacion': usuario.modificacion
-    })
+    }))
     return jsonify(safe_data)
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['PUT'])
@@ -230,7 +236,7 @@ def update_usuario(id):
     # Validate input
     schema = UsuarioUpdateSchema()
     try:
-        validated_data = schema.load(data)
+        validated_data = cast(Dict[str, Any], schema.load(data))
     except ValidationError as err:
         return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
 
@@ -256,20 +262,22 @@ def update_usuario(id):
     """)
     
     result = db.session.execute(query, params)
-    
-    if result.rowcount == 0:
+
+    rowcount = getattr(result, 'rowcount', 0)
+    if rowcount == 0:
         return jsonify({'error': 'Usuario no encontrado'}), 404
     
     db.session.commit()
     
     usuario = db.session.execute(
-        db.text("SELECT * FROM usuarios WHERE id = :id"), 
+        db.text("SELECT * FROM usuarios WHERE id = :id"),
         {'id': id}
     ).fetchone()
+    assert usuario is not None
     
     # Use schema for safe output encoding
     response_schema = UsuarioResponseSchema()
-    safe_data = response_schema.dump({
+    safe_data = cast(Dict[str, Any], response_schema.dump({
         'id': usuario.id,
         'institucion_id': usuario.institucion_id,
         'usuario': usuario.usuario,
@@ -281,7 +289,7 @@ def update_usuario(id):
         'creacion': usuario.creacion,
         'modificador': usuario.modificador,
         'modificacion': usuario.modificacion
-    })
+    }))
     return jsonify(safe_data)
 
 @usuarios_bp.route('/api/usuarios/<int:id>', methods=['DELETE'])
@@ -302,11 +310,12 @@ def delete_usuario(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("DELETE FROM usuarios WHERE id = :id"), 
+        db.text("DELETE FROM usuarios WHERE id = :id"),
         {'id': id}
     )
-    
-    if result.rowcount == 0:
+
+    rowcount = getattr(result, 'rowcount', 0)
+    if rowcount == 0:
         return jsonify({'error': 'Usuario no encontrado'}), 404
     
     db.session.commit()
@@ -330,26 +339,31 @@ def get_datos_login(usuario_id):
         description: No encontrado
     """
     query = db.text("""
-        SELECT
-            usuario_login,
-            usuario_id,
-            usuario_descripcion,
-            coe_id,
-            coe_abreviatura,
-            perfil_id,
-            perfil_nombre,
-            provincia_id,
-            provincia_nombre,
-            canton_id,
-            canton_nombre,
-            mesa_id,
-            mesa_nombre,
-            mesa_siglas,
-            mesa_grupo_id,
-            mesa_grupo_nombre
-        FROM
-            VW_DATOS_LOGIN
-        WHERE usuario_id = :usuario_id
+      SELECT u.usuario usuario_login
+      , u.id usuario_id
+      , u.descripcion usuario_descripcion
+      , ux.coe_id
+      , c.siglas coe_abreviatura
+      , ux.perfil_id
+      , pf.nombre perfil_nombre
+      , ux.provincia_id
+      , COALESCE(p.nombre,'--') provincia_nombre
+      , ux.canton_id
+      , COALESCE(k.nombre,'--') canton_nombre
+      , ux.mesa_id
+      , m.nombre mesa_nombre
+      , m.siglas mesa_siglas
+      , g.id mesa_grupo_id
+      , g.nombre mesa_grupo_nombre
+      FROM public.usuarios u 
+      INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON u.id = ux.usuario_id
+      INNER JOIN public.perfiles pf ON ux.perfil_id = pf.id
+      INNER JOIN public.coes c ON ux.coe_id = c.id
+      LEFT JOIN public.provincias p ON ux.provincia_id = p.id
+      LEFT JOIN public.cantones k ON ux.provincia_id = k.provincia_id AND ux.canton_id = k.id
+      INNER JOIN public.mesas m ON ux.mesa_id = m.id
+      LEFT JOIN public.mesa_grupos g ON m.mesa_grupo_id = g.id
+      WHERE u.id = :usuario_id
     """)
     result = db.session.execute(query, {'usuario_id': usuario_id})
     row = result.fetchone()
@@ -411,7 +425,7 @@ def login_usuario():
     # Validate input
     schema = LoginSchema()
     try:
-        validated_data = schema.load(data)
+        validated_data = cast(Dict[str, Any], schema.load(data))
     except ValidationError as err:
         return jsonify({'error': 'Validation failed', 'details': err.messages}), 400
     
@@ -436,11 +450,11 @@ def login_usuario():
         token = generate_token(payload)
         # Use schema for safe output encoding
         response_schema = UsuarioResponseSchema()
-        safe_data = response_schema.dump({
+        safe_data = cast(Dict[str, Any], response_schema.dump({
             'id': usuario_row.id,
             'usuario': usuario_row.usuario,
             'descripcion': usuario_row.descripcion
-        })
+        }))
         return jsonify({
             'success': True,
             'token': token,

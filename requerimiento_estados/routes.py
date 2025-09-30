@@ -175,15 +175,23 @@ def create_requerimiento_estado():
         'modificador': data.get('creador', 'Sistema'),
         'modificacion': now
     })
-    
-    estado_id = result.fetchone()[0]
+
+    row = result.fetchone()
+    if not row:
+        db.session.rollback()
+        return jsonify({'error': 'Error al crear el estado de requerimiento'}), 500
+
+    estado_id = row[0]
     db.session.commit()
     
     estado = db.session.execute(
-        db.text("SELECT * FROM requerimiento_estados WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_estados WHERE id = :id"),
         {'id': estado_id}
     ).fetchone()
-    
+
+    if not estado:
+        return jsonify({'error': 'Estado de requerimiento no encontrado después de crear'}), 500
+
     return jsonify({
         'id': estado.id,
         'nombre': estado.nombre,
@@ -376,6 +384,15 @@ def update_requerimiento_estado(id):
         WHERE id = :id
     """)
     
+    # Check if record exists before update
+    existing = db.session.execute(
+        db.text("SELECT id FROM requerimiento_estados WHERE id = :id"),
+        {'id': id}
+    ).fetchone()
+
+    if not existing:
+        return jsonify({'error': 'Estado de requerimiento no encontrado'}), 404
+
     result = db.session.execute(query, {
         'id': id,
         'nombre': data.get('nombre'),
@@ -384,17 +401,17 @@ def update_requerimiento_estado(id):
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
-    
-    if result.rowcount == 0:
-        return jsonify({'error': 'Estado de requerimiento no encontrado'}), 404
-    
+
     db.session.commit()
-    
+
     estado = db.session.execute(
-        db.text("SELECT * FROM requerimiento_estados WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_estados WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    if not estado:
+        return jsonify({'error': 'Estado de requerimiento no encontrado después de actualizar'}), 500
+
     return jsonify({
         'id': estado.id,
         'nombre': estado.nombre,
@@ -435,13 +452,19 @@ def delete_requerimiento_estado(id):
         examples:
           application/json: {"error": "Estado de requerimiento no encontrado"}
     """
+    # Check if record exists before delete
+    existing = db.session.execute(
+        db.text("SELECT id FROM requerimiento_estados WHERE id = :id"),
+        {'id': id}
+    ).fetchone()
+
+    if not existing:
+        return jsonify({'error': 'Estado de requerimiento no encontrado'}), 404
+
     result = db.session.execute(
-        db.text("DELETE FROM requerimiento_estados WHERE id = :id"), 
+        db.text("DELETE FROM requerimiento_estados WHERE id = :id"),
         {'id': id}
     )
-    
-    if result.rowcount == 0:
-        return jsonify({'error': 'Estado de requerimiento no encontrado'}), 404
-    
+
     db.session.commit()
     return jsonify({'mensaje': 'Estado de requerimiento eliminado correctamente'})

@@ -8,7 +8,7 @@ class Categoria(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -22,7 +22,7 @@ class Categoria(db.Model):
             'id': self.id,
             'nombre': self.nombre,
             'descripcion': self.descripcion,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -35,7 +35,7 @@ class Institucion(db.Model):
     categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=False)
     nombre = db.Column(db.String(200), nullable=False)
     siglas = db.Column(db.String(50))
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -50,7 +50,7 @@ class Institucion(db.Model):
             'categoria_id': self.categoria_id,
             'nombre': self.nombre,
             'siglas': self.siglas,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -68,7 +68,7 @@ class Usuario(db.Model):
     apellidos = db.Column(db.String(100), nullable=False)
     cedula = db.Column(db.String(20), unique=True, nullable=False)
     celular = db.Column(db.String(20))
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     aprobado = db.Column(db.Boolean, default=False)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -85,7 +85,7 @@ class Usuario(db.Model):
             'apellidos': self.apellidos,
             'cedula': self.cedula,
             'celular': self.celular,
-            'estado': self.estado,
+            'activo': self.activo,
             'aprobado': self.aprobado,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
@@ -98,7 +98,7 @@ class Perfil(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.Text)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -109,7 +109,7 @@ class Perfil(db.Model):
             'id': self.id,
             'nombre': self.nombre,
             'descripcion': self.descripcion,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -154,7 +154,7 @@ class Provincia(db.Model):
     dpa = db.Column(db.String(10), unique=True, nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     abreviatura = db.Column(db.String(10))
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -170,7 +170,7 @@ class Provincia(db.Model):
             'dpa': self.dpa,
             'nombre': self.nombre,
             'abreviatura': self.abreviatura,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -184,7 +184,7 @@ class Canton(db.Model):
     dpa = db.Column(db.String(10), unique=True, nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     abreviatura = db.Column(db.String(10))
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -200,7 +200,7 @@ class Canton(db.Model):
             'dpa': self.dpa,
             'nombre': self.nombre,
             'abreviatura': self.abreviatura,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -215,7 +215,7 @@ class Parroquia(db.Model):
     dpa = db.Column(db.String(10), unique=True, nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     abreviatura = db.Column(db.String(10))
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -229,7 +229,7 @@ class Parroquia(db.Model):
             'dpa': self.dpa,
             'nombre': self.nombre,
             'abreviatura': self.abreviatura,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -286,7 +286,7 @@ class Coe(db.Model):
     nombre = db.Column(db.String(200), nullable=False)
     siglas = db.Column(db.String(50))
     descripcion = db.Column(db.Text)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -298,7 +298,7 @@ class Coe(db.Model):
             'nombre': self.nombre,
             'siglas': self.siglas,
             'descripcion': self.descripcion,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -311,7 +311,7 @@ class Mesa(db.Model):
     nombre = db.Column(db.String(200), nullable=False)
     siglas = db.Column(db.String(50))
     tipo_id = db.Column(db.Integer)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -323,7 +323,7 @@ class Mesa(db.Model):
             'nombre': self.nombre,
             'siglas': self.siglas,
             'tipo_id': self.tipo_id,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -336,7 +336,7 @@ class UsuarioPerfil(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     perfil_id = db.Column(db.Integer, db.ForeignKey('perfiles.id'), nullable=False)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -347,7 +347,7 @@ class UsuarioPerfil(db.Model):
             'id': self.id,
             'usuario_id': self.usuario_id,
             'perfil_id': self.perfil_id,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -359,7 +359,7 @@ class PerfilMenu(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     perfil_id = db.Column(db.Integer, db.ForeignKey('perfiles.id'), nullable=False)
     menu_id = db.Column(db.Integer, db.ForeignKey('menus.id'), nullable=False)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -370,7 +370,7 @@ class PerfilMenu(db.Model):
             'id': self.id,
             'perfil_id': self.perfil_id,
             'menu_id': self.menu_id,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -386,7 +386,7 @@ class UsuarioCoe(db.Model):
     canton_id = db.Column(db.Integer, db.ForeignKey('cantones.id'))
     parroquia_id = db.Column(db.Integer, db.ForeignKey('parroquias.id'))
     mesa_id = db.Column(db.Integer)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -401,7 +401,7 @@ class UsuarioCoe(db.Model):
             'canton_id': self.canton_id,
             'parroquia_id': self.parroquia_id,
             'mesa_id': self.mesa_id,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
@@ -413,7 +413,7 @@ class MesaCoe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     mesa_id = db.Column(db.Integer, db.ForeignKey('mesas.id'), nullable=False)
     coe_id = db.Column(db.Integer, db.ForeignKey('coes.id'), nullable=False)
-    estado = db.Column(db.String(20), default='Activo')
+    activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
@@ -424,7 +424,7 @@ class MesaCoe(db.Model):
             'id': self.id,
             'mesa_id': self.mesa_id,
             'coe_id': self.coe_id,
-            'estado': self.estado,
+            'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
             'modificador': self.modificador,
