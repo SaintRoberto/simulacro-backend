@@ -16,8 +16,32 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 from models import db
 db.init_app(app)
 
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Mi API de Riesgos",
+        "description": "Documentación de mi API con JWT",
+        "version": "1.0.0"
+    },
+    "securityDefinitions": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Escribe: Bearer <tu_jwt_token>"
+        }
+    },
+    "security": [
+        {"Bearer": []}
+    ]
+}
+
+swagger = Swagger(app, template=swagger_template)
+
+
 # Inicializar Swagger UI
-swagger = Swagger(app)
+#swagger = Swagger(app)
+
 
 # Registrar todos los módulos (Blueprints)
 from instituciones import instituciones_bp
