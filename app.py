@@ -36,7 +36,6 @@ swagger_template = {
     ]
 }
 
-swagger = Swagger(app, template=swagger_template)
 
 
 # Inicializar Swagger UI
@@ -77,6 +76,8 @@ from coe_actas import coe_actas_bp
 from coe_acta_resoluciones import coe_acta_resoluciones_bp
 from resolucion_estados import resolucion_estados_bp
 from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
+from respuesta_acciones import respuesta_acciones_bp
+from respuesta_accion_detalles import respuesta_accion_detalles_bp
 
 app.register_blueprint(instituciones_bp)
 app.register_blueprint(usuarios_bp)
@@ -111,6 +112,11 @@ app.register_blueprint(coe_actas_bp)
 app.register_blueprint(coe_acta_resoluciones_bp)
 app.register_blueprint(resolucion_estados_bp)
 app.register_blueprint(afectacion_variable_registro_detalles_bp)
+app.register_blueprint(respuesta_acciones_bp)
+app.register_blueprint(respuesta_accion_detalles_bp)
+
+# Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
+swagger = Swagger(app, template=swagger_template)
 
 # Global before_request: require JWT for all endpoints except whitelist
 WHITELIST_PATHS = [

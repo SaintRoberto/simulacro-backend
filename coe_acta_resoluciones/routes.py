@@ -19,7 +19,7 @@ def get_coe_acta_resoluciones():
               properties:
                 id: {type: integer}
                 coe_acta_id: {type: integer}
-                mesa_id: {type: integer}
+                mesa_asignada_id: {type: integer}
                 detalle: {type: string}
                 fecha_cumplimiento: {type: string}
                 responsable: {type: string}
@@ -36,7 +36,7 @@ def get_coe_acta_resoluciones():
         coe_acta_resoluciones.append({  # type: ignore
             'id': row.id,
             'coe_acta_id': row.coe_acta_id,
-            'mesa_id': row.mesa_id,
+            'mesa_asignada_id': row.mesa_asignada_id,
             'detalle': row.detalle,
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'responsable': row.responsable,
@@ -70,7 +70,7 @@ def get_coe_acta_resoluciones_by_coe_acta(coe_acta_id):
               properties:
                 id: {type: integer}
                 coe_acta_id: {type: integer}
-                mesa_id: {type: integer}
+                mesa_asignada_id: {type: integer}
                 detalle: {type: string}
                 fecha_cumplimiento: {type: string}
                 responsable: {type: string}
@@ -87,7 +87,7 @@ def get_coe_acta_resoluciones_by_coe_acta(coe_acta_id):
         coe_acta_resoluciones.append({  # type: ignore
             'id': row.id,
             'coe_acta_id': row.coe_acta_id,
-            'mesa_id': row.mesa_id,
+            'mesa_asignada_id': row.mesa_asignada_id,
             'detalle': row.detalle,
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'responsable': row.responsable,
@@ -114,10 +114,10 @@ def create_coe_acta_resolucion():
         required: true
         schema:
           type: object
-          required: [coe_acta_id, mesa_id, resolucion_estado_id]
+          required: [coe_acta_id, mesa_asignada_id, resolucion_estado_id]
           properties:
             coe_acta_id: {type: integer}
-            mesa_id: {type: integer}
+            mesa_asignada_id: {type: integer}
             detalle: {type: string}
             fecha_cumplimiento: {type: string, format: date-time}
             responsable: {type: string}
@@ -132,7 +132,7 @@ def create_coe_acta_resolucion():
           properties:
             id: {type: integer}
             coe_acta_id: {type: integer}
-            mesa_id: {type: integer}
+            mesa_asignada_id: {type: integer}
             detalle: {type: string}
             fecha_cumplimiento: {type: string}
             responsable: {type: string}
@@ -147,14 +147,14 @@ def create_coe_acta_resolucion():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO coe_acta_resoluciones (coe_acta_id, mesa_id, detalle, fecha_cumplimiento, responsable, resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
-        VALUES (:coe_acta_id, :mesa_id, :detalle, :fecha_cumplimiento, :responsable, :resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO coe_acta_resoluciones (coe_acta_id, mesa_asignada_id, detalle, fecha_cumplimiento, responsable, resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
+        VALUES (:coe_acta_id, :mesa_asignada_id, :detalle, :fecha_cumplimiento, :responsable, :resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
-
+    
     result = db.session.execute(query, {
         'coe_acta_id': data['coe_acta_id'],
-        'mesa_id': data['mesa_id'],
+        'mesa_asignada_id': data['mesa_asignada_id'],
         'detalle': data.get('detalle'),
         'fecha_cumplimiento': data.get('fecha_cumplimiento'),
         'responsable': data.get('responsable'),
@@ -184,7 +184,7 @@ def create_coe_acta_resolucion():
     return jsonify({  # type: ignore
         'id': coe_acta_resolucion.id,
         'coe_acta_id': coe_acta_resolucion.coe_acta_id,
-        'mesa_id': coe_acta_resolucion.mesa_id,
+        'mesa_asignada_id': coe_acta_resolucion.mesa_asignada_id,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'responsable': coe_acta_resolucion.responsable,
@@ -225,7 +225,7 @@ def get_coe_acta_resolucion(id):
     return jsonify({
         'id': coe_acta_resolucion.id,
         'coe_acta_id': coe_acta_resolucion.coe_acta_id,
-        'mesa_id': coe_acta_resolucion.mesa_id,
+        'mesa_asignada_id': coe_acta_resolucion.mesa_asignada_id,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'responsable': coe_acta_resolucion.responsable,
@@ -257,7 +257,7 @@ def update_coe_acta_resolucion(id):
           type: object
           properties:
             coe_acta_id: {type: integer}
-            mesa_id: {type: integer}
+            mesa_asignada_id: {type: integer}
             detalle: {type: string}
             fecha_cumplimiento: {type: string, format: date-time}
             responsable: {type: string}
@@ -275,7 +275,7 @@ def update_coe_acta_resolucion(id):
     query = db.text("""
         UPDATE coe_acta_resoluciones
         SET coe_acta_id = :coe_acta_id,
-            mesa_id = :mesa_id,
+            mesa_asignada_id = :mesa_asignada_id,
             detalle = :detalle,
             fecha_cumplimiento = :fecha_cumplimiento,
             responsable = :responsable,
@@ -289,7 +289,7 @@ def update_coe_acta_resolucion(id):
     result = db.session.execute(query, {
         'id': id,
         'coe_acta_id': data.get('coe_acta_id'),
-        'mesa_id': data.get('mesa_id'),
+        'mesa_asignada_id': data.get('mesa_asignada_id'),
         'detalle': data.get('detalle'),
         'fecha_cumplimiento': data.get('fecha_cumplimiento'),
         'responsable': data.get('responsable'),
@@ -315,7 +315,7 @@ def update_coe_acta_resolucion(id):
     return jsonify({  # type: ignore
         'id': coe_acta_resolucion.id,
         'coe_acta_id': coe_acta_resolucion.coe_acta_id,
-        'mesa_id': coe_acta_resolucion.mesa_id,
+        'mesa_asignada_id': coe_acta_resolucion.mesa_asignada_id,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'responsable': coe_acta_resolucion.responsable,

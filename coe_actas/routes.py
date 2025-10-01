@@ -22,6 +22,7 @@ def get_coe_actas():
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
                 hora_sesion: {type: string}
+                descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
                 creacion: {type: string}
@@ -37,6 +38,7 @@ def get_coe_actas():
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
             'hora_sesion': row.hora_sesion,
+            'descripcion': row.descripcion,
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -73,6 +75,7 @@ def get_coe_actas_by_usuario_by_emergencia(usuario_id, emergencia_id):
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
                 hora_sesion: {type: string}
+                descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
                 creacion: {type: string}
@@ -88,6 +91,7 @@ def get_coe_actas_by_usuario_by_emergencia(usuario_id, emergencia_id):
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
             'hora_sesion': row.hora_sesion,
+            'descripcion': row.descripcion,
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -116,6 +120,7 @@ def create_coe_acta():
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
             hora_sesion: {type: string}
+            descripcion: {type: string}
             activo: {type: boolean}
             creador: {type: string}
     responses:
@@ -129,6 +134,7 @@ def create_coe_acta():
             emergencia_id: {type: integer}
             fecha_sesion: {type: string}
             hora_sesion: {type: string}
+            descripcion: {type: string}
             activo: {type: boolean}
             creador: {type: string}
             creacion: {type: string}
@@ -139,16 +145,17 @@ def create_coe_acta():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO coe_actas (usuario_id, emergencia_id, fecha_sesion, hora_sesion, activo, creador, creacion, modificador, modificacion)
-        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :hora_sesion, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO coe_actas (usuario_id, emergencia_id, fecha_sesion, hora_sesion, descripcion, activo, creador, creacion, modificador, modificacion)
+        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :hora_sesion, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
-
+    
     result = db.session.execute(query, {
         'usuario_id': data['usuario_id'],
         'emergencia_id': data['emergencia_id'],
         'fecha_sesion': data.get('fecha_sesion'),
         'hora_sesion': data.get('hora_sesion'),
+        'descripcion': data.get('descripcion'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -177,6 +184,7 @@ def create_coe_acta():
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
         'hora_sesion': coe_acta.hora_sesion,
+        'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
         'creacion': coe_acta.creacion.isoformat() if coe_acta.creacion else None,
@@ -216,6 +224,7 @@ def get_coe_acta(id):
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
         'hora_sesion': coe_acta.hora_sesion,
+        'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
         'creacion': coe_acta.creacion.isoformat() if coe_acta.creacion else None,
@@ -246,6 +255,7 @@ def update_coe_acta(id):
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
             hora_sesion: {type: string}
+            descripcion: {type: string}
             activo: {type: boolean}
     responses:
       200:
@@ -262,18 +272,20 @@ def update_coe_acta(id):
             emergencia_id = :emergencia_id,
             fecha_sesion = :fecha_sesion,
             hora_sesion = :hora_sesion,
+            descripcion = :descripcion,
             activo = :activo,
             modificador = :modificador,
             modificacion = :modificacion
         WHERE id = :id
     """)
-
+    
     result = db.session.execute(query, {
         'id': id,
         'usuario_id': data.get('usuario_id'),
         'emergencia_id': data.get('emergencia_id'),
         'fecha_sesion': data.get('fecha_sesion'),
         'hora_sesion': data.get('hora_sesion'),
+        'descripcion': data.get('descripcion'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
@@ -298,6 +310,7 @@ def update_coe_acta(id):
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
         'hora_sesion': coe_acta.hora_sesion,
+        'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
         'creacion': coe_acta.creacion.isoformat() if coe_acta.creacion else None,
