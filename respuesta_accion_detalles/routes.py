@@ -13,7 +13,7 @@ def _row_to_dict(row):
             mapping[k] = v.isoformat()
     return mapping
 
-@respuesta_accion_detalles_bp.route('/api/respuesta-accion-detalles', methods=['GET'])
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles', methods=['GET'])
 def get_respuesta_accion_detalles():
     """Listar detalles de acciones de respuesta
     ---
@@ -40,7 +40,7 @@ def get_respuesta_accion_detalles():
     items = [_row_to_dict(row) for row in result]
     return jsonify(items)
 
-@respuesta_accion_detalles_bp.route('/api/respuesta-accion-detalles', methods=['POST'])
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles', methods=['POST'])
 def create_respuesta_accion_detalle():
     """Crear detalle de acción de respuesta
     ---
@@ -101,7 +101,7 @@ def create_respuesta_accion_detalle():
 
     return jsonify(_row_to_dict(created)), 201
 
-@respuesta_accion_detalles_bp.route('/api/respuesta-accion-detalles/<int:id>', methods=['GET'])
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['GET'])
 def get_respuesta_accion_detalle(id):
     """Obtener detalle de acción por ID
     ---
@@ -124,7 +124,7 @@ def get_respuesta_accion_detalle(id):
         return jsonify({'error': 'No encontrado'}), 404
     return jsonify(_row_to_dict(row))
 
-@respuesta_accion_detalles_bp.route('/api/respuesta-accion-detalles/<int:id>', methods=['PUT'])
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['PUT'])
 def update_respuesta_accion_detalle(id):
     """Actualizar detalle de acción
     ---
@@ -181,7 +181,7 @@ def update_respuesta_accion_detalle(id):
 
     return jsonify(_row_to_dict(updated))
 
-@respuesta_accion_detalles_bp.route('/api/respuesta-accion-detalles/<int:id>', methods=['DELETE'])
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['DELETE'])
 def delete_respuesta_accion_detalle(id):
     """Eliminar detalle de acción
     ---
