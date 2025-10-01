@@ -7,6 +7,7 @@ from marshmallow import ValidationError
 from auth import hash_password, verify_password, generate_token
 from typing import cast, Dict, Any
 
+from utils.db_helpers import check_row_or_abort
 @usuarios_bp.route('/api/usuarios', methods=['GET'])
 def get_usuarios():
     """Listar usuarios
@@ -45,7 +46,7 @@ def get_usuarios():
             'usuario': row.usuario,
             'correo': row.correo,
             'celular': row.celular,
-            'estado': row.estado,
+            'activo': row.activo,
             'aprobado': row.aprobado,
             'creador': row.creador,
             'creacion': row.creacion,
@@ -144,7 +145,7 @@ def create_usuario():
         'usuario': usuario.usuario,
         'correo': usuario.correo,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion,
@@ -187,7 +188,7 @@ def get_usuario(id):
         'usuario': usuario.usuario,
         'correo': usuario.correo,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion,
@@ -283,7 +284,7 @@ def update_usuario(id):
         'usuario': usuario.usuario,
         'correo': usuario.correo,
         'celular': usuario.celular,
-        'estado': usuario.estado,
+        'activo': usuario.activo,
         'aprobado': usuario.aprobado,
         'creador': usuario.creador,
         'creacion': usuario.creacion,
@@ -439,6 +440,7 @@ def login_usuario():
         'usuario': validated_data['usuario']
     })
     usuario_row = result_usuario.fetchone()
+    check_row_or_abort(usuario_row, 'Not found', 404)
     
     if usuario_row and verify_password(validated_data['clave'], usuario_row.clave):
         # Build token payload; include roles later (example: fetch perfiles)

@@ -3,6 +3,7 @@ from mesa_grupos import mesa_grupos_bp
 from models import db
 from datetime import datetime, timezone
 
+# helper: handle fetchone checks inline to satisfy static analyzers
 @mesa_grupos_bp.route('/api/mesa-grupos', methods=['GET'])
 def get_mesa_grupos():
     result = db.session.execute(db.text("SELECT * FROM mesa_grupos"))
@@ -23,17 +24,21 @@ def get_mesa_grupos():
 
 @mesa_grupos_bp.route('/api/mesa-grupos', methods=['POST'])
 def create_mesa_grupo():
-    data = request.get_json()
+    data = request.get_json() or {}
+    # Validate required fields
+    if not data.get('nombre'):
+        return jsonify({'error': 'El campo "nombre" es obligatorio'}), 400
+
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         INSERT INTO mesa_grupos (nombre, abreviatura, descripcion, activo, creador, creacion, modificador, modificacion)
         VALUES (:nombre, :abreviatura, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
-    
+
     result = db.session.execute(query, {
-        'nombre': data['nombre'],
+        'nombre': data.get('nombre'),
         'abreviatura': data.get('abreviatura'),
         'descripcion': data.get('descripcion'),
         'activo': data.get('activo', True),
@@ -42,15 +47,24 @@ def create_mesa_grupo():
         'modificador': data.get('creador', 'Sistema'),
         'modificacion': now
     })
-    
-    grupo_id = result.fetchone()[0]
+
+    row = result.fetchone()
+    # Ensure INSERT returned an id
+    if row is None:
+        return jsonify({'error': 'Insert failed'}), 500
+    # row can be a Row or tuple - first element is the returned id
+    grupo_id = row[0]
     db.session.commit()
-    
+
     grupo = db.session.execute(
-        db.text("SELECT * FROM mesa_grupos WHERE id = :id"), 
+        db.text("SELECT * FROM mesa_grupos WHERE id = :id"),
         {'id': grupo_id}
     ).fetchone()
-    
+
+    # If the select somehow returned no row, return error
+    if grupo is None:
+        return jsonify({'error': 'Grupo no encontrado después de insertar'}), 500
+
     return jsonify({
         'id': grupo.id,
         'nombre': grupo.nombre,
@@ -88,20 +102,20 @@ def get_mesa_grupo(id):
 
 @mesa_grupos_bp.route('/api/mesa-grupos/<int:id>', methods=['PUT'])
 def update_mesa_grupo(id):
-    data = request.get_json()
+    data = request.get_json() or {}
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
-        UPDATE mesa_grupos 
-        SET nombre = :nombre, 
-            abreviatura = :abreviatura, 
-            descripcion = :descripcion, 
-            activo = :activo, 
-            modificador = :modificador, 
+        UPDATE mesa_grupos
+        SET nombre = :nombre,
+            abreviatura = :abreviatura,
+            descripcion = :descripcion,
+            activo = :activo,
+            modificador = :modificador,
             modificacion = :modificacion
         WHERE id = :id
     """)
-    
+
     result = db.session.execute(query, {
         'id': id,
         'nombre': data.get('nombre'),
@@ -111,17 +125,22 @@ def update_mesa_grupo(id):
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
-    
-    if result.rowcount == 0:
+
+    # Some DB drivers may not populate rowcount properly; use getattr safely
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Grupo no encontrado'}), 404
-    
+
     db.session.commit()
-    
+
     grupo = db.session.execute(
-        db.text("SELECT * FROM mesa_grupos WHERE id = :id"), 
+        db.text("SELECT * FROM mesa_grupos WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    # Guard against None before accessing attributes
+    if grupo is None:
+        return jsonify({'error': 'Grupo no encontrado'}), 404
+
     return jsonify({
         'id': grupo.id,
         'nombre': grupo.nombre,
@@ -141,7 +160,7 @@ def delete_mesa_grupo(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Grupo no encontrado'}), 404
     
     db.session.commit()

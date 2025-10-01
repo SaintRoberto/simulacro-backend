@@ -2,7 +2,6 @@ from flask import request, jsonify
 from opciones import opciones_bp
 from models import db
 from datetime import datetime, timezone
-
 @opciones_bp.route('/api/opciones', methods=['GET'])
 def get_opciones():
     result = db.session.execute(db.text("SELECT * FROM opciones"))
@@ -39,17 +38,24 @@ def create_opcion():
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
+        # Use provided 'modificador' if present, otherwise default to the 'creador' value (or 'Sistema')
+        'modificador': data.get('modificador', data.get('creador', 'Sistema')),
         'modificacion': now
     })
     
-    opcion_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    opcion_id = row[0]
     db.session.commit()
     
     opcion = db.session.execute(
-        db.text("SELECT * FROM opciones WHERE id = :id"), 
+        db.text("SELECT * FROM opciones WHERE id = :id"),
         {'id': opcion_id}
     ).fetchone()
+    # Explicitly check for None so static analyzers know 'opcion' is not None below
+    if opcion is None:
+        return jsonify({'error': 'Opción no encontrada'}), 404
     
     return jsonify({
         'id': opcion.id,
@@ -112,15 +118,18 @@ def update_opcion(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Opción no encontrada'}), 404
     
     db.session.commit()
     
     opcion = db.session.execute(
-        db.text("SELECT * FROM opciones WHERE id = :id"), 
+        db.text("SELECT * FROM opciones WHERE id = :id"),
         {'id': id}
     ).fetchone()
+    # Explicitly check for None so static analyzers know 'opcion' is not None below
+    if opcion is None:
+        return jsonify({'error': 'Opción no encontrada'}), 404
     
     return jsonify({
         'id': opcion.id,
@@ -141,7 +150,7 @@ def delete_opcion(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Opción no encontrada'}), 404
     
     db.session.commit()

@@ -3,6 +3,7 @@ from usuario_perfil import usuario_perfil_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @usuario_perfil_bp.route('/api/usuario-perfil', methods=['GET'])
 def get_usuario_perfil():
     result = db.session.execute(db.text("SELECT * FROM usuario_perfil"))
@@ -41,7 +42,10 @@ def create_usuario_perfil():
         'modificacion': now
     })
     
-    relacion_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    relacion_id = row[0]
     db.session.commit()
     
     relacion = db.session.execute(
@@ -106,7 +110,7 @@ def update_usuario_perfil(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Relación no encontrada'}), 404
     
     db.session.commit()
@@ -134,7 +138,7 @@ def delete_usuario_perfil(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Relación no encontrada'}), 404
     
     db.session.commit()

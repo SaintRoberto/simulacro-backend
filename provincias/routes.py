@@ -218,7 +218,7 @@ def update_provincia(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Provincia no encontrada'}), 404
 
     db.session.commit()
@@ -265,7 +265,7 @@ def delete_provincia(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Provincia no encontrada'}), 404
     
     db.session.commit()

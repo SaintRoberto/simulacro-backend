@@ -3,6 +3,7 @@ from requerimiento_recursos import requerimiento_recursos_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['GET'])
 def get_requerimiento_recursos():
     """Listar requerimiento recursos
@@ -106,7 +107,10 @@ def create_requerimiento_recurso():
         'modificacion': now
     })
     
-    relacion_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    relacion_id = row[0]
     db.session.commit()
     
     relacion = db.session.execute(
@@ -274,7 +278,7 @@ def update_requerimiento_recurso(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Relación no encontrada'}), 404
     
     db.session.commit()
@@ -321,7 +325,7 @@ def delete_requerimiento_recurso(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Relación no encontrada'}), 404
     
     db.session.commit()

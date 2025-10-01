@@ -26,6 +26,13 @@ def get_menus():
 @menus_bp.route('/api/menus', methods=['POST'])
 def create_menu():
     data = request.get_json()
+    if not data:
+        return jsonify({'error': 'Invalid JSON body'}), 400
+
+    nombre = data.get('nombre')
+    if not nombre:
+        return jsonify({'error': 'El campo "nombre" es requerido'}), 400
+
     now = datetime.now(timezone.utc)
     
     query = db.text("""
@@ -37,24 +44,30 @@ def create_menu():
     result = db.session.execute(query, {
         'padre_id': data.get('padre_id'),
         'orden': data.get('orden', 0),
-        'nombre': data['nombre'],
+        'nombre': nombre,
         'abreviatura': data.get('abreviatura', ''),
         'ruta': data.get('ruta', ''),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
+        'modificador': data.get('modificador', data.get('creador', 'Sistema')),
         'modificacion': now
     })
     
-    menu_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    menu_id = row[0]
     db.session.commit()
     
     menu = db.session.execute(
-        db.text("SELECT * FROM menus WHERE id = :id"), 
+        db.text("SELECT * FROM menus WHERE id = :id"),
         {'id': menu_id}
     ).fetchone()
-    
+
+    if not menu:
+        return jsonify({'error': 'Menú no encontrado'}), 404
+
     return jsonify({
         'id': menu.id,
         'padre_id': menu.padre_id,
@@ -124,16 +137,19 @@ def update_menu(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Menú no encontrado'}), 404
     
     db.session.commit()
     
     menu = db.session.execute(
-        db.text("SELECT * FROM menus WHERE id = :id"), 
+        db.text("SELECT * FROM menus WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    if not menu:
+        return jsonify({'error': 'Menú no encontrado'}), 404
+
     return jsonify({
         'id': menu.id,
         'padre_id': menu.padre_id,
@@ -155,7 +171,7 @@ def delete_menu(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Menú no encontrado'}), 404
     
     db.session.commit()

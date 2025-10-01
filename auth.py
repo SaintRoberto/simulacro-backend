@@ -1,7 +1,7 @@
 import os
 import datetime
 from functools import wraps
-from flask import request, jsonify, current_app
+from flask import request, jsonify, current_app, g
 import jwt
 from passlib.hash import bcrypt
 
@@ -54,8 +54,8 @@ def login_required(fn):
         decoded = decode_token(token)
         if not decoded:
             return jsonify({'error': 'Invalid or expired token'}), 401
-        # attach user info to request context (Flask's global 'g' would be better, but keep simple)
-        request.user = decoded
+        # attach user info to request context (Flask's global 'g' is used)
+        g.user = decoded
         return fn(*args, **kwargs)
     return wrapper
 
@@ -77,7 +77,7 @@ def roles_required(*allowed_roles):
                 user_roles = roles
             if not any(r in user_roles for r in allowed_roles):
                 return jsonify({'error': 'Insufficient privileges'}), 403
-            request.user = decoded
+            g.user = decoded
             return fn(*args, **kwargs)
         return wrapper
     return decorator

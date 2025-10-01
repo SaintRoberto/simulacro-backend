@@ -3,6 +3,7 @@ from instituciones import instituciones_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @instituciones_bp.route('/api/instituciones', methods=['GET'])
 def get_instituciones():
     result = db.session.execute(db.text("SELECT * FROM instituciones"))
@@ -51,14 +52,23 @@ def create_institucion():
         'modificacion': now
     })
     
-    institucion_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        # Something went wrong with the INSERT returning no row
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create institución'}), 500
+    institucion_id = row[0]
     db.session.commit()
     
     institucion = db.session.execute(
-        db.text("SELECT * FROM instituciones WHERE id = :id"), 
+        db.text("SELECT * FROM instituciones WHERE id = :id"),
         {'id': institucion_id}
     ).fetchone()
     
+    if institucion is None:
+        # The row should exist after a successful insert; handle gracefully
+        return jsonify({'error': 'Institución creada pero no encontrada'}), 500
+
     return jsonify({
         'id': institucion.id,
         'institucion_categoria_id': institucion.institucion_categoria_id,
@@ -118,16 +128,20 @@ def update_institucion(id):
     
     result = db.session.execute(query, params)
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Institución no encontrada'}), 404
     
     db.session.commit()
     
     institucion = db.session.execute(
-        db.text("SELECT * FROM instituciones WHERE id = :id"), 
+        db.text("SELECT * FROM instituciones WHERE id = :id"),
         {'id': id}
     ).fetchone()
     
+    if institucion is None:
+        # Shouldn't normally happen because we checked rowcount, but guard against race conditions
+        return jsonify({'error': 'Institución no encontrada después de actualizar'}), 404
+
     return jsonify({
         'id': institucion.id,
         'institucion_categoria_id': institucion.institucion_categoria_id,
@@ -148,7 +162,7 @@ def delete_institucion(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Institución no encontrada'}), 404
     
     db.session.commit()

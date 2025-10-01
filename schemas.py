@@ -67,7 +67,7 @@ class UsuarioResponseSchema(Schema):
     apellidos = fields.Str()  # Note: this field is in models but not in routes
     cedula = fields.Str()    # Note: this field is in models but not in routes
     celular = fields.Str()
-    estado = fields.Str()
+    activo = fields.Bool(allow_none=True)
     aprobado = fields.Bool()
     creador = fields.Str()
     creacion = fields.DateTime()

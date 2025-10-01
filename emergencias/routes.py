@@ -3,6 +3,7 @@ from emergencias import emergencias_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @emergencias_bp.route('/api/emergencias', methods=['GET'])
 def get_emergencias():
     result = db.session.execute(db.text("SELECT * FROM emergencias"))
@@ -77,18 +78,27 @@ def create_emergencia():
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
+        # set 'modificador' from provided modifier if present, otherwise fallback to 'creador' or 'Sistema'
+        'modificador': data.get('modificador', data.get('creador', 'Sistema')),
         'modificacion': now
     })
     
-    emergencia_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    emergencia_id = row[0]
     db.session.commit()
     
     emergencia = db.session.execute(
-        db.text("SELECT * FROM emergencias WHERE id = :id"), 
+        db.text("SELECT * FROM emergencias WHERE id = :id"),
         {'id': emergencia_id}
     ).fetchone()
     
+    # defensive check: ensure the inserted row can be retrieved
+    if emergencia is None:
+        # This is unexpected if INSERT ... RETURNING id succeeded, but handle gracefully
+        return jsonify({'error': 'Unable to retrieve created emergencia'}), 500
+
     return jsonify({
         'id': emergencia.id,
         'nombre': emergencia.nombre,
@@ -179,16 +189,20 @@ def update_emergencia(id):
     
     result = db.session.execute(query, params)
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Emergencia no encontrada'}), 404
     
     db.session.commit()
     
     emergencia = db.session.execute(
-        db.text("SELECT * FROM emergencias WHERE id = :id"), 
+        db.text("SELECT * FROM emergencias WHERE id = :id"),
         {'id': id}
     ).fetchone()
     
+    if emergencia is None:
+        # If rowcount indicated an update, this should not happen, but handle defensively
+        return jsonify({'error': 'Emergencia no encontrada después de actualizar'}), 404
+
     return jsonify({
         'id': emergencia.id,
         'nombre': emergencia.nombre,
@@ -221,7 +235,7 @@ def delete_emergencia(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Emergencia no encontrada'}), 404
     
     db.session.commit()

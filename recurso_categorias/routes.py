@@ -66,16 +66,19 @@ def create_recurso_categoria():
         description: Categoría de recurso creada
     """
     data = request.get_json()
+    if not data or 'nombre' not in data:
+        return jsonify({'error': 'El campo "nombre" es requerido'}), 400
+
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         INSERT INTO recurso_categorias (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
         VALUES (:nombre, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
-    
+
     result = db.session.execute(query, {
-        'nombre': data['nombre'],
+        'nombre': data.get('nombre'),
         'descripcion': data.get('descripcion'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
@@ -84,14 +87,21 @@ def create_recurso_categoria():
         'modificacion': now
     })
     
-    categoria_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    categoria_id = row[0]
     db.session.commit()
     
     categoria = db.session.execute(
-        db.text("SELECT * FROM recurso_categorias WHERE id = :id"), 
+        db.text("SELECT * FROM recurso_categorias WHERE id = :id"),
         {'id': categoria_id}
     ).fetchone()
     
+    if not categoria:
+        # This is unexpected after a successful INSERT RETURNING id, but handle defensively
+        return jsonify({'error': 'Categoría no encontrada después de crear'}), 500
+
     return jsonify({
         'id': categoria.id,
         'nombre': categoria.nombre,
@@ -191,16 +201,20 @@ def update_recurso_categoria(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Categoría no encontrada'}), 404
     
     db.session.commit()
     
     categoria = db.session.execute(
-        db.text("SELECT * FROM recurso_categorias WHERE id = :id"), 
+        db.text("SELECT * FROM recurso_categorias WHERE id = :id"),
         {'id': id}
     ).fetchone()
     
+    if not categoria:
+        # Should be rare because we checked rowcount earlier, but check defensively
+        return jsonify({'error': 'Categoría no encontrada después de actualizar'}), 404
+
     return jsonify({
         'id': categoria.id,
         'nombre': categoria.nombre,
@@ -234,7 +248,7 @@ def delete_recurso_categoria(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Categoría no encontrada'}), 404
     
     db.session.commit()

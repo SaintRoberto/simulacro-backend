@@ -380,7 +380,7 @@ def update_afectacion_variable_registro(id):
     params['id'] = id
     result = db.session.execute(query, params)
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Registro no encontrado'}), 404
     
     db.session.commit()
@@ -431,7 +431,7 @@ def delete_afectacion_variable_registro(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Registro no encontrado'}), 404
     
     db.session.commit()

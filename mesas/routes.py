@@ -45,7 +45,7 @@ def get_mesas_by_coe(coe_id):
                 nombre: {type: string}
                 siglas: {type: string}
                 tipo_id: {type: integer}
-                estado: {type: string}
+                activo: {type: boolean}
                 creador: {type: string}
                 creacion: {type: string}
                 modificador: {type: string}
@@ -64,7 +64,7 @@ def get_mesas_by_coe(coe_id):
             'nombre': row.nombre,
             'siglas': row.siglas,
             'tipo_id': row.tipo_id,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -345,7 +345,7 @@ def update_mesa(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:  # type: ignore[attr-defined]
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Mesa no encontrada'}), 404
     
     db.session.commit()
@@ -378,7 +378,7 @@ def delete_mesa(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:  # type: ignore[attr-defined]
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Mesa no encontrada'}), 404
     
     db.session.commit()

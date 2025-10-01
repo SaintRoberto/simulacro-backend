@@ -340,7 +340,7 @@ def update_parroquia(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Parroquia no encontrada'}), 404
 
     db.session.commit()
@@ -389,7 +389,7 @@ def delete_parroquia(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Parroquia no encontrada'}), 404
     
     db.session.commit()

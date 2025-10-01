@@ -208,7 +208,7 @@ def update_resolucion_estado(id):
         'modificacion': now
     })
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Resolucion estado no encontrado'}), 404
 
     db.session.commit()
@@ -254,7 +254,7 @@ def delete_resolucion_estado(id):
         {'id': id}
     )
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Resolucion estado no encontrado'}), 404
 
     db.session.commit()

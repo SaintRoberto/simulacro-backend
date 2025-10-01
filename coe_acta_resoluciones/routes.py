@@ -299,7 +299,7 @@ def update_coe_acta_resolucion(id):
         'modificacion': now
     })
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Coe acta resolucion no encontrada'}), 404
 
     db.session.commit()
@@ -349,7 +349,7 @@ def delete_coe_acta_resolucion(id):
         {'id': id}
     )
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Coe acta resolucion no encontrada'}), 404
 
     db.session.commit()

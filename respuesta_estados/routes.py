@@ -3,6 +3,7 @@ from respuesta_estados import respuesta_estados_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @respuesta_estados_bp.route('/api/respuesta-estados', methods=['GET'])
 def get_respuesta_estados():
     """Listar estados de respuesta
@@ -84,7 +85,10 @@ def create_respuesta_estado():
         'modificacion': now
     })
     
-    estado_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    estado_id = row[0]
     db.session.commit()
     
     estado = db.session.execute(
@@ -191,7 +195,7 @@ def update_respuesta_estado(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Estado no encontrado'}), 404
     
     db.session.commit()
@@ -234,7 +238,7 @@ def delete_respuesta_estado(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Estado no encontrado'}), 404
     
     db.session.commit()

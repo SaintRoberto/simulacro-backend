@@ -120,14 +120,19 @@ def create_requerimiento_respuesta():
         'modificacion': now
     })
     
-    respuesta_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Insert failed'}), 500
+    respuesta_id = row[0]
     db.session.commit()
     
     respuesta = db.session.execute(
-        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"),
         {'id': respuesta_id}
     ).fetchone()
-    
+    if respuesta is None:
+        return jsonify({'error': 'Respuesta no encontrada después de creación'}), 500
+
     return jsonify({
         'id': respuesta.id,
         'requerimiento_id': respuesta.requerimiento_id,
@@ -201,17 +206,6 @@ def get_requerimiento_respuesta(requerimiento_id):
     return jsonify(respuestas)
 
 
-    return jsonify({
-        'id': respuesta.id,
-        'requerimiento_id': respuesta.requerimiento_id,
-        'respuesta_estado_id': respuesta.respuesta_estado_id,
-        'observaciones': respuesta.observaciones,
-        'activo': respuesta.activo,
-        'creador': respuesta.creador,
-        'creacion': respuesta.creacion.isoformat() if respuesta.creacion else None,
-        'modificador': respuesta.modificador,
-        'modificacion': respuesta.modificacion.isoformat() if respuesta.modificacion else None
-    })
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['PUT'])
 def update_requerimiento_respuesta(id):
@@ -267,16 +261,18 @@ def update_requerimiento_respuesta(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Respuesta no encontrada'}), 404
     
     db.session.commit()
     
     respuesta = db.session.execute(
-        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+    if respuesta is None:
+        return jsonify({'error': 'Respuesta no encontrada'}), 404
+
     return jsonify({
         'id': respuesta.id,
         'requerimiento_id': respuesta.requerimiento_id,
@@ -311,7 +307,7 @@ def delete_requerimiento_respuesta(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Respuesta no encontrada'}), 404
     
     db.session.commit()

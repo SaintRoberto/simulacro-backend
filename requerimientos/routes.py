@@ -379,7 +379,7 @@ def update_requerimiento(id):
         'id': id
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Requerimiento no encontrado'}), 404
     
     db.session.commit()
@@ -427,7 +427,7 @@ def delete_requerimiento(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Requerimiento no encontrado'}), 404
     
     db.session.commit()

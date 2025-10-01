@@ -279,7 +279,7 @@ def update_coe_acta(id):
         'modificacion': now
     })
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Coe acta no encontrada'}), 404
 
     db.session.commit()
@@ -327,7 +327,7 @@ def delete_coe_acta(id):
         {'id': id}
     )
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Coe acta no encontrada'}), 404
 
     db.session.commit()

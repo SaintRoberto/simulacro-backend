@@ -349,7 +349,7 @@ def update_infraestructura(id):
         'modificacion': now
     })
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Infraestructura no encontrada'}), 404
 
     db.session.commit()
@@ -403,7 +403,7 @@ def delete_infraestructura(id):
         {'id': id}
     )
 
-    if result.rowcount == 0:  # type: ignore
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Infraestructura no encontrada'}), 404
 
     db.session.commit()

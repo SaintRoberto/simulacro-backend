@@ -12,7 +12,7 @@ def get_niveles_afectacion():
             'id': row.id,
             'nombre': row.nombre,
             'descripcion': row.descripcion,
-            'estado': row.estado,
+            'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
@@ -25,35 +25,55 @@ def create_nivel_afectacion():
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
+    # Validate required fields
+    if not data or not data.get('nombre'):
+        return jsonify({'error': 'Field "nombre" is required'}), 400
+
     query = db.text("""
-        INSERT INTO niveles_afectacion (nombre, descripcion, estado, creador, creacion, modificador, modificacion)
-        VALUES (:nombre, :descripcion, :estado, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO niveles_afectacion (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
+        VALUES (:nombre, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
-    
+
+    # prefer an explicit modificador if provided, otherwise fall back to creador or 'Sistema'
+    modificador_value = data.get('modificador', data.get('creador', 'Sistema'))
+
     result = db.session.execute(query, {
-        'nombre': data['nombre'],
+        'nombre': data.get('nombre'),
         'descripcion': data.get('descripcion'),
-        'estado': data.get('estado', True),
+        'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
+        'modificador': modificador_value,
         'modificacion': now
     })
-    
-    nivel_id = result.fetchone()[0]
+
+    row = result.fetchone()
+    if row is None:
+        # If INSERT didn't return an id, rollback and return an error
+        try:
+            db.session.rollback()
+        except Exception:
+            pass
+        return jsonify({'error': 'Failed to create nivel'}), 500
+
+    nivel_id = row[0]
     db.session.commit()
-    
+
     nivel = db.session.execute(
-        db.text("SELECT * FROM niveles_afectacion WHERE id = :id"), 
+        db.text("SELECT * FROM niveles_afectacion WHERE id = :id"),
         {'id': nivel_id}
     ).fetchone()
-    
+
+    if nivel is None:
+        # This is unexpected after a successful insert/commit; return server error
+        return jsonify({'error': 'Created nivel could not be retrieved'}), 500
+
     return jsonify({
         'id': nivel.id,
         'nombre': nivel.nombre,
         'descripcion': nivel.descripcion,
-        'estado': nivel.estado,
+        'activo': nivel.activo,
         'creador': nivel.creador,
         'creacion': nivel.creacion.isoformat() if nivel.creacion else None,
         'modificador': nivel.modificador,
@@ -75,7 +95,7 @@ def get_nivel_afectacion(id):
         'id': nivel.id,
         'nombre': nivel.nombre,
         'descripcion': nivel.descripcion,
-        'estado': nivel.estado,
+        'activo': nivel.activo,
         'creador': nivel.creador,
         'creacion': nivel.creacion.isoformat() if nivel.creacion else None,
         'modificador': nivel.modificador,
@@ -91,7 +111,7 @@ def update_nivel_afectacion(id):
         UPDATE niveles_afectacion 
         SET nombre = :nombre, 
             descripcion = :descripcion, 
-            estado = :estado, 
+            activo = :activo, 
             modificador = :modificador, 
             modificacion = :modificacion
         WHERE id = :id
@@ -101,26 +121,30 @@ def update_nivel_afectacion(id):
         'id': id,
         'nombre': data.get('nombre'),
         'descripcion': data.get('descripcion'),
-        'estado': data.get('estado'),
+        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Nivel no encontrado'}), 404
     
     db.session.commit()
     
     nivel = db.session.execute(
-        db.text("SELECT * FROM niveles_afectacion WHERE id = :id"), 
+        db.text("SELECT * FROM niveles_afectacion WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    if nivel is None:
+        # This is unexpected because we checked rowcount above, but handle defensively
+        return jsonify({'error': 'Nivel could not be retrieved after update'}), 500
+
     return jsonify({
         'id': nivel.id,
         'nombre': nivel.nombre,
         'descripcion': nivel.descripcion,
-        'estado': nivel.estado,
+        'activo': nivel.activo,
         'creador': nivel.creador,
         'creacion': nivel.creacion.isoformat() if nivel.creacion else None,
         'modificador': nivel.modificador,
@@ -134,7 +158,7 @@ def delete_nivel_afectacion(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Nivel no encontrado'}), 404
     
     db.session.commit()

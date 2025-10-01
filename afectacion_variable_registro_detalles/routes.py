@@ -352,7 +352,7 @@ def update_afectacion_variable_registro_detalle(id):
         'modificacion': now
     })
 
-    if result.rowcount == 0:  # type: ignore[attr-defined]
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Afectacion variable registro detalle no encontrado'}), 404
 
     db.session.commit()
@@ -399,7 +399,7 @@ def delete_afectacion_variable_registro_detalle(id):
         {'id': id}
     )
 
-    if result.rowcount == 0:  # type: ignore[attr-defined]
+    if getattr(result, 'rowcount', 0) == 0:  # type: ignore[attr-defined]
         return jsonify({'error': 'Afectacion variable registro detalle no encontrado'}), 404
 
     db.session.commit()

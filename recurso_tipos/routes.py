@@ -3,6 +3,7 @@ from recurso_tipos import recurso_tipos_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @recurso_tipos_bp.route('/api/recurso-tipos', methods=['GET'])
 def get_recurso_tipos():
     """Listar tipos de recursos
@@ -86,7 +87,10 @@ def create_recurso_tipo():
         'modificacion': now
     })
     
-    tipo_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    tipo_id = row[0]
     db.session.commit()
     
     tipo = db.session.execute(
@@ -193,7 +197,7 @@ def update_recurso_tipo(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Tipo no encontrado'}), 404
     
     db.session.commit()
@@ -236,7 +240,7 @@ def delete_recurso_tipo(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Tipo no encontrado'}), 404
     
     db.session.commit()

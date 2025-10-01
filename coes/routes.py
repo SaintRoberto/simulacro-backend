@@ -2,7 +2,6 @@ from flask import request, jsonify
 from coes import coes_bp
 from models import db
 from datetime import datetime, timezone
-
 @coes_bp.route('/api/coes', methods=['GET'])
 def get_coes():
     result = db.session.execute(db.text("SELECT * FROM coes"))
@@ -24,6 +23,10 @@ def get_coes():
 @coes_bp.route('/api/coes', methods=['POST'])
 def create_coe():
     data = request.get_json()
+    # Validate required fields to avoid KeyError and provide clearer errors to clients
+    if not data or 'nombre' not in data or 'siglas' not in data:
+        return jsonify({'error': 'Campos requeridos: nombre y siglas'}), 400
+
     now = datetime.now(timezone.utc)
     
     query = db.text("""
@@ -43,14 +46,35 @@ def create_coe():
         'modificacion': now
     })
     
-    coe_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        # If INSERT didn't return an id, rollback and return 500
+        db.session.rollback()
+        return jsonify({'error': 'Inserción fallida'}), 500
+
+    coe_id = row[0]
     db.session.commit()
     
     coe = db.session.execute(
-        db.text("SELECT * FROM coes WHERE id = :id"), 
+        db.text("SELECT * FROM coes WHERE id = :id"),
         {'id': coe_id}
     ).fetchone()
     
+    # Defensive check: ensure coe is not None before accessing attributes
+    if not coe:
+        # Fallback: return the created id and the supplied data (useful if the SELECT failed)
+        return jsonify({
+            'id': coe_id,
+            'nombre': data.get('nombre'),
+            'siglas': data.get('siglas'),
+            'descripcion': data.get('descripcion'),
+            'activo': data.get('activo', True),
+            'creador': data.get('creador', 'Sistema'),
+            'creacion': now.isoformat(),
+            'modificador': data.get('creador', 'Sistema'),
+            'modificacion': now.isoformat()
+        }), 201
+
     return jsonify({
         'id': coe.id,
         'nombre': coe.nombre,
@@ -88,21 +112,25 @@ def get_coe(id):
 
 @coes_bp.route('/api/coes/<int:id>', methods=['PUT'])
 def update_coe(id):
+    # Parse and validate input
     data = request.get_json()
+    if not data or not isinstance(data, dict):
+        return jsonify({'error': 'No input data provided'}), 400
+
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
-        UPDATE coes 
-        SET nombre = :nombre, 
-            siglas = :siglas, 
-            descripcion = :descripcion, 
-            activo = :activo, 
-            modificador = :modificador, 
+        UPDATE coes
+        SET nombre = :nombre,
+            siglas = :siglas,
+            descripcion = :descripcion,
+            activo = :activo,
+            modificador = :modificador,
             modificacion = :modificacion
         WHERE id = :id
     """)
-    
-    result = db.session.execute(query, {
+
+    params = {
         'id': id,
         'nombre': data.get('nombre'),
         'siglas': data.get('siglas'),
@@ -110,18 +138,27 @@ def update_coe(id):
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
-    })
-    
-    if result.rowcount == 0:
+    }
+
+    result = db.session.execute(query, params)
+
+    # Some DB drivers may not provide rowcount reliably; treat 0 as not found
+    rowcount = getattr(result, 'rowcount', None)
+    if rowcount == 0:
+        db.session.rollback()
         return jsonify({'error': 'COE no encontrado'}), 404
-    
+
     db.session.commit()
-    
+
     coe = db.session.execute(
-        db.text("SELECT * FROM coes WHERE id = :id"), 
+        db.text("SELECT * FROM coes WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    # Ensure coe exists before accessing attributes
+    if not coe:
+        return jsonify({'error': 'COE no encontrado después de actualizar'}), 404
+
     return jsonify({
         'id': coe.id,
         'nombre': coe.nombre,
@@ -132,7 +169,7 @@ def update_coe(id):
         'creacion': coe.creacion.isoformat() if coe.creacion else None,
         'modificador': coe.modificador,
         'modificacion': coe.modificacion.isoformat() if coe.modificacion else None
-    })
+    }), 200
 
 @coes_bp.route('/api/coes/<int:id>', methods=['DELETE'])
 def delete_coe(id):
@@ -141,7 +178,7 @@ def delete_coe(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'COE no encontrado'}), 404
     
     db.session.commit()

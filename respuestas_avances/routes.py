@@ -3,6 +3,7 @@ from respuestas_avances import respuestas_avances_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @respuestas_avances_bp.route('/api/respuestas-avances', methods=['GET'])
 def get_respuestas_avances():
     """Listar avances de respuestas
@@ -94,7 +95,10 @@ def create_respuesta_avance():
         'modificacion': now
     })
     
-    avance_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    avance_id = row[0]
     db.session.commit()
     
     avance = db.session.execute(
@@ -206,7 +210,7 @@ def update_respuesta_avance(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Avance no encontrado'}), 404
     
     db.session.commit()
@@ -250,7 +254,7 @@ def delete_respuesta_avance(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Avance no encontrado'}), 404
     
     db.session.commit()

@@ -3,6 +3,7 @@ from recurso_grupos import recurso_grupos_bp
 from models import db
 from datetime import datetime, timezone
 
+from utils.db_helpers import check_row_or_abort
 @recurso_grupos_bp.route('/api/recurso-grupos', methods=['GET'])
 def get_recurso_grupos():
     """Listar grupos de recursos
@@ -84,7 +85,10 @@ def create_recurso_grupo():
         'modificacion': now
     })
     
-    grupo_id = result.fetchone()[0]
+    row = result.fetchone()
+    if row is None:
+        return jsonify({'error': 'Not found'}), 404
+    grupo_id = row[0]
     db.session.commit()
     
     grupo = db.session.execute(
@@ -191,7 +195,7 @@ def update_recurso_grupo(id):
         'modificacion': now
     })
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Grupo no encontrado'}), 404
     
     db.session.commit()
@@ -234,7 +238,7 @@ def delete_recurso_grupo(id):
         {'id': id}
     )
     
-    if result.rowcount == 0:
+    if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Grupo no encontrado'}), 404
     
     db.session.commit()
