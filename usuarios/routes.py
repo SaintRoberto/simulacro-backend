@@ -393,32 +393,7 @@ def get_datos_login(usuario_id):
 
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
 def login_usuario():
-    """Validar usuario y contraseña
-    ---
-    tags:
-      - Usuarios
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required: [usuario, clave]
-          properties:
-            usuario: {type: string}
-            clave: {type: string}
-    responses:
-      200:
-        description: Status de login
-        schema:
-          type: object
-          properties:
-            success: {type: boolean}
-      400:
-        description: Datos faltantes
-    """
+   
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Datos requeridos'}), 400
