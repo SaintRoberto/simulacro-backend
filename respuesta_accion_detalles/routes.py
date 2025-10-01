@@ -29,7 +29,13 @@ def get_respuesta_accion_detalles():
             properties:
               id: {type: integer}
               respuesta_accion_id: {type: integer}
+              ejecucion_actividad_id: {type: integer}
+              institucion_ejecutora_id: {type: integer}
+              porcentaje_avance_id: {type: integer}
               detalle: {type: string}
+              respuesta_accion_estado_id: {type: integer}
+              fecha_inicio: {type: string}
+              fecha_final: {type: string}
               activo: {type: boolean}
               creador: {type: string}
               creacion: {type: string}
@@ -37,7 +43,24 @@ def get_respuesta_accion_detalles():
               modificacion: {type: string}
     """
     result = db.session.execute(db.text("SELECT * FROM respuesta_accion_detalles"))
-    items = [_row_to_dict(row) for row in result]
+    items = []
+    for row in result:
+        items.append({
+            'id': row.id,
+            'respuesta_accion_id': row.respuesta_accion_id,
+            'ejecucion_actividad_id': row.ejecucion_actividad_id,
+            'institucion_ejecutora_id': row.institucion_ejecutora_id,
+            'porcentaje_avance_id': row.porcentaje_avance_id,
+            'detalle': row.detalle,
+            'respuesta_accion_estado_id': row.respuesta_accion_estado_id,
+            'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
+            'fecha_final': row.fecha_final.isoformat() if row.fecha_final else None,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
     return jsonify(items)
 
 @respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles', methods=['POST'])
@@ -54,9 +77,16 @@ def create_respuesta_accion_detalle():
         required: true
         schema:
           type: object
+          required: [respuesta_accion_id, ejecucion_actividad_id, institucion_ejecutora_id, respuesta_accion_estado_id, fecha_inicio]
           properties:
             respuesta_accion_id: {type: integer}
+            ejecucion_actividad_id: {type: integer}
+            institucion_ejecutora_id: {type: integer}
+            porcentaje_avance_id: {type: integer}
             detalle: {type: string}
+            respuesta_accion_estado_id: {type: integer}
+            fecha_inicio: {type: string, format: date-time}
+            fecha_final: {type: string, format: date-time}
             activo: {type: boolean}
             creador: {type: string}
     responses:
@@ -69,28 +99,58 @@ def create_respuesta_accion_detalle():
 
     now = datetime.now(timezone.utc)
 
-    # Ensure default audit fields
-    data.setdefault('activo', True)
-    data.setdefault('creador', data.get('creador', 'Sistema'))
-    data.setdefault('creacion', now)
-    data.setdefault('modificador', data.get('creador', 'Sistema'))
-    data.setdefault('modificacion', now)
+    # Validate required fields
+    required = ['respuesta_accion_id', 'ejecucion_actividad_id', 'institucion_ejecutora_id', 'respuesta_accion_estado_id', 'fecha_inicio']
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({'error': 'Missing required fields', 'missing': missing}), 400
 
-    # Build columns and params
-    cols = []
-    params = {}
-    for k, v in data.items():
-        cols.append(k)
-        params[k] = v
+    respuesta_accion_id = data['respuesta_accion_id']
+    ejecucion_actividad_id = data['ejecucion_actividad_id']
+    institucion_ejecutora_id = data['institucion_ejecutora_id']
+    porcentaje_avance_id = data.get('porcentaje_avance_id', 0)
+    detalle = data.get('detalle')
+    respuesta_accion_estado_id = data['respuesta_accion_estado_id']
+    fecha_inicio = data['fecha_inicio']
+    fecha_final = data.get('fecha_final')
+    activo = data.get('activo', True)
+    creador = data.get('creador', 'Sistema')
+    modificador = data.get('modificador', creador)
 
-    cols_sql = ', '.join(cols)
-    vals_sql = ', '.join([f":{c}" for c in cols])
+    query = db.text("""
+        INSERT INTO respuesta_accion_detalles (
+            respuesta_accion_id, ejecucion_actividad_id, institucion_ejecutora_id,
+            porcentaje_avance_id, detalle, respuesta_accion_estado_id,
+            fecha_inicio, fecha_final, activo, creador, creacion, modificador, modificacion
+        )
+        VALUES (
+            :respuesta_accion_id, :ejecucion_actividad_id, :institucion_ejecutora_id,
+            :porcentaje_avance_id, :detalle, :respuesta_accion_estado_id,
+            :fecha_inicio, :fecha_final, :activo, :creador, :creacion, :modificador, :modificacion
+        )
+        RETURNING id
+    """)
 
-    query = db.text(f"INSERT INTO respuesta_accion_detalles ({cols_sql}) VALUES ({vals_sql}) RETURNING id")
+    params = {
+        'respuesta_accion_id': respuesta_accion_id,
+        'ejecucion_actividad_id': ejecucion_actividad_id,
+        'institucion_ejecutora_id': institucion_ejecutora_id,
+        'porcentaje_avance_id': porcentaje_avance_id,
+        'detalle': detalle,
+        'respuesta_accion_estado_id': respuesta_accion_estado_id,
+        'fecha_inicio': fecha_inicio,
+        'fecha_final': fecha_final,
+        'activo': activo,
+        'creador': creador,
+        'creacion': now,
+        'modificador': modificador,
+        'modificacion': now
+    }
 
     result = db.session.execute(query, params)
     row = result.fetchone()
     if not row:
+        db.session.rollback()
         return jsonify({'error': 'Insert failed'}), 500
     new_id = row[0]
     db.session.commit()
@@ -99,7 +159,22 @@ def create_respuesta_accion_detalle():
     if not created:
         return jsonify({'error': 'Created row not found'}), 500
 
-    return jsonify(_row_to_dict(created)), 201
+    return jsonify({
+        'id': created.id,
+        'respuesta_accion_id': created.respuesta_accion_id,
+        'ejecucion_actividad_id': created.ejecucion_actividad_id,
+        'institucion_ejecutora_id': created.institucion_ejecutora_id,
+        'porcentaje_avance_id': created.porcentaje_avance_id,
+        'detalle': created.detalle,
+        'respuesta_accion_estado_id': created.respuesta_accion_estado_id,
+        'fecha_inicio': created.fecha_inicio.isoformat() if created.fecha_inicio else None,
+        'fecha_final': created.fecha_final.isoformat() if created.fecha_final else None,
+        'activo': created.activo,
+        'creador': created.creador,
+        'creacion': created.creacion.isoformat() if created.creacion else None,
+        'modificador': created.modificador,
+        'modificacion': created.modificacion.isoformat() if created.modificacion else None
+    }), 201
 
 @respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['GET'])
 def get_respuesta_accion_detalle(id):
@@ -122,7 +197,22 @@ def get_respuesta_accion_detalle(id):
     row = result.fetchone()
     if not row:
         return jsonify({'error': 'No encontrado'}), 404
-    return jsonify(_row_to_dict(row))
+    return jsonify({
+        'id': row.id,
+        'respuesta_accion_id': row.respuesta_accion_id,
+        'ejecucion_actividad_id': row.ejecucion_actividad_id,
+        'institucion_ejecutora_id': row.institucion_ejecutora_id,
+        'porcentaje_avance_id': row.porcentaje_avance_id,
+        'detalle': row.detalle,
+        'respuesta_accion_estado_id': row.respuesta_accion_estado_id,
+        'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
+        'fecha_final': row.fecha_final.isoformat() if row.fecha_final else None,
+        'activo': row.activo,
+        'creador': row.creador,
+        'creacion': row.creacion.isoformat() if row.creacion else None,
+        'modificador': row.modificador,
+        'modificacion': row.modificacion.isoformat() if row.modificacion else None
+    })
 
 @respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['PUT'])
 def update_respuesta_accion_detalle(id):
@@ -143,7 +233,13 @@ def update_respuesta_accion_detalle(id):
         schema:
           type: object
           properties:
+            ejecucion_actividad_id: {type: integer}
+            institucion_ejecutora_id: {type: integer}
+            porcentaje_avance_id: {type: integer}
             detalle: {type: string}
+            respuesta_accion_estado_id: {type: integer}
+            fecha_inicio: {type: string, format: date-time}
+            fecha_final: {type: string, format: date-time}
             activo: {type: boolean}
             modificador: {type: string}
     responses:
@@ -160,12 +256,29 @@ def update_respuesta_accion_detalle(id):
     data['modificador'] = data.get('modificador', 'Sistema')
     data['modificacion'] = now
 
-    # Build SET clause dynamically
+    # Only allow these fields to be updated
+    allowed = {
+        'ejecucion_actividad_id',
+        'institucion_ejecutora_id',
+        'porcentaje_avance_id',
+        'detalle',
+        'respuesta_accion_estado_id',
+        'fecha_inicio',
+        'fecha_final',
+        'activo',
+        'modificador',
+        'modificacion'
+    }
+
     set_parts = []
     params = {'id': id}
     for k, v in data.items():
-        set_parts.append(f"{k} = :{k}")
-        params[k] = v
+        if k in allowed:
+            set_parts.append(f"{k} = :{k}")
+            params[k] = v
+
+    if not set_parts:
+        return jsonify({'error': 'No updatable fields provided'}), 400
 
     set_sql = ', '.join(set_parts)
     query = db.text(f"UPDATE respuesta_accion_detalles SET {set_sql} WHERE id = :id")
@@ -179,7 +292,22 @@ def update_respuesta_accion_detalle(id):
     if not updated:
         return jsonify({'error': 'No encontrado después de actualizar'}), 404
 
-    return jsonify(_row_to_dict(updated))
+    return jsonify({
+        'id': updated.id,
+        'respuesta_accion_id': updated.respuesta_accion_id,
+        'ejecucion_actividad_id': updated.ejecucion_actividad_id,
+        'institucion_ejecutora_id': updated.institucion_ejecutora_id,
+        'porcentaje_avance_id': updated.porcentaje_avance_id,
+        'detalle': updated.detalle,
+        'respuesta_accion_estado_id': updated.respuesta_accion_estado_id,
+        'fecha_inicio': updated.fecha_inicio.isoformat() if updated.fecha_inicio else None,
+        'fecha_final': updated.fecha_final.isoformat() if updated.fecha_final else None,
+        'activo': updated.activo,
+        'creador': updated.creador,
+        'creacion': updated.creacion.isoformat() if updated.creacion else None,
+        'modificador': updated.modificador,
+        'modificacion': updated.modificacion.isoformat() if updated.modificacion else None
+    })
 
 @respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/<int:id>', methods=['DELETE'])
 def delete_respuesta_accion_detalle(id):
