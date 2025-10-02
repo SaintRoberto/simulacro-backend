@@ -63,6 +63,76 @@ def get_respuesta_accion_detalles():
         })
     return jsonify(items)
 
+@respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles/respuesta_accion/<int:respuesta_accion_id>', methods=['GET'])
+def get_respuesta_accion_detalles_by_respuesta_accion(respuesta_accion_id):
+    """Listar detalles de acciones por respuesta_accion_id
+    ---
+    tags:
+      - Respuesta Accion Detalles
+    parameters:
+      - name: respuesta_accion_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de detalles para la acción de respuesta
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              respuesta_accion_detalle_id: {type: integer}
+              respuesta_accion_id: {type: integer}
+              ejecucion_actividad_id: {type: integer}
+              ejecucion_actividad_nombre: {type: string}
+              institucion_ejecutora_id: {type: integer}
+              institucion_ejecutora_nombre: {type: string}
+              institucion_ejecutora_siglas: {type: string}
+              porcentaje_avance_id: {type: integer}
+              respuesta_accion_detalle_avance: {type: string}
+              detalle: {type: string}
+              fecha_inicio: {type: string}
+              fecha_final: {type: string}
+              respuesta_accion_estado_id: {type: integer}
+              respuesta_accion_detalle_estado: {type: string}
+    """
+    query = db.text("""
+        SELECT d.id respuesta_accion_detalle_id, d.respuesta_accion_id,
+               d.ejecucion_actividad_id, x.nombre ejecucion_actividad_nombre,
+               d.institucion_ejecutora_id, i.nombre institucion_ejecutora_nombre, i.siglas institucion_ejecutora_siglas,
+               d.porcentaje_avance_id, a.nombre respuesta_accion_detalle_avance,
+               d.detalle, d.fecha_inicio, d.fecha_final,
+               d.respuesta_accion_estado_id, e.nombre respuesta_accion_detalle_estado
+        FROM public.respuesta_accion_detalles d
+        INNER JOIN public.instituciones i ON d.institucion_ejecutora_id = i.id
+        INNER JOIN public.ejecucion_actividades x ON d.ejecucion_actividad_id = x.id
+        INNER JOIN public.respuesta_estados e ON d.respuesta_accion_estado_id = e.id
+        INNER JOIN public.respuesta_avances a ON d.porcentaje_avance_id = a.id
+        WHERE d.respuesta_accion_id = :respuesta_accion_id
+        ORDER BY d.id ASC
+    """)
+    result = db.session.execute(query, {'respuesta_accion_id': respuesta_accion_id})
+    items = []
+    for row in result:
+        items.append({
+            'respuesta_accion_detalle_id': row.respuesta_accion_detalle_id,
+            'respuesta_accion_id': row.respuesta_accion_id,
+            'ejecucion_actividad_id': row.ejecucion_actividad_id,
+            'ejecucion_actividad_nombre': row.ejecucion_actividad_nombre,
+            'institucion_ejecutora_id': row.institucion_ejecutora_id,
+            'institucion_ejecutora_nombre': row.institucion_ejecutora_nombre,
+            'institucion_ejecutora_siglas': row.institucion_ejecutora_siglas,
+            'porcentaje_avance_id': row.porcentaje_avance_id,
+            'respuesta_accion_detalle_avance': row.respuesta_accion_detalle_avance,
+            'detalle': row.detalle,
+            'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
+            'fecha_final': row.fecha_final.isoformat() if row.fecha_final else None,
+            'respuesta_accion_estado_id': row.respuesta_accion_estado_id,
+            'respuesta_accion_detalle_estado': row.respuesta_accion_detalle_estado
+        })
+    return jsonify(items)
+
 @respuesta_accion_detalles_bp.route('/api/respuesta_accion_detalles', methods=['POST'])
 def create_respuesta_accion_detalle():
     """Crear detalle de acción de respuesta
