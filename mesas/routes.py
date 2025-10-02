@@ -62,13 +62,7 @@ def get_mesas_by_coe(coe_id):
         mesas.append({  # type: ignore
             'id': row.id,
             'nombre': row.nombre,
-            'siglas': row.siglas,
-            'tipo_id': row.tipo_id,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+            'siglas': row.siglas
         })
     return jsonify(mesas)
 
