@@ -21,7 +21,6 @@ def get_coe_actas():
                 usuario_id: {type: integer}
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
-                hora_sesion: {type: string}
                 descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
@@ -37,7 +36,6 @@ def get_coe_actas():
             'usuario_id': row.usuario_id,
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
-            'hora_sesion': row.hora_sesion,
             'descripcion': row.descripcion,
             'activo': row.activo,
             'creador': row.creador,
@@ -74,7 +72,6 @@ def get_coe_actas_by_usuario_by_emergencia(usuario_id, emergencia_id):
                 usuario_id: {type: integer}
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
-                hora_sesion: {type: string}
                 descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
@@ -90,7 +87,6 @@ def get_coe_actas_by_usuario_by_emergencia(usuario_id, emergencia_id):
             'usuario_id': row.usuario_id,
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
-            'hora_sesion': row.hora_sesion,
             'descripcion': row.descripcion,
             'activo': row.activo,
             'creador': row.creador,
@@ -119,7 +115,6 @@ def create_coe_acta():
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
-            hora_sesion: {type: string}
             descripcion: {type: string}
             activo: {type: boolean}
             creador: {type: string}
@@ -133,7 +128,6 @@ def create_coe_acta():
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string}
-            hora_sesion: {type: string}
             descripcion: {type: string}
             activo: {type: boolean}
             creador: {type: string}
@@ -143,10 +137,10 @@ def create_coe_acta():
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
-
+    
     query = db.text("""
-        INSERT INTO coe_actas (usuario_id, emergencia_id, fecha_sesion, hora_sesion, descripcion, activo, creador, creacion, modificador, modificacion)
-        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :hora_sesion, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO coe_actas (usuario_id, emergencia_id, fecha_sesion, descripcion, activo, creador, creacion, modificador, modificacion)
+        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
@@ -154,7 +148,6 @@ def create_coe_acta():
         'usuario_id': data['usuario_id'],
         'emergencia_id': data['emergencia_id'],
         'fecha_sesion': data.get('fecha_sesion'),
-        'hora_sesion': data.get('hora_sesion'),
         'descripcion': data.get('descripcion'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
@@ -162,28 +155,27 @@ def create_coe_acta():
         'modificador': data.get('creador', 'Sistema'),
         'modificacion': now
     })
-
+    
     row = result.fetchone()
     if row is None:
         db.session.rollback()
         return jsonify({'error': 'Failed to create coe_acta'}), 500
     coe_acta_id = row[0]
     db.session.commit()
-
+    
     coe_acta = db.session.execute(
         db.text("SELECT * FROM coe_actas WHERE id = :id"),
         {'id': coe_acta_id}
     ).fetchone()
-
+    
     if not coe_acta:
         return jsonify({'error': 'Coe acta not found after creation'}), 404
-
+    
     return jsonify({  # type: ignore
         'id': coe_acta.id,
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
@@ -214,16 +206,15 @@ def get_coe_acta(id):
         {'id': id}
     )
     coe_acta = result.fetchone()
-
+    
     if not coe_acta:
         return jsonify({'error': 'Coe acta no encontrada'}), 404
-
+    
     return jsonify({
         'id': coe_acta.id,
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
@@ -254,7 +245,6 @@ def update_coe_acta(id):
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
-            hora_sesion: {type: string}
             descripcion: {type: string}
             activo: {type: boolean}
     responses:
@@ -265,13 +255,12 @@ def update_coe_acta(id):
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
-
+    
     query = db.text("""
         UPDATE coe_actas
         SET usuario_id = :usuario_id,
             emergencia_id = :emergencia_id,
             fecha_sesion = :fecha_sesion,
-            hora_sesion = :hora_sesion,
             descripcion = :descripcion,
             activo = :activo,
             modificador = :modificador,
@@ -284,32 +273,30 @@ def update_coe_acta(id):
         'usuario_id': data.get('usuario_id'),
         'emergencia_id': data.get('emergencia_id'),
         'fecha_sesion': data.get('fecha_sesion'),
-        'hora_sesion': data.get('hora_sesion'),
         'descripcion': data.get('descripcion'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
-
+    
     if getattr(result, 'rowcount', 0) == 0:  # type: ignore
         return jsonify({'error': 'Coe acta no encontrada'}), 404
-
+    
     db.session.commit()
-
+    
     coe_acta = db.session.execute(
         db.text("SELECT * FROM coe_actas WHERE id = :id"),
         {'id': id}
     ).fetchone()
-
+    
     if not coe_acta:
         return jsonify({'error': 'Coe acta not found after update'}), 404
-
+    
     return jsonify({  # type: ignore
         'id': coe_acta.id,
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'descripcion': coe_acta.descripcion,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
