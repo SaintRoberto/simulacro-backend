@@ -362,7 +362,7 @@ def get_datos_login(usuario_id):
       INNER JOIN public.coes c ON ux.coe_id = c.id
       LEFT JOIN public.provincias p ON ux.provincia_id = p.id
       LEFT JOIN public.cantones k ON ux.provincia_id = k.provincia_id AND ux.canton_id = k.id
-      INNER JOIN public.mesas m ON ux.mesa_id = m.id
+      LEFT JOIN public.mesas m ON ux.mesa_id = m.id
       LEFT JOIN public.mesa_grupos g ON m.mesa_grupo_id = g.id
       WHERE u.id = :usuario_id
     """)
