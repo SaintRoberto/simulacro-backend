@@ -6,6 +6,17 @@ from datetime import datetime, timezone
 from utils.db_helpers import check_row_or_abort
 @emergencias_bp.route('/api/emergencias', methods=['GET'])
 def get_emergencias():
+    """Listar emergencias.
+
+    Devuelve todas las emergencias almacenadas en la tabla `emergencias`.
+    Responde con una lista de objetos JSON que representan cada registro.
+    ---
+    tags:
+      - Emergencias
+    responses:
+      200:
+        description: Lista de emergencias
+    """
     result = db.session.execute(db.text("SELECT * FROM emergencias"))
     emergencias = []
     for row in result:
@@ -35,8 +46,82 @@ def get_emergencias():
         })
     return jsonify(emergencias)
 
+@emergencias_bp.route('/api/emergencias/usuario/<string:usuario>', methods=['GET'])
+def get_emergencias_by_usuario(usuario):
+    """Usuarios habilitados a emergencias según ámbito (cantonal/provincial/nacional).
+
+    Parámetro:
+      usuario (str): nombre de usuario (ej: 'mttc_sal.salud').
+
+    Ejecuta la consulta que devuelve emergencias a las que el usuario tiene
+    acceso según su ámbito definido en `usuario_perfil_coe_dpa_mesa`.
+    La respuesta incluye: emergencia_id, emergencia, usuario, descripcion, ambito.
+    ---
+    tags:
+      - Emergencias
+    parameters:
+      - name: usuario
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: Lista de emergencias con ámbito de acceso
+    """
+    query = db.text("""
+    SELECT DISTINCT
+      e.id            AS emergencia_id,
+      e.nombre        AS emergencia,
+      u.usuario,
+      u.descripcion,
+      CASE
+        WHEN x.provincia_id = 0 AND x.canton_id = 0 THEN 'NACIONAL'
+        WHEN x.canton_id = 0 THEN 'PROVINCIAL'
+        ELSE 'CANTONAL'
+      END AS ambito
+    FROM public.usuarios u
+    JOIN public.usuario_perfil_coe_dpa_mesa x ON x.usuario_id = u.id
+    JOIN public.emergencia_parroquias eq ON TRUE
+    JOIN public.parroquias q ON q.id = eq.parroquia_id
+    JOIN public.emergencias e ON e.id = eq.emergencia_id
+    WHERE u.usuario = :usuario
+      AND (
+         (x.provincia_id = 0 AND x.canton_id = 0)
+      OR (x.provincia_id = q.provincia_id AND x.canton_id = 0)
+      OR (x.provincia_id = q.provincia_id AND x.canton_id = q.canton_id)
+      )
+    ORDER BY e.nombre, u.descripcion
+    """)
+    result = db.session.execute(query, {'usuario': usuario})
+    rows = result.fetchall()
+    emergencias = []
+    for row in rows:
+        emergencias.append({
+            'emergencia_id': row.emergencia_id,
+            'emergencia': row.emergencia,
+            'usuario': row.usuario,
+            'descripcion': row.descripcion,
+            'ambito': row.ambito
+        })
+    return jsonify(emergencias)
+
 @emergencias_bp.route('/api/emergencias', methods=['POST'])
 def create_emergencia():
+    """Crear una nueva emergencia.
+
+    Espera un payload JSON con los campos necesarios para insertar un registro
+    en la tabla `emergencias`. Devuelve el registro creado con código 201.
+    ---
+    tags:
+      - Emergencias
+    consumes:
+      - application/json
+    responses:
+      201:
+        description: Emergencia creada
+      400:
+        description: Datos inválidos
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -126,8 +211,28 @@ def create_emergencia():
 
 @emergencias_bp.route('/api/emergencias/<int:id>', methods=['GET'])
 def get_emergencia(id):
+    """Obtener una emergencia por su ID.
+
+    Parámetros:
+      id (int): identificador de la emergencia.
+
+    Devuelve el objeto JSON de la emergencia si existe, o 404 si no se encuentra.
+    ---
+    tags:
+      - Emergencias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Emergencia encontrada
+      404:
+        description: Emergencia no encontrada
+    """
     result = db.session.execute(
-        db.text("SELECT * FROM emergencias WHERE id = :id"), 
+        db.text("SELECT * FROM emergencias WHERE id = :id"),
         {'id': id}
     )
     emergencia = result.fetchone()
@@ -162,6 +267,29 @@ def get_emergencia(id):
 
 @emergencias_bp.route('/api/emergencias/<int:id>', methods=['PUT'])
 def update_emergencia(id):
+    """Actualizar una emergencia existente.
+
+    Parámetros:
+      id (int): identificador de la emergencia a actualizar.
+      body: JSON con los campos a actualizar.
+
+    Actualiza los campos proporcionados y devuelve la emergencia actualizada.
+    ---
+    tags:
+      - Emergencias
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Emergencia actualizada
+      404:
+        description: Emergencia no encontrada
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -182,7 +310,7 @@ def update_emergencia(id):
     update_fields.append('modificacion = :modificacion')
     
     query = db.text(f"""
-        UPDATE emergencias 
+        UPDATE emergencias
         SET {', '.join(update_fields)}
         WHERE id = :id
     """)
@@ -230,8 +358,28 @@ def update_emergencia(id):
 
 @emergencias_bp.route('/api/emergencias/<int:id>', methods=['DELETE'])
 def delete_emergencia(id):
+    """Eliminar una emergencia por ID.
+
+    Parámetros:
+      id (int): identificador de la emergencia a eliminar.
+
+    Elimina el registro de la tabla `emergencias`. Devuelve 404 si no existe.
+    ---
+    tags:
+      - Emergencias
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado correctamente
+      404:
+        description: Emergencia no encontrada
+    """
     result = db.session.execute(
-        db.text("DELETE FROM emergencias WHERE id = :id"), 
+        db.text("DELETE FROM emergencias WHERE id = :id"),
         {'id': id}
     )
     
