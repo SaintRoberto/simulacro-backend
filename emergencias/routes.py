@@ -102,7 +102,8 @@ def get_emergencias_by_usuario(usuario):
             'emergencia': row.emergencia,
             'usuario': row.usuario,
             'descripcion': row.descripcion,
-            'ambito': row.ambito
+            'ambito': row.ambito,
+            'identificador': row.identificador
         })
     return jsonify(emergencias)
 
