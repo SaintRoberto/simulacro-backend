@@ -55,7 +55,7 @@ def get_emergencias_by_usuario(usuario):
 
     Ejecuta la consulta que devuelve emergencias a las que el usuario tiene
     acceso según su ámbito definido en `usuario_perfil_coe_dpa_mesa`.
-    La respuesta incluye: emergencia_id, emergencia, usuario, descripcion, ambito.
+    La respuesta incluye: emergencia_id, emergencia, usuario, descripcion, ambito, identificador.
     ---
     tags:
       - Emergencias
@@ -78,12 +78,13 @@ def get_emergencias_by_usuario(usuario):
         WHEN x.provincia_id = 0 AND x.canton_id = 0 THEN 'NACIONAL'
         WHEN x.canton_id = 0 THEN 'PROVINCIAL'
         ELSE 'CANTONAL'
-      END AS ambito
+      END AS ambito, t.identificador
     FROM public.usuarios u
     JOIN public.usuario_perfil_coe_dpa_mesa x ON x.usuario_id = u.id
     JOIN public.emergencia_parroquias eq ON TRUE
     JOIN public.parroquias q ON q.id = eq.parroquia_id
     JOIN public.emergencias e ON e.id = eq.emergencia_id
+    JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
     WHERE u.usuario = :usuario
       AND (
          (x.provincia_id = 0 AND x.canton_id = 0)
