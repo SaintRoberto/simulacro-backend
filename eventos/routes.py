@@ -77,35 +77,57 @@ def get_eventos_by_emergencia(emergencia_id):
               evento_estado_id: 2
               activo: true
     """
-    result = db.session.execute(
-        db.text("SELECT * FROM eventos WHERE emergencia_id = :emergencia_id ORDER BY id"),
-        {'emergencia_id': emergencia_id}
-    )
+    query = db.text("""
+        SELECT
+            x.nombre AS emergencia,
+            p.nombre AS provincia,
+            c.nombre AS canton,
+            q.nombre AS parroquia,
+            e.sector,
+            e.evento_fecha,
+            e.longitud,
+            e.latitud,
+            k.nombre AS categoria,
+            t.nombre AS tipo,
+            y.nombre AS causa,
+            o.nombre AS origen,
+            e.alto_impacto,
+            z.nombre AS estado,
+            e.descripcion,
+            e.situacion
+        FROM public.eventos e
+        INNER JOIN public.emergencias x ON e.emergencia_id = x.id
+        INNER JOIN public.provincias p ON e.provincia_id = p.id
+        INNER JOIN public.cantones c ON e.canton_id = c.id
+        INNER JOIN public.parroquias q ON e.parroquia_id = q.id
+        INNER JOIN public.evento_categorias k ON e.evento_categoria_id = k.id
+        INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
+        INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
+        INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
+        INNER JOIN public.evento_estados z ON e.evento_estado_id = z.id
+        WHERE e.emergencia_id = :emergencia_id
+        ORDER BY e.id
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
     eventos = []
     for row in result:
         eventos.append({
-            'id': row.id,
-            'emergencia_id': row.emergencia_id,
-            'provincia_id': row.provincia_id,
-            'canton_id': row.canton_id,
-            'parroquia_id': row.parroquia_id,
+            'emergencia': row.emergencia,
+            'provincia': row.provincia,
+            'canton': row.canton,
+            'parroquia': row.parroquia,
             'sector': row.sector,
             'evento_fecha': row.evento_fecha.isoformat() if row.evento_fecha else None,
             'longitud': float(row.longitud) if row.longitud is not None else None,
             'latitud': float(row.latitud) if row.latitud is not None else None,
-            'evento_categoria_id': row.evento_categoria_id,
-            'evento_tipo_id': row.evento_tipo_id,
-            'evento_causa_id': row.evento_causa_id,
-            'evento_origen_id': row.evento_origen_id,
+            'categoria': row.categoria,
+            'tipo': row.tipo,
+            'causa': row.causa,
+            'origen': row.origen,
             'alto_impacto': bool(row.alto_impacto),
+            'estado': row.estado,
             'descripcion': row.descripcion,
-            'situacion': row.situacion,
-            'evento_estado_id': row.evento_estado_id,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+            'situacion': row.situacion
         })
     return jsonify(eventos)
 @eventos_bp.route('/api/eventos', methods=['POST'])
