@@ -59,6 +59,7 @@ from niveles_alerta import niveles_alerta_bp
 from opciones import opciones_bp
 from mesa_grupos import mesa_grupos_bp
 from emergencias import emergencias_bp
+from eventos import eventos_bp
 from recurso_tipos import recurso_tipos_bp
 from recurso_categorias import recurso_categorias_bp
 from recurso_grupos import recurso_grupos_bp
@@ -94,6 +95,7 @@ app.register_blueprint(niveles_afectacion_bp)
 app.register_blueprint(niveles_alerta_bp)
 app.register_blueprint(opciones_bp)
 app.register_blueprint(mesa_grupos_bp)
+app.register_blueprint(eventos_bp)
 app.register_blueprint(emergencias_bp)
 app.register_blueprint(recurso_tipos_bp)
 app.register_blueprint(recurso_categorias_bp)
