@@ -49,25 +49,33 @@ def get_eventos():
 
 @eventos_bp.route('/api/eventos/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_eventos_by_emergencia(emergencia_id):
-    """Listar eventos por emergencia.
+    """Obtener todos los eventos asociados a una emergencia específica.
 
-    Devuelve todos los eventos asociados a una emergencia específica
-    identificada por `emergencia_id`. Responde con una lista (posiblemente
-    vacía) de objetos JSON que representan cada evento.
+    Este endpoint devuelve una lista de eventos registrados en el sistema que
+    pertenecen a la emergencia indicada por su identificador (`emergencia_id`).
 
-    Parámetros:
-      emergencia_id (int): ID de la emergencia por la que se filtran los eventos.
+    Cada elemento incluye información como ubicación, fecha, causa, tipo,
+    descripción, estado y otros metadatos del evento.
 
-    Respuestas:
-      200: Lista de eventos filtrada por emergencia_id
     ---
     tags:
       - Eventos
     parameters:
       - name: emergencia_id
         in: path
-        type: integer
+        description: Identificador de la emergencia cuyos eventos se desean listar
         required: true
+        type: integer
+    responses:
+      200:
+        description: Lista de eventos relacionados con la emergencia indicada
+        examples:
+          application/json:
+            - id: 1
+              emergencia_id: 3
+              descripcion: "Deslizamiento de tierra en zona rural"
+              evento_estado_id: 2
+              activo: true
     """
     result = db.session.execute(
         db.text("SELECT * FROM eventos WHERE emergencia_id = :emergencia_id ORDER BY id"),
