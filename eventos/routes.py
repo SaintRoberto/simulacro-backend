@@ -509,7 +509,8 @@ def delete_evento(id):
     db.session.commit()
     return jsonify({'mensaje': 'Evento eliminado correctamente'})
 
-# ==================== EVENTO TIPOS ====================
+# (Removed duplicated endpoint groups for evento_tipos, evento_origenes, evento_estados, evento_causas, evento_categorias)
+# All now live in their respective independent modules under /evento_* directories.
 
 @eventos_bp.route('/api/evento_tipos', methods=['GET'])
 def get_evento_tipos():
