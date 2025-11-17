@@ -19,6 +19,33 @@ def get_eventos():
     responses:
       200:
         description: Lista de eventos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              emergencia_id: {type: integer}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+              parroquia_id: {type: integer}
+              sector: {type: string}
+              evento_fecha: {type: string, format: date-time}
+              longitud: {type: number}
+              latitud: {type: number}
+              evento_categoria_id: {type: integer}
+              evento_tipo_id: {type: integer}
+              evento_causa_id: {type: integer}
+              evento_origen_id: {type: integer}
+              alto_impacto: {type: boolean}
+              descripcion: {type: string}
+              situacion: {type: string}
+              evento_estado_id: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     result = db.session.execute(db.text("SELECT * FROM eventos ORDER BY id"))
     eventos = []
@@ -71,13 +98,29 @@ def get_eventos_by_emergencia(emergencia_id):
     responses:
       200:
         description: Lista de eventos relacionados con la emergencia indicada
-        examples:
-          application/json:
-            - id: 1
-              emergencia_id: 3
-              descripcion: "Deslizamiento de tierra en zona rural"
-              evento_estado_id: 2
-              activo: true
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              emergencia: {type: string}
+              provincia: {type: string}
+              canton: {type: string}
+              parroquia: {type: string}
+              sector: {type: string}
+              evento_fecha: {type: string, format: date-time}
+              longitud: {type: number}
+              latitud: {type: number}
+              categoria: {type: string}
+              tipo: {type: string}
+              causa: {type: string}
+              origen: {type: string}
+              alto_impacto: {type: boolean}
+              estado: {type: string}
+              descripcion: {type: string}
+              situacion: {type: string}
+      404:
+        description: Emergencia no encontrada
     """
     query = db.text(
         """SELECT
@@ -165,6 +208,27 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
     responses:
       200:
         description: Lista de eventos correspondientes a los filtros aplicados
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              emergencia: {type: string}
+              provincia: {type: string}
+              canton: {type: string}
+              parroquia: {type: string}
+              sector: {type: string}
+              evento_fecha: {type: string, format: date-time}
+              longitud: {type: number}
+              latitud: {type: number}
+              categoria: {type: string}
+              tipo: {type: string}
+              causa: {type: string}
+              origen: {type: string}
+              alto_impacto: {type: boolean}
+              estado: {type: string}
+              descripcion: {type: string}
+              situacion: {type: string}
     """
     query = db.text("""
         SELECT
@@ -236,9 +300,61 @@ def create_evento():
       - Eventos
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_categoria_id, evento_tipo_id, evento_causa_id, evento_origen_id, evento_estado_id]
+          properties:
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            sector: {type: string}
+            evento_fecha: {type: string, format: date-time}
+            longitud: {type: number}
+            latitud: {type: number}
+            evento_categoria_id: {type: integer}
+            evento_tipo_id: {type: integer}
+            evento_causa_id: {type: integer}
+            evento_origen_id: {type: integer}
+            alto_impacto: {type: boolean}
+            descripcion: {type: string}
+            situacion: {type: string}
+            evento_estado_id: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Evento creado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            sector: {type: string}
+            evento_fecha: {type: string, format: date-time}
+            longitud: {type: number}
+            latitud: {type: number}
+            evento_categoria_id: {type: integer}
+            evento_tipo_id: {type: integer}
+            evento_causa_id: {type: integer}
+            evento_origen_id: {type: integer}
+            alto_impacto: {type: boolean}
+            descripcion: {type: string}
+            situacion: {type: string}
+            evento_estado_id: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Datos inválidos
     """
@@ -344,6 +460,31 @@ def get_evento(id):
     responses:
       200:
         description: Evento encontrado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            sector: {type: string}
+            evento_fecha: {type: string, format: date-time}
+            longitud: {type: number}
+            latitud: {type: number}
+            evento_categoria_id: {type: integer}
+            evento_tipo_id: {type: integer}
+            evento_causa_id: {type: integer}
+            evento_origen_id: {type: integer}
+            alto_impacto: {type: boolean}
+            descripcion: {type: string}
+            situacion: {type: string}
+            evento_estado_id: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Evento no encontrado
     """
@@ -399,9 +540,58 @@ def update_evento(id):
         in: path
         type: integer
         required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            sector: {type: string}
+            evento_fecha: {type: string, format: date-time}
+            longitud: {type: number}
+            latitud: {type: number}
+            evento_categoria_id: {type: integer}
+            evento_tipo_id: {type: integer}
+            evento_causa_id: {type: integer}
+            evento_origen_id: {type: integer}
+            alto_impacto: {type: boolean}
+            descripcion: {type: string}
+            situacion: {type: string}
+            evento_estado_id: {type: integer}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Evento actualizado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            sector: {type: string}
+            evento_fecha: {type: string, format: date-time}
+            longitud: {type: number}
+            latitud: {type: number}
+            evento_categoria_id: {type: integer}
+            evento_tipo_id: {type: integer}
+            evento_causa_id: {type: integer}
+            evento_origen_id: {type: integer}
+            alto_impacto: {type: boolean}
+            descripcion: {type: string}
+            situacion: {type: string}
+            evento_estado_id: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Evento no encontrado
     """
@@ -502,13 +692,6 @@ def delete_evento(id):
     db.session.commit()
     return jsonify({'mensaje': 'Evento eliminado correctamente'})
 
-
-    if getattr(result, 'rowcount', 0) == 0:
-        return jsonify({'error': 'Evento no encontrado'}), 404
-
-    db.session.commit()
-    return jsonify({'mensaje': 'Evento eliminado correctamente'})
-
 # (Removed duplicated endpoint groups for evento_tipos, evento_origenes, evento_estados, evento_causas, evento_categorias)
 # All now live in their respective independent modules under /evento_* directories.
 
@@ -523,6 +706,20 @@ def get_evento_tipos():
     responses:
       200:
         description: Lista de tipos de eventos obtenida correctamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
+              identificador: {type: string}
     """
     query = db.text("SELECT * FROM evento_tipos ORDER BY id")
     result = db.session.execute(query)
@@ -559,6 +756,18 @@ def get_evento_tipo(id):
     responses:
       200:
         description: Tipo de evento encontrado y devuelto correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
+            identificador: {type: string}
       404:
         description: No se encontró el tipo de evento solicitado
     """
@@ -581,7 +790,44 @@ def get_evento_tipo(id):
 
 @eventos_bp.route('/api/evento_tipos', methods=['POST'])
 def create_evento_tipo():
-    """Crear un nuevo tipo de evento."""
+    """Crear un nuevo tipo de evento.
+    ---
+    tags:
+      - Tipos de Evento
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre]
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
+            identificador: {type: string}
+    responses:
+      201:
+        description: Tipo de evento creado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
+            identificador: {type: string}
+      400:
+        description: Datos inválidos
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     query = db.text("""
@@ -621,7 +867,46 @@ def create_evento_tipo():
 
 @eventos_bp.route('/api/evento_tipos/<int:id>', methods=['PUT'])
 def update_evento_tipo(id):
-    """Actualizar un tipo de evento."""
+    """Actualizar un tipo de evento.
+    ---
+    tags:
+      - Tipos de Evento
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
+            identificador: {type: string}
+    responses:
+      200:
+        description: Tipo de evento actualizado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
+            identificador: {type: string}
+      404:
+        description: Tipo de evento no encontrado
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     update_fields = []
@@ -660,7 +945,21 @@ def update_evento_tipo(id):
 
 @eventos_bp.route('/api/evento_tipos/<int:id>', methods=['DELETE'])
 def delete_evento_tipo(id):
-    """Eliminar un tipo de evento."""
+    """Eliminar un tipo de evento.
+    ---
+    tags:
+      - Tipos de Evento
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Tipo de evento eliminado correctamente
+      404:
+        description: Tipo de evento no encontrado
+    """
     result = db.session.execute(db.text("DELETE FROM evento_tipos WHERE id = :id"), {'id': id})
     if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Tipo de evento no encontrado'}), 404
@@ -681,6 +980,19 @@ def get_evento_origenes():
     responses:
       200:
         description: Lista de orígenes de eventos obtenida correctamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     query = db.text("SELECT * FROM evento_origenes ORDER BY id")
     result = db.session.execute(query)
@@ -716,6 +1028,17 @@ def get_evento_origen(id):
     responses:
       200:
         description: Origen de evento encontrado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: No se encontró el origen de evento solicitado
     """
@@ -745,9 +1068,33 @@ def create_evento_origen():
       - Orígenes de Evento
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre]
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Origen de evento creado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Datos inválidos
     """
@@ -801,12 +1148,32 @@ def update_evento_origen(id):
     parameters:
       - name: id
         in: path
-        description: ID del origen de evento a actualizar
-        required: true
         type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Origen de evento actualizado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Origen de evento no encontrado
     """
@@ -875,7 +1242,27 @@ def delete_evento_origen(id):
 
 @eventos_bp.route('/api/evento_estados', methods=['GET'])
 def get_evento_estados():
-    """Listar todos los estados de eventos registrados."""
+    """Listar todos los estados de eventos registrados.
+    ---
+    tags:
+      - Estados de Evento
+    responses:
+      200:
+        description: Lista de estados de eventos obtenida correctamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
+    """
     query = db.text("SELECT * FROM evento_estados ORDER BY id")
     result = db.session.execute(query)
     estados = []
@@ -904,9 +1291,25 @@ def get_evento_estado(id):
     ---
     tags:
       - Estados de Evento
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
     responses:
       200:
         description: Estado de evento encontrado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Estado de evento no encontrado
     """
@@ -941,9 +1344,33 @@ def create_evento_estado():
       - Estados de Evento
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre]
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Estado de evento creado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Datos inválidos
     """
@@ -995,9 +1422,35 @@ def update_evento_estado(id):
       - Estados de Evento
     consumes:
       - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Estado de evento actualizado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Estado de evento no encontrado
     """
@@ -1075,6 +1528,19 @@ def get_evento_causas():
     responses:
       200:
         description: Lista de causas de eventos obtenida correctamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     query = db.text("SELECT * FROM evento_causas ORDER BY id")
     result = db.session.execute(query)
@@ -1104,9 +1570,25 @@ def get_evento_causa(id):
     ---
     tags:
       - Causas de Evento
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
     responses:
       200:
         description: Causa de evento encontrada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Causa de evento no encontrada
     """
@@ -1138,9 +1620,33 @@ def create_evento_causa():
       - Causas de Evento
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre]
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Causa de evento creada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Datos inválidos
     """
@@ -1191,9 +1697,35 @@ def update_evento_causa(id):
       - Causas de Evento
     consumes:
       - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Causa de evento actualizada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Causa de evento no encontrada
     """
@@ -1271,6 +1803,19 @@ def get_evento_categorias():
     responses:
       200:
         description: Lista de categorías de eventos obtenida correctamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     query = db.text("SELECT * FROM evento_categorias ORDER BY id")
     result = db.session.execute(query)
@@ -1300,9 +1845,25 @@ def get_evento_categoria(id):
     ---
     tags:
       - Categorías de Evento
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
     responses:
       200:
         description: Categoría de evento encontrada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Categoría de evento no encontrada
     """
@@ -1334,9 +1895,33 @@ def create_evento_categoria():
       - Categorías de Evento
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [nombre]
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Categoría de evento creada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Datos inválidos
     """
@@ -1387,9 +1972,35 @@ def update_evento_categoria(id):
       - Categorías de Evento
     consumes:
       - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Categoría de evento actualizada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Categoría de evento no encontrada
     """
