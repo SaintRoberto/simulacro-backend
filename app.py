@@ -84,6 +84,7 @@ from resolucion_estados import resolucion_estados_bp
 from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
 from respuesta_acciones import respuesta_acciones_bp
 from respuesta_accion_detalles import respuesta_accion_detalles_bp
+from evento_atencion_estados.routes import evento_atencion_estados_bp
 
 app.register_blueprint(instituciones_bp)
 app.register_blueprint(usuarios_bp)
@@ -126,7 +127,7 @@ app.register_blueprint(evento_origenes_bp)
 app.register_blueprint(evento_estados_bp)
 app.register_blueprint(evento_causas_bp)
 app.register_blueprint(evento_categorias_bp)
-
+app.register_blueprint(evento_atencion_estados_bp)
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
 swagger = Swagger(app, template=swagger_template)
 
