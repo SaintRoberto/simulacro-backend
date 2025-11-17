@@ -4,7 +4,7 @@ from models import db
 
 evento_atencion_estados_bp = Blueprint('evento_atencion_estados', __name__)
 
-@evento_atencion_estados_bp.route('/api/evento-atencion-estados', methods=['GET'])
+@evento_atencion_estados_bp.route('/api/evento_atencion_estados', methods=['GET'])
 def get_evento_atencion_estados():
     """
     Listar todos los estados de atención de eventos registrados.
@@ -27,7 +27,7 @@ def get_evento_atencion_estados():
     result = db.session.execute(query)
     return jsonify([dict(row._mapping) for row in result])
 
-@evento_atencion_estados_bp.route('/api/evento-atencion-estados/<int:id>', methods=['GET'])
+@evento_atencion_estados_bp.route('/api/evento_atencion_estados/<int:id>', methods=['GET'])
 def get_evento_atencion_estado(id):
     """
     Obtener un estado de atención de evento específico por ID.
@@ -60,7 +60,7 @@ def get_evento_atencion_estado(id):
         return jsonify({'error': 'Estado de atención de evento no encontrado'}), 404
     return jsonify(dict(estado._mapping))
 
-@evento_atencion_estados_bp.route('/api/evento-atencion-estados', methods=['POST'])
+@evento_atencion_estados_bp.route('/api/evento_atencion_estados', methods=['POST'])
 def create_evento_atencion_estado():
     """
     Crear un nuevo estado de atención de evento.
@@ -108,7 +108,7 @@ def create_evento_atencion_estado():
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-@evento_atencion_estados_bp.route('/api/evento-atencion-estados/<int:id>', methods=['PUT'])
+@evento_atencion_estados_bp.route('/api/evento_atencion_estados/<int:id>', methods=['PUT'])
 def update_evento_atencion_estado(id):
     """
     Actualizar un estado de atención de evento existente.
@@ -180,7 +180,7 @@ def update_evento_atencion_estado(id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
-@evento_atencion_estados_bp.route('/api/evento-atencion-estados/<int:id>', methods=['DELETE'])
+@evento_atencion_estados_bp.route('/api/evento_atencion_estados/<int:id>', methods=['DELETE'])
 def delete_evento_atencion_estado(id):
     """
     Eliminar un estado de atención de evento existente.
