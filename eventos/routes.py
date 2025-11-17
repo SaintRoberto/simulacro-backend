@@ -240,6 +240,11 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             e.evento_fecha,
             e.longitud,
             e.latitud,
+            e.evento_categoria_id,
+            e.evento_tipo_id,
+            e.evento_causa_id,
+            e.evento_origen_id,
+            e.evento_atencion_estado_id,
             k.nombre AS categoria,
             t.nombre AS tipo,
             y.nombre AS causa,
@@ -691,4 +696,3 @@ def delete_evento(id):
 
     db.session.commit()
     return jsonify({'mensaje': 'Evento eliminado correctamente'})
-    
