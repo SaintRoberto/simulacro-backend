@@ -124,6 +124,7 @@ def get_eventos_by_emergencia(emergencia_id):
     """
     query = db.text(
         """SELECT
+            e.id,
             x.nombre AS emergencia,
             p.nombre AS provincia,
             c.nombre AS canton,
@@ -132,12 +133,12 @@ def get_eventos_by_emergencia(emergencia_id):
             e.evento_fecha,
             e.longitud,
             e.latitud,
-            k.nombre AS categoria,
-            t.nombre AS tipo,
-            y.nombre AS causa,
-            o.nombre AS origen,
+            k.nombre AS evento_categoria,
+            t.nombre AS evento_tipo,
+            y.nombre AS evento_causa,
+            o.nombre AS evento_origen,
             e.alto_impacto,
-            z.nombre AS estado_atencion,
+            z.nombre AS evento_atencion_estado,
             e.descripcion,
             e.situacion
             FROM public.eventos e
@@ -157,6 +158,7 @@ def get_eventos_by_emergencia(emergencia_id):
     eventos = []
     for row in result:
         eventos.append({
+            'id': row.id,
             'emergencia': row.emergencia,
             'provincia': row.provincia,
             'canton': row.canton,
@@ -232,6 +234,7 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
     """
     query = db.text("""
         SELECT
+            e.id,
             x.nombre AS emergencia,
             p.nombre AS provincia,
             c.nombre AS canton,
@@ -245,12 +248,12 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             e.evento_causa_id,
             e.evento_origen_id,
             e.evento_atencion_estado_id,
-            k.nombre AS categoria,
-            t.nombre AS tipo,
-            y.nombre AS causa,
-            o.nombre AS origen,
+            k.nombre AS evento_categoria,
+            t.nombre AS evento_tipo,
+            y.nombre AS evento_causa,
+            o.nombre AS evento_origen,
             e.alto_impacto,
-            z.nombre AS estado_atencion,
+            z.nombre AS evento_atencion_estado,
             e.descripcion,
             e.situacion
         FROM public.eventos e
@@ -274,6 +277,7 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
     eventos = []
     for row in result:
         eventos.append({
+            'id': row.id,
             'emergencia': row.emergencia,
             'provincia': row.provincia,
             'canton': row.canton,
