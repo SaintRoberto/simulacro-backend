@@ -252,7 +252,6 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
         INNER JOIN public.provincias p ON e.provincia_id = p.id
         INNER JOIN public.cantones c ON e.canton_id = c.id
         INNER JOIN public.parroquias q ON e.parroquia_id = q.id
-        INNER JOIN public.evento_categorias k ON e.evento_categoria_id = k.id
         INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
         INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
         INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
@@ -500,7 +499,6 @@ def get_evento(id):
         'evento_fecha': evento.evento_fecha.isoformat() if evento.evento_fecha else None,
         'longitud': float(evento.longitud) if evento.longitud is not None else None,
         'latitud': float(evento.latitud) if evento.latitud is not None else None,
-        'evento_categoria_id': evento.evento_categoria_id,
         'evento_tipo_id': evento.evento_tipo_id,
         'evento_causa_id': evento.evento_causa_id,
         'evento_origen_id': evento.evento_origen_id,
@@ -594,7 +592,7 @@ def update_evento(id):
     params = {'id': id, 'modificador': data.get('modificador', 'Sistema'), 'modificacion': now}
 
     fields = ['emergencia_id','provincia_id','canton_id','parroquia_id','sector','evento_fecha',
-              'longitud','latitud','evento_categoria_id','evento_tipo_id','evento_causa_id',
+              'longitud','latitud','evento_tipo_id','evento_causa_id',
               'evento_origen_id','alto_impacto','descripcion','situacion','evento_atencion_estado_id','activo']
 
     for field in fields:
@@ -636,7 +634,6 @@ def update_evento(id):
         'evento_fecha': evento.evento_fecha.isoformat() if evento.evento_fecha else None,
         'longitud': float(evento.longitud) if evento.longitud is not None else None,
         'latitud': float(evento.latitud) if evento.latitud is not None else None,
-        'evento_categoria_id': evento.evento_categoria_id,
         'evento_tipo_id': evento.evento_tipo_id,
         'evento_causa_id': evento.evento_causa_id,
         'evento_origen_id': evento.evento_origen_id,
