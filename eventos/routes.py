@@ -33,7 +33,6 @@ def get_eventos():
               evento_fecha: {type: string, format: date-time}
               longitud: {type: number}
               latitud: {type: number}
-              evento_categoria_id: {type: integer}
               evento_tipo_id: {type: integer}
               evento_causa_id: {type: integer}
               evento_origen_id: {type: integer}
@@ -60,7 +59,6 @@ def get_eventos():
             'evento_fecha': row.evento_fecha.isoformat() if row.evento_fecha else None,
             'longitud': float(row.longitud) if row.longitud is not None else None,
             'latitud': float(row.latitud) if row.latitud is not None else None,
-            'evento_categoria_id': row.evento_categoria_id,
             'evento_tipo_id': row.evento_tipo_id,
             'evento_causa_id': row.evento_causa_id,
             'evento_origen_id': row.evento_origen_id,
@@ -111,7 +109,6 @@ def get_eventos_by_emergencia(emergencia_id):
               evento_fecha: {type: string, format: date-time}
               longitud: {type: number}
               latitud: {type: number}
-              evento_categoria: {type: string}
               evento_tipo: {type: string}
               evento_causa: {type: string}
               evento_origen: {type: string}
@@ -133,7 +130,6 @@ def get_eventos_by_emergencia(emergencia_id):
             e.evento_fecha,
             e.longitud,
             e.latitud,
-            k.nombre AS evento_categoria,
             t.nombre AS evento_tipo,
             y.nombre AS evento_causa,
             o.nombre AS evento_origen,
@@ -146,7 +142,6 @@ def get_eventos_by_emergencia(emergencia_id):
             INNER JOIN public.provincias p ON e.provincia_id = p.id
             INNER JOIN public.cantones c ON e.canton_id = c.id
             INNER JOIN public.parroquias q ON e.parroquia_id = q.id
-            INNER JOIN public.evento_categorias k ON e.evento_categoria_id = k.id
             INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
             INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
             INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
@@ -167,7 +162,6 @@ def get_eventos_by_emergencia(emergencia_id):
             'evento_fecha': row.evento_fecha.isoformat() if getattr(row, 'evento_fecha', None) else None,
             'longitud': float(row.longitud) if getattr(row, 'longitud', None) is not None else None,
             'latitud': float(row.latitud) if getattr(row, 'latitud', None) is not None else None,
-            'evento_categoria': getattr(row, 'evento_categoria', None),
             'evento_tipo': getattr(row, 'evento_tipo', None),
             'evento_causa': getattr(row, 'evento_causa', None),
             'evento_origen': getattr(row, 'evento_origen', None),
@@ -223,7 +217,6 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
               evento_fecha: {type: string, format: date-time}
               longitud: {type: number}
               latitud: {type: number}
-              evento_categoria: {type: string}
               evento_tipo: {type: string}
               evento_causa: {type: string}
               evento_origen: {type: string}
@@ -243,12 +236,10 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             e.evento_fecha,
             e.longitud,
             e.latitud,
-            e.evento_categoria_id,
             e.evento_tipo_id,
             e.evento_causa_id,
             e.evento_origen_id,
             e.evento_atencion_estado_id,
-            k.nombre AS evento_categoria,
             t.nombre AS evento_tipo,
             y.nombre AS evento_causa,
             o.nombre AS evento_origen,
@@ -286,7 +277,6 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             'evento_fecha': row.evento_fecha.isoformat() if row.evento_fecha else None,
             'longitud': float(row.longitud) if row.longitud is not None else None,
             'latitud': float(row.latitud) if row.latitud is not None else None,
-            'evento_categoria': row.evento_categoria,
             'evento_tipo': row.evento_tipo,
             'evento_causa': row.evento_causa,
             'evento_origen': row.evento_origen,
@@ -315,7 +305,7 @@ def create_evento():
         required: true
         schema:
           type: object
-          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_categoria_id, evento_tipo_id, evento_causa_id, evento_origen_id, evento_atencion_estado_id]
+          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_tipo_id, evento_causa_id, evento_origen_id, evento_atencion_estado_id]
           properties:
             emergencia_id: {type: integer}
             provincia_id: {type: integer}
@@ -325,7 +315,6 @@ def create_evento():
             evento_fecha: {type: string, format: date-time}
             longitud: {type: number}
             latitud: {type: number}
-            evento_categoria_id: {type: integer}
             evento_tipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
@@ -351,7 +340,6 @@ def create_evento():
             evento_fecha: {type: string, format: date-time}
             longitud: {type: number}
             latitud: {type: number}
-            evento_categoria_id: {type: integer}
             evento_tipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
@@ -373,13 +361,13 @@ def create_evento():
     query = db.text("""
         INSERT INTO eventos (
             emergencia_id, provincia_id, canton_id, parroquia_id, sector,
-            evento_fecha, longitud, latitud, evento_categoria_id, evento_tipo_id,
+            evento_fecha, longitud, latitud, evento_tipo_id,
             evento_causa_id, evento_origen_id, alto_impacto, descripcion, situacion,
             evento_atencion_estado_id, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
             :emergencia_id, :provincia_id, :canton_id, :parroquia_id, :sector,
-            :evento_fecha, :longitud, :latitud, :evento_categoria_id, :evento_tipo_id,
+            :evento_fecha, :longitud, :latitud, :evento_tipo_id,
             :evento_causa_id, :evento_origen_id, :alto_impacto, :descripcion, :situacion,
             :evento_atencion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion
         )
@@ -395,7 +383,6 @@ def create_evento():
         'evento_fecha': data.get('evento_fecha', now),
         'longitud': data.get('longitud', 0),
         'latitud': data.get('latitud', 0),
-        'evento_categoria_id': data['evento_categoria_id'],
         'evento_tipo_id': data['evento_tipo_id'],
         'evento_causa_id': data['evento_causa_id'],
         'evento_origen_id': data['evento_origen_id'],
@@ -435,7 +422,6 @@ def create_evento():
         'evento_fecha': evento.evento_fecha.isoformat() if evento.evento_fecha else None,
         'longitud': float(evento.longitud) if evento.longitud is not None else None,
         'latitud': float(evento.latitud) if evento.latitud is not None else None,
-        'evento_categoria_id': evento.evento_categoria_id,
         'evento_tipo_id': evento.evento_tipo_id,
         'evento_causa_id': evento.evento_causa_id,
         'evento_origen_id': evento.evento_origen_id,
@@ -481,7 +467,6 @@ def get_evento(id):
             evento_fecha: {type: string, format: date-time}
             longitud: {type: number}
             latitud: {type: number}
-            evento_categoria_id: {type: integer}
             evento_tipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
@@ -563,7 +548,6 @@ def update_evento(id):
             evento_fecha: {type: string, format: date-time}
             longitud: {type: number}
             latitud: {type: number}
-            evento_categoria_id: {type: integer}
             evento_tipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
@@ -588,7 +572,6 @@ def update_evento(id):
             evento_fecha: {type: string, format: date-time}
             longitud: {type: number}
             latitud: {type: number}
-            evento_categoria_id: {type: integer}
             evento_tipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
