@@ -34,6 +34,7 @@ def get_eventos():
               longitud: {type: number}
               latitud: {type: number}
               evento_tipo_id: {type: integer}
+              evento_subtipo_id: {type: integer}
               evento_causa_id: {type: integer}
               evento_origen_id: {type: integer}
               alto_impacto: {type: boolean}
@@ -60,6 +61,7 @@ def get_eventos():
             'longitud': float(row.longitud) if row.longitud is not None else None,
             'latitud': float(row.latitud) if row.latitud is not None else None,
             'evento_tipo_id': row.evento_tipo_id,
+            'evento_subtipo_id': row.evento_subtipo_id,
             'evento_causa_id': row.evento_causa_id,
             'evento_origen_id': row.evento_origen_id,
             'alto_impacto': bool(row.alto_impacto),
@@ -110,6 +112,7 @@ def get_eventos_by_emergencia(emergencia_id):
               longitud: {type: number}
               latitud: {type: number}
               evento_tipo: {type: string}
+              evento_subtipo: {type: string}
               evento_causa: {type: string}
               evento_origen: {type: string}
               alto_impacto: {type: boolean}
@@ -131,6 +134,7 @@ def get_eventos_by_emergencia(emergencia_id):
             e.longitud,
             e.latitud,
             t.nombre AS evento_tipo,
+            s.nombre AS evento_subtipo,
             y.nombre AS evento_causa,
             o.nombre AS evento_origen,
             e.alto_impacto,
@@ -143,6 +147,7 @@ def get_eventos_by_emergencia(emergencia_id):
             INNER JOIN public.cantones c ON e.canton_id = c.id
             INNER JOIN public.parroquias q ON e.parroquia_id = q.id
             INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
+            INNER JOIN public.evento_subtipos s ON e.evento_subtipo_id = s.id
             INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
             INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
             INNER JOIN public.evento_atencion_estados z ON e.evento_atencion_estado_id = z.id
@@ -163,6 +168,7 @@ def get_eventos_by_emergencia(emergencia_id):
             'longitud': float(row.longitud) if getattr(row, 'longitud', None) is not None else None,
             'latitud': float(row.latitud) if getattr(row, 'latitud', None) is not None else None,
             'evento_tipo': getattr(row, 'evento_tipo', None),
+            'evento_subtipo': getattr(row, 'evento_subtipo', None),
             'evento_causa': getattr(row, 'evento_causa', None),
             'evento_origen': getattr(row, 'evento_origen', None),
             'alto_impacto': bool(getattr(row, 'alto_impacto', False)),
@@ -237,10 +243,12 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             e.longitud,
             e.latitud,
             e.evento_tipo_id,
+            e.evento_subtipo_id,
             e.evento_causa_id,
             e.evento_origen_id,
             e.evento_atencion_estado_id,
             t.nombre AS evento_tipo,
+            s.nombre AS evento_subtipo,
             y.nombre AS evento_causa,
             o.nombre AS evento_origen,
             e.alto_impacto,
@@ -253,6 +261,7 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
         INNER JOIN public.cantones c ON e.canton_id = c.id
         INNER JOIN public.parroquias q ON e.parroquia_id = q.id
         INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
+        INNER JOIN public.evento_subtipos s ON e.evento_subtipo_id = s.id
         INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
         INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
         INNER JOIN public.evento_atencion_estados z ON e.evento_atencion_estado_id = z.id
@@ -277,6 +286,7 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
             'longitud': float(row.longitud) if row.longitud is not None else None,
             'latitud': float(row.latitud) if row.latitud is not None else None,
             'evento_tipo': row.evento_tipo,
+            'evento_subtipo': row.evento_subtipo,
             'evento_causa': row.evento_causa,
             'evento_origen': row.evento_origen,
             'alto_impacto': bool(row.alto_impacto),
@@ -304,7 +314,7 @@ def create_evento():
         required: true
         schema:
           type: object
-          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_tipo_id, evento_causa_id, evento_origen_id, evento_atencion_estado_id]
+          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_tipo_id, evento_subtipo_id, evento_causa_id, evento_origen_id, evento_atencion_estado_id]
           properties:
             emergencia_id: {type: integer}
             provincia_id: {type: integer}
@@ -315,6 +325,7 @@ def create_evento():
             longitud: {type: number}
             latitud: {type: number}
             evento_tipo_id: {type: integer}
+            evento_subtipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
             alto_impacto: {type: boolean}
@@ -340,6 +351,7 @@ def create_evento():
             longitud: {type: number}
             latitud: {type: number}
             evento_tipo_id: {type: integer}
+            evento_subtipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
             alto_impacto: {type: boolean}
@@ -360,13 +372,13 @@ def create_evento():
     query = db.text("""
         INSERT INTO eventos (
             emergencia_id, provincia_id, canton_id, parroquia_id, sector,
-            evento_fecha, longitud, latitud, evento_tipo_id,
+            evento_fecha, longitud, latitud, evento_tipo_id, evento_subtipo_id,
             evento_causa_id, evento_origen_id, alto_impacto, descripcion, situacion,
             evento_atencion_estado_id, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
             :emergencia_id, :provincia_id, :canton_id, :parroquia_id, :sector,
-            :evento_fecha, :longitud, :latitud, :evento_tipo_id,
+            :evento_fecha, :longitud, :latitud, :evento_tipo_id, :evento_subtipo_id,
             :evento_causa_id, :evento_origen_id, :alto_impacto, :descripcion, :situacion,
             :evento_atencion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion
         )
@@ -383,6 +395,7 @@ def create_evento():
         'longitud': data.get('longitud', 0),
         'latitud': data.get('latitud', 0),
         'evento_tipo_id': data['evento_tipo_id'],
+        'evento_subtipo_id': data['evento_subtipo_id'],
         'evento_causa_id': data['evento_causa_id'],
         'evento_origen_id': data['evento_origen_id'],
         'alto_impacto': data.get('alto_impacto', False),
@@ -422,6 +435,7 @@ def create_evento():
         'longitud': float(evento.longitud) if evento.longitud is not None else None,
         'latitud': float(evento.latitud) if evento.latitud is not None else None,
         'evento_tipo_id': evento.evento_tipo_id,
+        'evento_subtipo_id': evento.evento_subtipo_id,
         'evento_causa_id': evento.evento_causa_id,
         'evento_origen_id': evento.evento_origen_id,
         'alto_impacto': bool(evento.alto_impacto),
@@ -467,6 +481,7 @@ def get_evento(id):
             longitud: {type: number}
             latitud: {type: number}
             evento_tipo_id: {type: integer}
+            evento_subtipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
             alto_impacto: {type: boolean}
@@ -547,6 +562,7 @@ def update_evento(id):
             longitud: {type: number}
             latitud: {type: number}
             evento_tipo_id: {type: integer}
+            evento_subtipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
             alto_impacto: {type: boolean}
@@ -571,6 +587,7 @@ def update_evento(id):
             longitud: {type: number}
             latitud: {type: number}
             evento_tipo_id: {type: integer}
+            evento_subtipo_id: {type: integer}
             evento_causa_id: {type: integer}
             evento_origen_id: {type: integer}
             alto_impacto: {type: boolean}
@@ -592,7 +609,7 @@ def update_evento(id):
     params = {'id': id, 'modificador': data.get('modificador', 'Sistema'), 'modificacion': now}
 
     fields = ['emergencia_id','provincia_id','canton_id','parroquia_id','sector','evento_fecha',
-              'longitud','latitud','evento_tipo_id','evento_causa_id',
+              'longitud','latitud','evento_tipo_id','evento_subtipo_id','evento_causa_id',
               'evento_origen_id','alto_impacto','descripcion','situacion','evento_atencion_estado_id','activo']
 
     for field in fields:

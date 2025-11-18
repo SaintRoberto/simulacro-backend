@@ -61,9 +61,10 @@ from mesa_grupos import mesa_grupos_bp
 from emergencias import emergencias_bp
 from eventos import eventos_bp
 from evento_tipos.routes import evento_tipos_bp
+from evento_subtipos.routes import evento_subtipos_bp
+from evento_causas.routes import evento_causas_bp
 from evento_origenes.routes import evento_origenes_bp
 from evento_estados.routes import evento_estados_bp
-from evento_causas.routes import evento_causas_bp
 from evento_categorias.routes import evento_categorias_bp
 from recurso_tipos import recurso_tipos_bp
 from recurso_categorias import recurso_categorias_bp
@@ -103,6 +104,12 @@ app.register_blueprint(opciones_bp)
 app.register_blueprint(mesa_grupos_bp)
 app.register_blueprint(eventos_bp)
 app.register_blueprint(emergencias_bp)
+app.register_blueprint(evento_tipos_bp)
+app.register_blueprint(evento_subtipos_bp)
+app.register_blueprint(evento_causas_bp)
+app.register_blueprint(evento_origenes_bp)
+app.register_blueprint(evento_estados_bp)
+app.register_blueprint(evento_categorias_bp)
 app.register_blueprint(recurso_tipos_bp)
 app.register_blueprint(recurso_categorias_bp)
 app.register_blueprint(recurso_grupos_bp)
@@ -122,11 +129,6 @@ app.register_blueprint(resolucion_estados_bp)
 app.register_blueprint(afectacion_variable_registro_detalles_bp)
 app.register_blueprint(respuesta_acciones_bp)
 app.register_blueprint(respuesta_accion_detalles_bp)
-app.register_blueprint(evento_tipos_bp)
-app.register_blueprint(evento_origenes_bp)
-app.register_blueprint(evento_estados_bp)
-app.register_blueprint(evento_causas_bp)
-app.register_blueprint(evento_categorias_bp)
 app.register_blueprint(evento_atencion_estados_bp)
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
 swagger = Swagger(app, template=swagger_template)
