@@ -24,6 +24,7 @@ def get_afectacion_variable_registros():
                 provincia_id: {type: integer}
                 canton_id: {type: integer}
                 parroquia_id: {type: integer}
+                evento_id: {type: integer}
                 afectacion_variable_id: {type: integer}
                 cantidad: {type: integer}
                 costo: {type: integer}
@@ -42,6 +43,7 @@ def get_afectacion_variable_registros():
             'provincia_id': row.provincia_id,
             'canton_id': row.canton_id,
             'parroquia_id': row.parroquia_id,
+            'evento_id': row.evento_id,
             'afectacion_variable_id': row.afectacion_variable_id,
             'cantidad': row.cantidad,
             'costo': row.costo,
@@ -121,6 +123,75 @@ def get_data_afectaciones_registro_by_canton(emergencia_id, canton_id, mesa_grup
         })
     return jsonify(registros)
 
+@afectacion_variable_registros_bp.route('/api/afectaciones_registros/eventos/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', methods=['GET'])
+def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id, mesa_grupo_id):
+    """Obtener data de afectaciones de registros por evento y cantón
+    ---
+    tags:
+      - Afectacion Variable Registros
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+      - name: mesa_grupo_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de registros por evento y cantón
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                parroquia_id: {type: integer}
+                parroquia_nombre: {type: string}
+                evento_id: {type: integer}
+                evento_nombre: {type: string}
+                afectacion_variable_id: {type: integer}
+                variable_nombre: {type: string}
+                requiere_gis: {type: boolean}
+                cantidad: {type: integer}
+                costo: {type: integer}
+    """
+    query = db.text("""
+        SELECT DISTINCT p.id AS parroquia_id, p.nombre AS parroquia_nombre, 
+        e.id evento_id, t.nombre || '/' || s.nombre evento_nombre,
+        v.id AS afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
+        COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
+        FROM public.eventos e
+        CROSS JOIN afectacion_variables v
+        INNER JOIN parroquias p ON e.parroquia_id = p.id
+        INNER JOIN evento_tipos t ON e.evento_tipo_id = t.id
+        INNER JOIN evento_subtipos s ON e.evento_subtipo_id = s.id
+        LEFT JOIN afectacion_variable_registros r ON r.parroquia_id = e.parroquia_id
+        AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
+        INNER JOIN emergencia_parroquias x ON p.id = x.parroquia_id
+        WHERE p.canton_id = :canton_id AND v.mesa_grupo_id = :mesa_grupo_id
+        ORDER BY p.id, v.id;
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
+    registros = []
+    for row in result:
+        registros.append({  # type: ignore
+            'parroquia_id': row.parroquia_id,
+            'parroquia_nombre': row.parroquia_nombre,
+            'evento_id': row.evento_id,
+            'evento_nombre': row.evento_nombre,
+            'afectacion_variable_id': row.afectacion_variable_id,
+            'variable_nombre': row.variable_nombre,
+            'requiere_gis': row.requiere_gis,
+            'cantidad': row.cantidad,
+            'costo': row.costo
+        })
+    return jsonify(registros)
+
 @afectacion_variable_registros_bp.route('/api/afectacion_variable_registros/parroquia/<int:parroquia_id>/emergencia/<int:emergencia_id>/mesa_grupo/<int:mesa_grupo_id>', methods=['GET'])
 def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mesa_grupo_id):
     """Obtener data afectaciones registro por parroquia
@@ -156,6 +227,11 @@ def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mes
                 requiere_gis: {type: boolean}
                 cantidad: {type: integer}
                 costo: {type: integer}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}
     """
     query = db.text("""
         SELECT r.id as afectacion_variable_registro_id, p.id as parroquia_id, p.nombre as parroquia_nombre,
@@ -197,12 +273,13 @@ def create_afectacion_variable_registro():
         required: true
         schema:
           type: object
-          required: [emergencia_id, provincia_id, canton_id, parroquia_id, afectacion_variable_id, cantidad, costo]
+          required: [emergencia_id, provincia_id, canton_id, parroquia_id, evento_id, afectacion_variable_id, cantidad, costo]
           properties:
             emergencia_id: {type: integer}
             provincia_id: {type: integer}
             canton_id: {type: integer}
             parroquia_id: {type: integer}
+            evento_id: {type: integer}
             afectacion_variable_id: {type: integer}
             cantidad: {type: integer}
             costo: {type: integer}
@@ -219,6 +296,7 @@ def create_afectacion_variable_registro():
             provincia_id: {type: integer}
             canton_id: {type: integer}
             parroquia_id: {type: integer}
+            evento_id: {type: integer}
             afectacion_variable_id: {type: integer}
             cantidad: {type: integer}
             costo: {type: integer}
@@ -229,7 +307,7 @@ def create_afectacion_variable_registro():
             modificacion: {type: string}
     """
     data = request.get_json()
-    required_fields = ['emergencia_id', 'provincia_id', 'canton_id', 'parroquia_id', 'afectacion_variable_id', 'cantidad', 'costo']
+    required_fields = ['emergencia_id', 'provincia_id', 'canton_id', 'parroquia_id', 'evento_id', 'afectacion_variable_id', 'cantidad', 'costo']
     for field in required_fields:
         if field not in data:
             return jsonify({'error': f'{field} is required'}), 400
@@ -237,11 +315,11 @@ def create_afectacion_variable_registro():
 
     query = db.text("""
         INSERT INTO afectacion_variable_registros (
-            emergencia_id, provincia_id, canton_id, parroquia_id, afectacion_variable_id,
+            emergencia_id, provincia_id, canton_id, parroquia_id, evento_id, afectacion_variable_id,
             cantidad, costo, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :emergencia_id, :provincia_id, :canton_id, :parroquia_id, :afectacion_variable_id,
+            :emergencia_id, :provincia_id, :canton_id, :parroquia_id, :evento_id, :afectacion_variable_id,
             :cantidad, :costo, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
@@ -252,6 +330,7 @@ def create_afectacion_variable_registro():
         'provincia_id': data['provincia_id'],
         'canton_id': data['canton_id'],
         'parroquia_id': data['parroquia_id'],
+        'evento_id': data['evento_id'],
         'afectacion_variable_id': data['afectacion_variable_id'],
         'cantidad': data['cantidad'],
         'costo': data['costo'],
@@ -283,6 +362,7 @@ def create_afectacion_variable_registro():
         'provincia_id': registro.provincia_id,
         'canton_id': registro.canton_id,
         'parroquia_id': registro.parroquia_id,
+        'evento_id': registro.evento_id,
         'afectacion_variable_id': registro.afectacion_variable_id,
         'cantidad': registro.cantidad,
         'costo': registro.costo,
@@ -325,6 +405,7 @@ def get_afectacion_variable_registro(id):
         'provincia_id': registro.provincia_id,
         'canton_id': registro.canton_id,
         'parroquia_id': registro.parroquia_id,
+        'evento_id': registro.evento_id,
         'afectacion_variable_id': registro.afectacion_variable_id,
         'cantidad': registro.cantidad,
         'costo': registro.costo,
@@ -359,6 +440,23 @@ def update_afectacion_variable_registro(id):
     responses:
       200:
         description: Registro actualizado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            evento_id: {type: integer}
+            afectacion_variable_id: {type: integer}
+            cantidad: {type: integer}
+            costo: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
       404:
         description: No encontrado
     """
@@ -399,6 +497,7 @@ def update_afectacion_variable_registro(id):
         'provincia_id': registro.provincia_id,
         'canton_id': registro.canton_id,
         'parroquia_id': registro.parroquia_id,
+        'evento_id': registro.evento_id,
         'afectacion_variable_id': registro.afectacion_variable_id,
         'cantidad': registro.cantidad,
         'costo': registro.costo,
