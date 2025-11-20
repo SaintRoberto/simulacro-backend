@@ -5,6 +5,30 @@ from datetime import datetime, timezone
 
 @menus_bp.route('/api/menus', methods=['GET'])
 def get_menus():
+    """Listar todos los menús.
+    ---
+    tags:
+      - Menús
+    responses:
+      200:
+        description: Lista de menús
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              padre_id: {type: integer}
+              orden: {type: integer}
+              nombre: {type: string}
+              abreviatura: {type: string}
+              ruta: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
     result = db.session.execute(db.text("SELECT * FROM menus"))
     menus = []
     for row in result:
@@ -23,8 +47,105 @@ def get_menus():
         })
     return jsonify(menus)
 
+@menus_bp.route('/api/menus/perfil/<int:perfil_id>/coe/<int:coe_id>/mesa/<int:mesa_id>', methods=['GET'])
+def get_menus_by_usuario(perfil_id, coe_id, mesa_id):
+    """Obtener menús visibles para un usuario según perfil, COE y mesa.
+    ---
+    tags:
+      - Menús
+    parameters:
+      - name: perfil_id
+        in: path
+        type: integer
+        required: true
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de menús autorizados para el usuario
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              orden: {type: integer}
+              nombre: {type: string}
+              ruta: {type: string}
+              icono: {type: string}
+    """
+    query = db.text("""
+        SELECT DISTINCT m.id, m.orden, m.nombre, m.ruta, m.icono 
+        FROM menus m 
+        LEFT JOIN perfil_coe_mesa_menu_opcion x ON m.id = x.menu_id
+        WHERE (x.perfil_id = :perfil_id AND x.coe_id = :coe_id AND x.mesa_id = :mesa_id)
+           OR m.orden = 0
+        ORDER BY m.id;
+    """)
+    result = db.session.execute(query, {
+        'perfil_id': perfil_id,
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+    })
+    menus = []
+    for row in result:
+        menus.append({
+            'id': row.id,
+            'orden': row.orden,
+            'nombre': row.nombre,
+            'ruta': row.ruta,
+            'icono': row.icono,
+        })
+    return jsonify(menus)
+
 @menus_bp.route('/api/menus', methods=['POST'])
 def create_menu():
+    """Crear un nuevo menú.
+    ---
+    tags:
+      - Menús
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            padre_id: {type: integer}
+            orden: {type: integer}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            ruta: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Menú creado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            padre_id: {type: integer}
+            orden: {type: integer}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            ruta: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+      400:
+        description: Datos inválidos
+    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Invalid JSON body'}), 400
@@ -84,6 +205,35 @@ def create_menu():
 
 @menus_bp.route('/api/menus/<int:id>', methods=['GET'])
 def get_menu(id):
+    """Obtener un menú por su ID.
+    ---
+    tags:
+      - Menús
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Menú encontrado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            padre_id: {type: integer}
+            orden: {type: integer}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            ruta: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+      404:
+        description: Menú no encontrado
+    """
     result = db.session.execute(
         db.text("SELECT * FROM menus WHERE id = :id"), 
         {'id': id}
@@ -109,6 +259,50 @@ def get_menu(id):
 
 @menus_bp.route('/api/menus/<int:id>', methods=['PUT'])
 def update_menu(id):
+    """Actualizar un menú existente.
+    ---
+    tags:
+      - Menús
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            padre_id: {type: integer}
+            orden: {type: integer}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            ruta: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
+    responses:
+      200:
+        description: Menú actualizado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            padre_id: {type: integer}
+            orden: {type: integer}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            ruta: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+      404:
+        description: Menú no encontrado
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -166,6 +360,21 @@ def update_menu(id):
 
 @menus_bp.route('/api/menus/<int:id>', methods=['DELETE'])
 def delete_menu(id):
+    """Eliminar un menú por ID.
+    ---
+    tags:
+      - Menús
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Menú eliminado correctamente
+      404:
+        description: Menú no encontrado
+    """
     result = db.session.execute(
         db.text("DELETE FROM menus WHERE id = :id"), 
         {'id': id}
