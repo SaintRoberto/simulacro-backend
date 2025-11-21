@@ -84,8 +84,8 @@ def get_menus_by_usuario(perfil_id, coe_id, mesa_id):
         SELECT DISTINCT m.id, m.orden, m.nombre, m.ruta, m.icono 
         FROM menus m 
         LEFT JOIN perfil_coe_mesa_menu_opcion x ON m.id = x.menu_id
-        WHERE (x.perfil_id = :perfil_id AND x.coe_id = :coe_id AND x.mesa_id = :mesa_id)
-           OR m.orden = 0
+        WHERE ((x.perfil_id = :perfil_id AND x.coe_id = :coe_id AND x.mesa_id = :mesa_id)
+           OR m.orden = 0) AND m.activo = true
         ORDER BY m.id;
     """)
     result = db.session.execute(query, {
