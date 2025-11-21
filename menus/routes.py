@@ -75,13 +75,14 @@ def get_menus_by_usuario(perfil_id, coe_id, mesa_id):
             type: object
             properties:
               id: {type: integer}
+              padre_id: {type: integer}
               orden: {type: integer}
               nombre: {type: string}
               ruta: {type: string}
               icono: {type: string}
     """
     query = db.text("""
-        SELECT DISTINCT m.id, m.orden, m.nombre, m.ruta, m.icono 
+        SELECT DISTINCT m.id, m.padre_id, m.orden, m.nombre, m.ruta, m.icono 
         FROM menus m 
         LEFT JOIN perfil_coe_mesa_menu_opcion x ON m.id = x.menu_id
         WHERE ((x.perfil_id = :perfil_id AND x.coe_id = :coe_id AND x.mesa_id = :mesa_id)
@@ -97,6 +98,7 @@ def get_menus_by_usuario(perfil_id, coe_id, mesa_id):
     for row in result:
         menus.append({
             'id': row.id,
+            'padre_id': row.padre_id,
             'orden': row.orden,
             'nombre': row.nombre,
             'ruta': row.ruta,
