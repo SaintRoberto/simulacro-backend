@@ -4,7 +4,7 @@ from models import db
 from datetime import datetime, timezone
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados', methods=['GET'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados', methods=['GET'])
 def get_alojamientos_activados():
     """Listar alojamientos activados
     ---
@@ -61,7 +61,7 @@ def get_alojamientos_activados():
     return jsonify(items)
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados/emergencia/<int:emergencia_id>/usuario/<int:usuario_id>', methods=['GET'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados/emergencia/<int:emergencia_id>/usuario/<int:usuario_id>', methods=['GET'])
 def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_id):
     """Obtener alojamientos activados por emergencia y usuario
     ---
@@ -84,7 +84,7 @@ def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_i
           items:
             type: object
             properties:
-              activacion_id: {type: integer}
+              id: {type: integer}
               parroquia_nombre: {type: string}
               fecha_activacion: {type: string}
               alojamiento_nombre: {type: string}
@@ -98,7 +98,7 @@ def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_i
               familias_salieron: {type: integer}
     """
     query = db.text("""
-        SELECT aa.id activacion_id, q.nombre parroquia_nombre, aa.fecha_activacion, a.nombre alojamiento_nombre, e.nombre alojamiento_estado,
+        SELECT aa.id, q.nombre parroquia_nombre, aa.fecha_activacion, a.nombre alojamiento_nombre, e.nombre alojamiento_estado,
         t.nombre alojamiento_tipo, a.capacidad_personas, a.capacidad_familias, aa.personas_ingresaron, aa.familias_ingresaron,
         aa.personas_salieron, aa.familias_salieron
         FROM public.alojamientos_activados aa
@@ -117,7 +117,7 @@ def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_i
     items = []
     for row in result:
         items.append({
-            'activacion_id': row.activacion_id,
+            'id': row.id,
             'parroquia_nombre': row.parroquia_nombre,
             'fecha_activacion': row.fecha_activacion.isoformat() if getattr(row, 'fecha_activacion', None) else None,
             'alojamiento_nombre': row.alojamiento_nombre,
@@ -134,7 +134,7 @@ def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_i
     return jsonify(items)
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados', methods=['POST'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados', methods=['POST'])
 def create_alojamiento_activado():
     """Crear alojamiento activado
     ---
@@ -277,7 +277,7 @@ def create_alojamiento_activado():
     }), 201
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados/<int:id>', methods=['GET'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados/<int:id>', methods=['GET'])
 def get_alojamiento_activado(id):
     """Obtener alojamiento activado por ID
     ---
@@ -344,7 +344,7 @@ def get_alojamiento_activado(id):
     })
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados/<int:id>', methods=['PUT'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados/<int:id>', methods=['PUT'])
 def update_alojamiento_activado(id):
     """Actualizar alojamiento activado
     ---
@@ -450,7 +450,7 @@ def update_alojamiento_activado(id):
     })
 
 
-@alojamientos_activados_bp.route('/api/alojamientos-activados/<int:id>', methods=['DELETE'])
+@alojamientos_activados_bp.route('/api/alojamientos_activados/<int:id>', methods=['DELETE'])
 def delete_alojamiento_activado(id):
     """Eliminar alojamiento activado
     ---
