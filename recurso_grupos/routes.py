@@ -42,6 +42,57 @@ def get_recurso_grupos():
         })
     return jsonify(grupos)
 
+
+@recurso_grupos_bp.route('/api/recurso-grupos/categoria/<int:recurso_categoria_id>', methods=['GET'])
+def get_recurso_grupos_by_categoria(recurso_categoria_id):
+    """Listar grupos de recursos por categoría
+    ---
+    tags:
+      - Recurso Grupos
+    parameters:
+      - name: recurso_categoria_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de grupos de recursos filtrados por categoría
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT *
+        FROM recurso_grupos
+        WHERE recurso_categoria_id = :recurso_categoria_id
+    """)
+
+    result = db.session.execute(query, {'recurso_categoria_id': recurso_categoria_id})
+    grupos = []
+    for row in result:
+        grupos.append({
+            'id': row.id,
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    return jsonify(grupos)
+
 @recurso_grupos_bp.route('/api/recurso-grupos', methods=['POST'])
 def create_recurso_grupo():
     """Crear grupo de recurso
