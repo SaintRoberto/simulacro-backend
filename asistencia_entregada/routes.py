@@ -4,7 +4,7 @@ from models import db
 from datetime import datetime, timezone
 
 
-@asistencia_entregada_bp.route('/api/asistencia-entregada', methods=['GET'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada', methods=['GET'])
 def get_asistencia_entregada():
     """Listar asistencias entregadas
     ---
@@ -93,7 +93,7 @@ def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id)
           items:
             type: object
             properties:
-              asistencia_id: {type: integer}
+              id: {type: integer}
               parroquia_nombre: {type: string}
               sector: {type: string}
               asistencia_grupo: {type: string}
@@ -107,7 +107,7 @@ def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id)
               personas: {type: integer}
     """
     query = db.text("""
-        SELECT DISTINCT a.id asistencia_id, q.nombre parroquia_nombre, a.sector, g.nombre asistencia_grupo, t.nombre asistencia_item,
+        SELECT DISTINCT a.id, q.nombre parroquia_nombre, a.sector, g.nombre asistencia_grupo, t.nombre asistencia_item,
         i.nombre institucion_donante, a.fecha_entrega, a.cantidad, a.latitud, a.longitud, a.familias, a.personas
         FROM asistencia_entregada a
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.provincia_id = x.provincia_id AND a.canton_id = x.canton_id
@@ -129,7 +129,7 @@ def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id)
     items = []
     for row in result:
         items.append({
-            'asistencia_id': row.asistencia_id,
+            'id': row.id,
             'parroquia_nombre': row.parroquia_nombre,
             'sector': row.sector,
             'asistencia_grupo': row.asistencia_grupo,
@@ -146,7 +146,7 @@ def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id)
     return jsonify(items)
 
 
-@asistencia_entregada_bp.route('/api/asistencia-entregada', methods=['POST'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada', methods=['POST'])
 def create_asistencia_entregada():
     """Crear asistencia entregada
     ---
@@ -311,7 +311,7 @@ def create_asistencia_entregada():
     }), 201
 
 
-@asistencia_entregada_bp.route('/api/asistencia-entregada/<int:id>', methods=['GET'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada/<int:id>', methods=['GET'])
 def get_asistencia_entregada_item(id):
     """Obtener asistencia entregada por ID
     ---
@@ -386,7 +386,7 @@ def get_asistencia_entregada_item(id):
     })
 
 
-@asistencia_entregada_bp.route('/api/asistencia-entregada/<int:id>', methods=['PUT'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada/<int:id>', methods=['PUT'])
 def update_asistencia_entregada(id):
     """Actualizar asistencia entregada
     ---
@@ -500,7 +500,7 @@ def update_asistencia_entregada(id):
     })
 
 
-@asistencia_entregada_bp.route('/api/asistencia-entregada/<int:id>', methods=['DELETE'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada/<int:id>', methods=['DELETE'])
 def delete_asistencia_entregada(id):
     """Eliminar asistencia entregada
     ---
