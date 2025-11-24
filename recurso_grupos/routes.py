@@ -4,7 +4,7 @@ from models import db
 from datetime import datetime, timezone
 
 from utils.db_helpers import check_row_or_abort
-@recurso_grupos_bp.route('/api/recurso-grupos', methods=['GET'])
+@recurso_grupos_bp.route('/api/recurso_grupos', methods=['GET'])
 def get_recurso_grupos():
     """Listar grupos de recursos
     ---
@@ -43,7 +43,7 @@ def get_recurso_grupos():
     return jsonify(grupos)
 
 
-@recurso_grupos_bp.route('/api/recurso-grupos/categoria/<int:recurso_categoria_id>', methods=['GET'])
+@recurso_grupos_bp.route('/api/recurso_grupos/categoria/<int:recurso_categoria_id>', methods=['GET'])
 def get_recurso_grupos_by_categoria(recurso_categoria_id):
     """Listar grupos de recursos por categoría
     ---
@@ -93,7 +93,7 @@ def get_recurso_grupos_by_categoria(recurso_categoria_id):
 
     return jsonify(grupos)
 
-@recurso_grupos_bp.route('/api/recurso-grupos', methods=['POST'])
+@recurso_grupos_bp.route('/api/recurso_grupos', methods=['POST'])
 def create_recurso_grupo():
     """Crear grupo de recurso
     ---
@@ -158,7 +158,7 @@ def create_recurso_grupo():
         'modificacion': grupo.modificacion.isoformat() if grupo.modificacion else None
     }), 201
 
-@recurso_grupos_bp.route('/api/recurso-grupos/<int:id>', methods=['GET'])
+@recurso_grupos_bp.route('/api/recurso_grupos/<int:id>', methods=['GET'])
 def get_recurso_grupo(id):
     """Obtener grupo de recurso por ID
     ---
@@ -195,7 +195,7 @@ def get_recurso_grupo(id):
         'modificacion': grupo.modificacion.isoformat() if grupo.modificacion else None
     })
 
-@recurso_grupos_bp.route('/api/recurso-grupos/<int:id>', methods=['PUT'])
+@recurso_grupos_bp.route('/api/recurso_grupos/<int:id>', methods=['PUT'])
 def update_recurso_grupo(id):
     """Actualizar grupo de recurso
     ---
@@ -267,7 +267,7 @@ def update_recurso_grupo(id):
         'modificacion': grupo.modificacion.isoformat() if grupo.modificacion else None
     })
 
-@recurso_grupos_bp.route('/api/recurso-grupos/<int:id>', methods=['DELETE'])
+@recurso_grupos_bp.route('/api/recurso_grupos/<int:id>', methods=['DELETE'])
 def delete_recurso_grupo(id):
     """Eliminar grupo de recurso
     ---
