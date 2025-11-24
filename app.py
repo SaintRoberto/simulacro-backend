@@ -69,6 +69,13 @@ from evento_categorias.routes import evento_categorias_bp
 from recurso_tipos import recurso_tipos_bp
 from recurso_categorias import recurso_categorias_bp
 from recurso_grupos import recurso_grupos_bp
+from recursos_movilizados import recursos_movilizados_bp
+from asistencia_entregada import asistencia_entregada_bp
+from alojamientos import alojamientos_bp
+from alojamiento_estados import alojamiento_estados_bp
+from alojamiento_situaciones import alojamiento_situaciones_bp
+from alojamiento_tipos import alojamiento_tipos_bp
+from alojamientos_activados import alojamientos_activados_bp
 from requerimientos import requerimientos_bp
 from requerimiento_recursos import requerimiento_recursos_bp
 from requerimiento_respuestas import requerimiento_respuestas_bp
@@ -113,6 +120,13 @@ app.register_blueprint(evento_categorias_bp)
 app.register_blueprint(recurso_tipos_bp)
 app.register_blueprint(recurso_categorias_bp)
 app.register_blueprint(recurso_grupos_bp)
+app.register_blueprint(recursos_movilizados_bp)
+app.register_blueprint(asistencia_entregada_bp)
+app.register_blueprint(alojamientos_bp)
+app.register_blueprint(alojamiento_estados_bp)
+app.register_blueprint(alojamiento_situaciones_bp)
+app.register_blueprint(alojamiento_tipos_bp)
+app.register_blueprint(alojamientos_activados_bp)
 app.register_blueprint(requerimientos_bp)
 app.register_blueprint(requerimiento_recursos_bp)
 app.register_blueprint(requerimiento_respuestas_bp)
