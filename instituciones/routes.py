@@ -6,6 +6,29 @@ from datetime import datetime, timezone
 from utils.db_helpers import check_row_or_abort
 @instituciones_bp.route('/api/instituciones', methods=['GET'])
 def get_instituciones():
+    """Listar instituciones
+    ---
+    tags:
+      - Instituciones
+    responses:
+      200:
+        description: Lista de instituciones
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              institucion_categoria_id: {type: integer}
+              nombre: {type: string}
+              siglas: {type: string}
+              observaciones: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
     result = db.session.execute(db.text("SELECT * FROM instituciones"))
     instituciones = []
     for row in result:
@@ -25,6 +48,43 @@ def get_instituciones():
 
 @instituciones_bp.route('/api/instituciones', methods=['POST'])
 def create_institucion():
+    """Crear institución
+    ---
+    tags:
+      - Instituciones
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [institucion_categoria_id, nombre]
+          properties:
+            institucion_categoria_id: {type: integer}
+            nombre: {type: string}
+            siglas: {type: string}
+            observaciones: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+    responses:
+      201:
+        description: Institución creada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            institucion_categoria_id: {type: integer}
+            nombre: {type: string}
+            siglas: {type: string}
+            observaciones: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -84,6 +144,34 @@ def create_institucion():
 
 @instituciones_bp.route('/api/instituciones/<int:id>', methods=['GET'])
 def get_institucion(id):
+    """Obtener institución por ID
+    ---
+    tags:
+      - Instituciones
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Institución
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            institucion_categoria_id: {type: integer}
+            nombre: {type: string}
+            siglas: {type: string}
+            observaciones: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+      404:
+        description: No encontrado
+    """
     result = db.session.execute(
         db.text("SELECT * FROM instituciones WHERE id = :id"), 
         {'id': id}
@@ -108,6 +196,37 @@ def get_institucion(id):
 
 @instituciones_bp.route('/api/instituciones/<int:id>', methods=['PUT'])
 def update_institucion(id):
+    """Actualizar institución
+    ---
+    tags:
+      - Instituciones
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            institucion_categoria_id: {type: integer}
+            nombre: {type: string}
+            siglas: {type: string}
+            observaciones: {type: string}
+            activo: {type: boolean}
+            modificador: {type: string}
+    responses:
+      200:
+        description: Institución actualizada
+        schema:
+          type: object
+      404:
+        description: No encontrado
+    """
     data = request.get_json()
     now = datetime.now(timezone.utc)
     
@@ -157,6 +276,21 @@ def update_institucion(id):
 
 @instituciones_bp.route('/api/instituciones/<int:id>', methods=['DELETE'])
 def delete_institucion(id):
+    """Eliminar institución
+    ---
+    tags:
+      - Instituciones
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado
+      404:
+        description: No encontrado
+    """
     result = db.session.execute(
         db.text("DELETE FROM instituciones WHERE id = :id"), 
         {'id': id}
