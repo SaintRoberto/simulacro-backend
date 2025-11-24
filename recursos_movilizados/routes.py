@@ -93,7 +93,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
           items:
             type: object
             properties:
-              recurso_id: {type: integer}
+              id: {type: integer}
               parroquia_nombre: {type: string}
               recurso_grupo: {type: string}
               recurso_tipo: {type: string}
@@ -106,7 +106,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
               longitud: {type: number}
     """
     query = db.text("""
-        SELECT DISTINCT r.id recurso_id, q.nombre parroquia_nombre, g.nombre recurso_grupo, t.nombre recurso_tipo, 
+        SELECT DISTINCT r.id, q.nombre parroquia_nombre, g.nombre recurso_grupo, t.nombre recurso_tipo, 
         i.nombre institucion, r.fecha_inicio, r.fecha_fin, r.cantidad, r.disponible, r.latitud, r.longitud
         FROM recursos_movilizados r
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x
@@ -131,7 +131,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
     recursos = []
     for row in result:
         recursos.append({
-            'recurso_id': row.recurso_id,
+            'id': row.id,
             'parroquia_nombre': row.parroquia_nombre,
             'recurso_grupo': row.recurso_grupo,
             'recurso_tipo': row.recurso_tipo,
