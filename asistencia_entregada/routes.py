@@ -69,8 +69,7 @@ def get_asistencia_entregada():
     return jsonify(items)
 
 
-@asistencia_entregada_bp.route(
-    '/api/asistencia_entregada/emergencia/<int:emergencia_id>/usuario/<int:usuario_id>', methods=['GET'])
+@asistencia_entregada_bp.route('/api/asistencia_entregada/emergencia/<int:emergencia_id>/usuario/<int:usuario_id>', methods=['GET'])
 def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id):
     """Obtener asistencia entregada por emergencia y usuario
     ---
