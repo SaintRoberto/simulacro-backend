@@ -47,7 +47,7 @@ def get_parroquias():
         })
     return jsonify(parroquias)
 
-@parroquias_bp.route('/api/canton/<int:canton_id>/parroquias/', methods=['GET'])
+@parroquias_bp.route('/api/parroquias/canton/<int:canton_id>', methods=['GET'])
 def get_parroquias_by_canton(canton_id):
     """Listar parroquias por canton
     ---
@@ -74,9 +74,58 @@ def get_parroquias_by_canton(canton_id):
                 abreviatura: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
-                creacion: {type: string}
+                creacion: {type: string, format: date-time}
                 modificador: {type: string}
-                modificacion: {type: string}
+                modificacion: {type: string, format: date-time}
+    """
+    result = db.session.execute(db.text("SELECT * FROM parroquias WHERE canton_id = :canton_id"), {'canton_id': canton_id})
+    parroquias = []
+    for row in result:
+        parroquias.append({  # type: ignore
+            'id': row.id,
+            'provincia_id': row.provincia_id,
+            'canton_id': row.canton_id,
+            'dpa': row.dpa,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(parroquias)
+
+@parroquias_bp.route('/api/canton/<int:canton_id>/parroquias/', methods=['GET'])
+def get_parroquias_by_canton_alt(canton_id):
+    """Listar parroquias por canton (ruta alternativa)
+    ---
+    tags:
+      - Parroquias
+    parameters:
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de parroquias
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                id: {type: integer}
+                provincia_id: {type: integer}
+                canton_id: {type: integer}
+                dpa: {type: string}
+                nombre: {type: string}
+                abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string, format: date-time}
+                modificador: {type: string}
+                modificacion: {type: string, format: date-time}
     """
     result = db.session.execute(db.text("SELECT * FROM parroquias WHERE canton_id = :canton_id"), {'canton_id': canton_id})
     parroquias = []
@@ -186,9 +235,9 @@ def create_parroquia():
             abreviatura: {type: string}
             activo: {type: boolean}
             creador: {type: string}
-            creacion: {type: string}
+            creacion: {type: string, format: date-time}
             modificador: {type: string}
-            modificacion: {type: string}
+            modificacion: {type: string, format: date-time}
     """
     data = request.get_json()
     now = datetime.now(timezone.utc)
@@ -255,6 +304,20 @@ def get_parroquia(id):
     responses:
       200:
         description: Parroquia
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: No encontrada
     """
@@ -309,6 +372,20 @@ def update_parroquia(id):
     responses:
       200:
         description: Parroquia actualizada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            dpa: {type: string}
+            nombre: {type: string}
+            abreviatura: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: No encontrada
     """
