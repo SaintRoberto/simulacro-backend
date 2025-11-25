@@ -4,7 +4,7 @@ from models import db
 from datetime import datetime, timezone
 
 
-@alojamiento_situaciones_bp.route('/api/alojamiento-situaciones', methods=['GET'])
+@alojamiento_situaciones_bp.route('/api/alojamiento_situaciones', methods=['GET'])
 def get_alojamiento_situaciones():
     """Listar situaciones de alojamiento
     ---
@@ -43,7 +43,7 @@ def get_alojamiento_situaciones():
     return jsonify(situaciones)
 
 
-@alojamiento_situaciones_bp.route('/api/alojamiento-situaciones', methods=['POST'])
+@alojamiento_situaciones_bp.route('/api/alojamiento_situaciones', methods=['POST'])
 def create_alojamiento_situacion():
     """Crear situación de alojamiento
     ---
@@ -130,7 +130,7 @@ def create_alojamiento_situacion():
     }), 201
 
 
-@alojamiento_situaciones_bp.route('/api/alojamiento-situaciones/<int:id>', methods=['GET'])
+@alojamiento_situaciones_bp.route('/api/alojamiento_situaciones/<int:id>', methods=['GET'])
 def get_alojamiento_situacion(id):
     """Obtener situación de alojamiento por ID
     ---
@@ -179,7 +179,7 @@ def get_alojamiento_situacion(id):
     })
 
 
-@alojamiento_situaciones_bp.route('/api/alojamiento-situaciones/<int:id>', methods=['PUT'])
+@alojamiento_situaciones_bp.route('/api/alojamiento_situaciones/<int:id>', methods=['PUT'])
 def update_alojamiento_situacion(id):
     """Actualizar situación de alojamiento
     ---
@@ -260,7 +260,7 @@ def update_alojamiento_situacion(id):
     })
 
 
-@alojamiento_situaciones_bp.route('/api/alojamiento-situaciones/<int:id>', methods=['DELETE'])
+@alojamiento_situaciones_bp.route('/api/alojamiento_situaciones/<int:id>', methods=['DELETE'])
 def delete_alojamiento_situacion(id):
     """Eliminar situación de alojamiento
     ---
