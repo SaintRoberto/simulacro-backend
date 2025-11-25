@@ -4,7 +4,7 @@ from models import db
 from datetime import datetime, timezone
 
 
-@alojamiento_tipos_bp.route('/api/alojamiento-tipos', methods=['GET'])
+@alojamiento_tipos_bp.route('/api/alojamiento_tipos', methods=['GET'])
 def get_alojamiento_tipos():
     """Listar tipos de alojamiento
     ---
@@ -43,7 +43,7 @@ def get_alojamiento_tipos():
     return jsonify(tipos)
 
 
-@alojamiento_tipos_bp.route('/api/alojamiento-tipos', methods=['POST'])
+@alojamiento_tipos_bp.route('/api/alojamiento_tipos', methods=['POST'])
 def create_alojamiento_tipo():
     """Crear tipo de alojamiento
     ---
@@ -130,7 +130,7 @@ def create_alojamiento_tipo():
     }), 201
 
 
-@alojamiento_tipos_bp.route('/api/alojamiento-tipos/<int:id>', methods=['GET'])
+@alojamiento_tipos_bp.route('/api/alojamiento_tipos/<int:id>', methods=['GET'])
 def get_alojamiento_tipo(id):
     """Obtener tipo de alojamiento por ID
     ---
@@ -179,7 +179,7 @@ def get_alojamiento_tipo(id):
     })
 
 
-@alojamiento_tipos_bp.route('/api/alojamiento-tipos/<int:id>', methods=['PUT'])
+@alojamiento_tipos_bp.route('/api/alojamiento_tipos/<int:id>', methods=['PUT'])
 def update_alojamiento_tipo(id):
     """Actualizar tipo de alojamiento
     ---
@@ -260,7 +260,7 @@ def update_alojamiento_tipo(id):
     })
 
 
-@alojamiento_tipos_bp.route('/api/alojamiento-tipos/<int:id>', methods=['DELETE'])
+@alojamiento_tipos_bp.route('/api/alojamiento_tipos/<int:id>', methods=['DELETE'])
 def delete_alojamiento_tipo(id):
     """Eliminar tipo de alojamiento
     ---
