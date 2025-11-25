@@ -6,6 +6,7 @@ Flask-CORS==4.0.0
 # Added security libs
 PyJWT==2.8.0
 bcrypt==4.3.0
+passlib[bcrypt]
 
 # Added validation lib
 marshmallow==3.20.2

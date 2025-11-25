@@ -1,12 +1,19 @@
 from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
-from config import DATABASE_URL
+from config import DATABASE_URL, FRONTEND_ORIGIN
 from flasgger import Swagger
 from flask_cors import CORS
 from auth import decode_token
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000"], methods=["GET","POST","PUT","DELETE","OPTIONS"], allow_headers=["Content-Type","Authorization"], supports_credentials=True)
+
+CORS(
+    app,
+    origins=[FRONTEND_ORIGIN],
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
+    supports_credentials=True
+)
 
 # Configuración de la base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
