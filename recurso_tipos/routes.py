@@ -19,6 +19,8 @@ def get_recurso_tipos():
             type: object
             properties:
               id: {type: integer}
+              recurso_categoria_id: {type: integer}
+              recurso_grupo_id: {type: integer}
               nombre: {type: string}
               descripcion: {type: string}
               activo: {type: boolean}
@@ -32,6 +34,8 @@ def get_recurso_tipos():
     for row in result:
         tipos.append({
             'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
             'nombre': row.nombre,
             'descripcion': row.descripcion,
             'activo': row.activo,
@@ -42,7 +46,61 @@ def get_recurso_tipos():
         })
     return jsonify(tipos)
 
-@recurso_tipos_bp.route('/api/recurso-tipos', methods=['POST'])
+@recurso_tipos_bp.route('/api/recurso-tipos/categoria/<int:categoria_id>', methods=['GET'])
+def get_recurso_tipos_by_categoria(categoria_id):
+    """Listar tipos de recursos por categoría
+    ---
+    tags:
+      - Recurso Tipos
+    parameters:
+      - name: categoria_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de tipos de recursos filtrados por categoría
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              recurso_categoria_id: {type: integer}
+              recurso_grupo_id: {type: integer}
+              nombre: {type: string}
+              descripcion: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT *
+        FROM recurso_tipos
+        WHERE recurso_categoria_id = :categoria_id
+    """)
+
+    result = db.session.execute(query, {'categoria_id': categoria_id})
+    tipos = []
+    for row in result:
+        tipos.append({
+            'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    return jsonify(tipos)
+
+@recurso_tipos_bp.route('/api/recurso_tipos', methods=['POST'])
 def create_recurso_tipo():
     """Crear tipo de recurso
     ---
@@ -56,8 +114,9 @@ def create_recurso_tipo():
         required: true
         schema:
           type: object
-          required: [nombre]
+          required: [recurso_categoria_id, recurso_grupo_id, nombre]
           properties:
+            recurso_categoria_id: {type: integer}
             recurso_grupo_id: {type: integer}
             nombre: {type: string}
             descripcion: {type: string}
@@ -71,12 +130,21 @@ def create_recurso_tipo():
     now = datetime.now(timezone.utc)
     
     query = db.text("""
-        INSERT INTO recurso_tipos (recurso_grupo_id, nombre, descripcion, activo, creador, creacion, modificador, modificacion)
-        VALUES (:recurso_grupo_id, :nombre, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO recurso_tipos (
+            recurso_categoria_id, recurso_grupo_id,
+            nombre, descripcion, activo,
+            creador, creacion, modificador, modificacion
+        )
+        VALUES (
+            :recurso_categoria_id, :recurso_grupo_id,
+            :nombre, :descripcion, :activo,
+            :creador, :creacion, :modificador, :modificacion
+        )
         RETURNING id
     """)
     
     result = db.session.execute(query, {
+        'recurso_categoria_id': data['recurso_categoria_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'nombre': data['nombre'],
         'descripcion': data.get('descripcion'),
@@ -100,6 +168,8 @@ def create_recurso_tipo():
     
     return jsonify({
         'id': tipo.id,
+        'recurso_categoria_id': getattr(tipo, 'recurso_categoria_id', None),
+        'recurso_grupo_id': getattr(tipo, 'recurso_grupo_id', None),
         'nombre': tipo.nombre,
         'descripcion': tipo.descripcion,
         'activo': tipo.activo,
@@ -123,6 +193,19 @@ def get_recurso_tipo(id):
     responses:
       200:
         description: Tipo de recurso
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            recurso_categoria_id: {type: integer}
+            recurso_grupo_id: {type: integer}
+            nombre: {type: string}
+            descripcion: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
       404:
         description: No encontrado
     """
@@ -137,6 +220,8 @@ def get_recurso_tipo(id):
     
     return jsonify({
         'id': tipo.id,
+        'recurso_categoria_id': getattr(tipo, 'recurso_categoria_id', None),
+        'recurso_grupo_id': getattr(tipo, 'recurso_grupo_id', None),
         'nombre': tipo.nombre,
         'descripcion': tipo.descripcion,
         'activo': tipo.activo,
@@ -165,6 +250,8 @@ def update_recurso_tipo(id):
         schema:
           type: object
           properties:
+            recurso_categoria_id: {type: integer}
+            recurso_grupo_id: {type: integer}
             nombre: {type: string}
             descripcion: {type: string}
             activo: {type: boolean}
@@ -180,16 +267,20 @@ def update_recurso_tipo(id):
     
     query = db.text("""
         UPDATE recurso_tipos 
-        SET nombre = :nombre, 
-            descripcion = :descripcion, 
-            activo = :activo, 
-            modificador = :modificador, 
-            modificacion = :modificacion
+        SET recurso_categoria_id = :recurso_categoria_id,
+            recurso_grupo_id      = :recurso_grupo_id,
+            nombre                = :nombre,
+            descripcion           = :descripcion,
+            activo                = :activo,
+            modificador           = :modificador,
+            modificacion          = :modificacion
         WHERE id = :id
     """)
     
     result = db.session.execute(query, {
         'id': id,
+        'recurso_categoria_id': data.get('recurso_categoria_id'),
+        'recurso_grupo_id': data.get('recurso_grupo_id'),
         'nombre': data.get('nombre'),
         'descripcion': data.get('descripcion'),
         'activo': data.get('activo'),
