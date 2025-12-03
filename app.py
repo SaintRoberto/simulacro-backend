@@ -103,6 +103,7 @@ from accion_respuesta_origenes import accion_respuesta_origenes_bp
 from accion_respuesta_estados import accion_respuesta_estados_bp
 from actividades_ejecucion import actividades_ejecucion_bp
 from actividad_ejecucion_apoyo import actividad_ejecucion_apoyo_bp
+from actividad_ejecucion_dpa import actividad_ejecucion_dpa_bp
 from actas_coe import actas_coe_bp
 
 
@@ -165,6 +166,7 @@ app.register_blueprint(accion_respuesta_origenes_bp)
 app.register_blueprint(accion_respuesta_estados_bp)
 app.register_blueprint(actividades_ejecucion_bp)
 app.register_blueprint(actividad_ejecucion_apoyo_bp)
+app.register_blueprint(actividad_ejecucion_dpa_bp)
 
 
 
