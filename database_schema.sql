@@ -306,8 +306,8 @@ CREATE TABLE emergencias (
     FOREIGN KEY (nivel_alerta_id) REFERENCES niveles_alerta(id)
 );
 
--- Table: coe_actas
-CREATE TABLE coe_actas (
+-- Table: actas_coe
+CREATE TABLE actas_coe (
     id SERIAL PRIMARY KEY,
     usuario_id INTEGER NOT NULL,
     emergencia_id INTEGER NOT NULL,
@@ -322,35 +322,32 @@ CREATE TABLE coe_actas (
     FOREIGN KEY (emergencia_id) REFERENCES emergencias(id)
 );
 
--- Table: resolucion_estados
-CREATE TABLE resolucion_estados (
-    id SERIAL PRIMARY KEY,
+-- Table: acta_coe_resolucion_estados
+CREATE TABLE acta_coe_resolucion_estados (
+    id INTEGER NOT NULL DEFAULT nextval('resolucion_estados_id_seq'::regclass),
     nombre TEXT NOT NULL,
     descripcion TEXT,
     activo BOOLEAN DEFAULT TRUE,
     creador TEXT,
     creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modificador TEXT,
-    modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT resolucion_estados_pkey PRIMARY KEY (id)
 );
 
--- Table: coe_acta_resoluciones
-CREATE TABLE coe_acta_resoluciones (
+-- Table: acta_coe_resoluciones
+CREATE TABLE acta_coe_resoluciones (
     id SERIAL PRIMARY KEY,
-    coe_acta_id INTEGER NOT NULL,
-    mesa_id INTEGER NOT NULL,
+    acta_coe_id INTEGER NOT NULL,
     detalle TEXT,
-    fecha_cumplimiento TIMESTAMP,
-    responsable TEXT,
-    resolucion_estado_id INTEGER NOT NULL,
+    acta_coe_resolucion_estado_id INTEGER NOT NULL,
     activo BOOLEAN DEFAULT TRUE,
     creador VARCHAR(100),
     creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modificador VARCHAR(100),
     modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (coe_acta_id) REFERENCES coe_actas(id),
-    FOREIGN KEY (mesa_id) REFERENCES mesas(id),
-    FOREIGN KEY (resolucion_estado_id) REFERENCES resolucion_estados(id)
+    FOREIGN KEY (acta_coe_id) REFERENCES actas_coe(id),
+    FOREIGN KEY (acta_coe_resolucion_estado_id) REFERENCES acta_coe_resolucion_estados(id)
 );
 
 -- Table: afectacion_variables
@@ -591,4 +588,38 @@ CREATE TABLE usuario_perfil_coe_dpa_mesa (
     FOREIGN KEY (canton_id) REFERENCES cantones(id),
     FOREIGN KEY (parroquia_id) REFERENCES parroquias(id),
     FOREIGN KEY (mesa_id) REFERENCES mesas(id)
+);
+
+-- Table: acta_coe_resolucion_mesas
+CREATE TABLE acta_coe_resolucion_mesas (
+    id SERIAL PRIMARY KEY,
+    acta_coe_resolucion_id INTEGER NOT NULL,
+    mesa_id INTEGER NOT NULL,
+    fecha_cumplimiento TIMESTAMP,
+    responsable TEXT,
+    acta_coe_resolucion_mesa_estado_id INTEGER NOT NULL,
+    activo BOOLEAN DEFAULT TRUE,
+    creador VARCHAR(100),
+    creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modificador VARCHAR(100),
+    modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (acta_coe_resolucion_id) REFERENCES acta_coe_resoluciones(id),
+    FOREIGN KEY (mesa_id) REFERENCES mesas(id),
+    FOREIGN KEY (acta_coe_resolucion_mesa_estado_id) REFERENCES acta_coe_resolucion_mesa_estados(id)
+);
+
+-- Table: acciones_respuesta
+CREATE TABLE acciones_respuesta (
+    id SERIAL PRIMARY KEY,
+    coe_acta_resolucion_id INTEGER NOT NULL DEFAULT 0,
+    usuario_id INTEGER NOT NULL,
+    accion_respuesta_origen_id INTEGER NOT NULL,
+    detalle TEXT,
+    accion_respuesta_estado_id INTEGER NOT NULL,
+    fecha_final TIMESTAMP,
+    activo BOOLEAN DEFAULT TRUE,
+    creador VARCHAR(100),
+    creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    modificador VARCHAR(100),
+    modificacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -1,17 +1,17 @@
 from flask import request, jsonify
-from resolucion_estados import resolucion_estados_bp
+from acta_coe_estados import acta_coe_estados_bp
 from models import db
 from datetime import datetime, timezone
 
-@resolucion_estados_bp.route('/api/resolucion_estados', methods=['GET'])
-def get_resolucion_estados():
-    """Listar resolucion_estados
+@acta_coe_estados_bp.route('/api/acta_coe_estados', methods=['GET'])
+def get_acta_coe_estados():
+    """Listar acta_coe_estados
     ---
     tags:
-      - Resolucion Estados
+      - Acta Coe Estados
     responses:
         200:
-          description: Lista de resolucion_estados
+          description: Lista de acta_coe_estados
           schema:
             type: array
             items:
@@ -26,10 +26,10 @@ def get_resolucion_estados():
                 modificador: {type: string}
                 modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM resolucion_estados"))
-    resolucion_estados = []
+    result = db.session.execute(db.text("SELECT * FROM coe_acta_estados"))
+    acta_coe_estados = []
     for row in result:
-        resolucion_estados.append({  # type: ignore
+        acta_coe_estados.append({  # type: ignore
             'id': row.id,
             'nombre': row.nombre,
             'descripcion': row.descripcion,
@@ -39,14 +39,14 @@ def get_resolucion_estados():
             'modificador': row.modificador,
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
-    return jsonify(resolucion_estados)
+    return jsonify(acta_coe_estados)
 
-@resolucion_estados_bp.route('/api/resolucion_estados', methods=['POST'])
-def create_resolucion_estado():
-    """Crear resolucion_estado
+@acta_coe_estados_bp.route('/api/acta_coe_estados', methods=['POST'])
+def create_acta_coe_estado():
+    """Crear acta_coe_estado
     ---
     tags:
-      - Resolucion Estados
+      - Acta Coe Estados
     consumes:
       - application/json
     parameters:
@@ -63,7 +63,7 @@ def create_resolucion_estado():
             creador: {type: string}
     responses:
       201:
-        description: Resolucion estado creado
+        description: Acta coe estado creado
         schema:
           type: object
           properties:
@@ -80,7 +80,7 @@ def create_resolucion_estado():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO resolucion_estados (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
+        INSERT INTO coe_acta_estados (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
         VALUES (:nombre, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
@@ -98,35 +98,35 @@ def create_resolucion_estado():
     row = result.fetchone()
     if row is None:
         db.session.rollback()
-        return jsonify({'error': 'Failed to create resolucion_estado'}), 500
-    resolucion_estado_id = row[0]
+        return jsonify({'error': 'Failed to create acta_coe_estado'}), 500
+    acta_coe_estado_id = row[0]
     db.session.commit()
 
-    resolucion_estado = db.session.execute(
-        db.text("SELECT * FROM resolucion_estados WHERE id = :id"),
-        {'id': resolucion_estado_id}
+    acta_coe_estado = db.session.execute(
+        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
+        {'id': acta_coe_estado_id}
     ).fetchone()
 
-    if not resolucion_estado:
-        return jsonify({'error': 'Resolucion estado not found after creation'}), 404
+    if not acta_coe_estado:
+        return jsonify({'error': 'Acta coe estado not found after creation'}), 404
 
     return jsonify({  # type: ignore
-        'id': resolucion_estado.id,
-        'nombre': resolucion_estado.nombre,
-        'descripcion': resolucion_estado.descripcion,
-        'activo': resolucion_estado.activo,
-        'creador': resolucion_estado.creador,
-        'creacion': resolucion_estado.creacion.isoformat() if resolucion_estado.creacion else None,
-        'modificador': resolucion_estado.modificador,
-        'modificacion': resolucion_estado.modificacion.isoformat() if resolucion_estado.modificacion else None
+        'id': acta_coe_estado.id,
+        'nombre': acta_coe_estado.nombre,
+        'descripcion': acta_coe_estado.descripcion,
+        'activo': acta_coe_estado.activo,
+        'creador': acta_coe_estado.creador,
+        'creacion': acta_coe_estado.creacion.isoformat() if acta_coe_estado.creacion else None,
+        'modificador': acta_coe_estado.modificador,
+        'modificacion': acta_coe_estado.modificacion.isoformat() if acta_coe_estado.modificacion else None
     }), 201
 
-@resolucion_estados_bp.route('/api/resolucion_estados/<int:id>', methods=['GET'])
-def get_resolucion_estado(id):
-    """Obtener resolucion_estado por ID
+@acta_coe_estados_bp.route('/api/acta_coe_estados/<int:id>', methods=['GET'])
+def get_acta_coe_estado(id):
+    """Obtener acta_coe_estado por ID
     ---
     tags:
-      - Resolucion Estados
+      - Acta Coe Estados
     parameters:
       - name: id
         in: path
@@ -134,36 +134,36 @@ def get_resolucion_estado(id):
         required: true
     responses:
       200:
-        description: Resolucion estado
+        description: Acta coe estado
       404:
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("SELECT * FROM resolucion_estados WHERE id = :id"),
+        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
         {'id': id}
     )
-    resolucion_estado = result.fetchone()
+    acta_coe_estado = result.fetchone()
 
-    if not resolucion_estado:
-        return jsonify({'error': 'Resolucion estado no encontrado'}), 404
+    if not acta_coe_estado:
+        return jsonify({'error': 'Acta coe estado no encontrado'}), 404
 
     return jsonify({
-        'id': resolucion_estado.id,
-        'nombre': resolucion_estado.nombre,
-        'descripcion': resolucion_estado.descripcion,
-        'activo': resolucion_estado.activo,
-        'creador': resolucion_estado.creador,
-        'creacion': resolucion_estado.creacion.isoformat() if resolucion_estado.creacion else None,
-        'modificador': resolucion_estado.modificador,
-        'modificacion': resolucion_estado.modificacion.isoformat() if resolucion_estado.modificacion else None
+        'id': acta_coe_estado.id,
+        'nombre': acta_coe_estado.nombre,
+        'descripcion': acta_coe_estado.descripcion,
+        'activo': acta_coe_estado.activo,
+        'creador': acta_coe_estado.creador,
+        'creacion': acta_coe_estado.creacion.isoformat() if acta_coe_estado.creacion else None,
+        'modificador': acta_coe_estado.modificador,
+        'modificacion': acta_coe_estado.modificacion.isoformat() if acta_coe_estado.modificacion else None
     })
 
-@resolucion_estados_bp.route('/api/resolucion_estados/<int:id>', methods=['PUT'])
-def update_resolucion_estado(id):
-    """Actualizar resolucion_estado
+@acta_coe_estados_bp.route('/api/acta_coe_estados/<int:id>', methods=['PUT'])
+def update_acta_coe_estado(id):
+    """Actualizar acta_coe_estado
     ---
     tags:
-      - Resolucion Estados
+      - Acta Coe Estados
     consumes:
       - application/json
     parameters:
@@ -182,7 +182,7 @@ def update_resolucion_estado(id):
             activo: {type: boolean}
     responses:
       200:
-        description: Resolucion estado actualizado
+        description: Acta coe estado actualizado
       404:
         description: No encontrado
     """
@@ -190,7 +190,7 @@ def update_resolucion_estado(id):
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        UPDATE resolucion_estados
+        UPDATE coe_acta_estados
         SET nombre = :nombre,
             descripcion = :descripcion,
             activo = :activo,
@@ -209,35 +209,35 @@ def update_resolucion_estado(id):
     })
 
     if getattr(result, 'rowcount', 0) == 0:  # type: ignore
-        return jsonify({'error': 'Resolucion estado no encontrado'}), 404
+        return jsonify({'error': 'Acta coe estado no encontrado'}), 404
 
     db.session.commit()
 
-    resolucion_estado = db.session.execute(
-        db.text("SELECT * FROM resolucion_estados WHERE id = :id"),
+    acta_coe_estado = db.session.execute(
+        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
         {'id': id}
     ).fetchone()
 
-    if not resolucion_estado:
-        return jsonify({'error': 'Resolucion estado not found after update'}), 404
+    if not acta_coe_estado:
+        return jsonify({'error': 'Acta coe estado not found after update'}), 404
 
     return jsonify({  # type: ignore
-        'id': resolucion_estado.id,
-        'nombre': resolucion_estado.nombre,
-        'descripcion': resolucion_estado.descripcion,
-        'activo': resolucion_estado.activo,
-        'creador': resolucion_estado.creador,
-        'creacion': resolucion_estado.creacion.isoformat() if resolucion_estado.creacion else None,
-        'modificador': resolucion_estado.modificador,
-        'modificacion': resolucion_estado.modificacion.isoformat() if resolucion_estado.modificacion else None
+        'id': acta_coe_estado.id,
+        'nombre': acta_coe_estado.nombre,
+        'descripcion': acta_coe_estado.descripcion,
+        'activo': acta_coe_estado.activo,
+        'creador': acta_coe_estado.creador,
+        'creacion': acta_coe_estado.creacion.isoformat() if acta_coe_estado.creacion else None,
+        'modificador': acta_coe_estado.modificador,
+        'modificacion': acta_coe_estado.modificacion.isoformat() if acta_coe_estado.modificacion else None
     })
 
-@resolucion_estados_bp.route('/api/resolucion_estados/<int:id>', methods=['DELETE'])
-def delete_resolucion_estado(id):
-    """Eliminar resolucion_estado
+@acta_coe_estados_bp.route('/api/acta_coe_estados/<int:id>', methods=['DELETE'])
+def delete_acta_coe_estado(id):
+    """Eliminar acta_coe_estado
     ---
     tags:
-      - Resolucion Estados
+      - Acta Coe Estados
     parameters:
       - name: id
         in: path
@@ -250,12 +250,12 @@ def delete_resolucion_estado(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("DELETE FROM resolucion_estados WHERE id = :id"),
+        db.text("DELETE FROM coe_acta_estados WHERE id = :id"),
         {'id': id}
     )
 
     if getattr(result, 'rowcount', 0) == 0:  # type: ignore
-        return jsonify({'error': 'Resolucion estado no encontrado'}), 404
+        return jsonify({'error': 'Acta coe estado no encontrado'}), 404
 
     db.session.commit()
-    return jsonify({'mensaje': 'Resolucion estado eliminado correctamente'})
+    return jsonify({'mensaje': 'Acta coe estado eliminado correctamente'})

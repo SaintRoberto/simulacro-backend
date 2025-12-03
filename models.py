@@ -418,7 +418,7 @@ class MesaCoe(db.Model):
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     modificador = db.Column(db.String(100))
     modificacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -432,7 +432,7 @@ class MesaCoe(db.Model):
         }
 
 class CoeActa(db.Model):
-    __tablename__ = 'coe_actas'
+    __tablename__ = 'actas_coe'
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     emergencia_id = db.Column(db.Integer, db.ForeignKey('emergencias.id'), nullable=False)
@@ -445,8 +445,8 @@ class CoeActa(db.Model):
     modificacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     # Relaciones
-    usuario = db.relationship('Usuario', backref='coe_actas')
-    emergencia = db.relationship('Emergencia', backref='coe_actas')
+    usuario = db.relationship('Usuario', backref='actas_coe')
+    emergencia = db.relationship('Emergencia', backref='actas_coe')
 
     def to_dict(self):
         return {
@@ -462,8 +462,31 @@ class CoeActa(db.Model):
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
 
+class ActaCoeEstado(db.Model):
+    __tablename__ = 'coe_acta_estados'
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.Text, nullable=False)
+    descripcion = db.Column(db.Text)
+    activo = db.Column(db.Boolean, default=True)
+    creador = db.Column(db.Text)
+    creacion = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    modificador = db.Column(db.Text)
+    modificacion = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'nombre': self.nombre,
+            'descripcion': self.descripcion,
+            'activo': self.activo,
+            'creador': self.creador,
+            'creacion': self.creacion.isoformat() if self.creacion else None,
+            'modificador': self.modificador,
+            'modificacion': self.modificacion.isoformat() if self.modificacion else None
+        }
+
 class ResolucionEstado(db.Model):
-    __tablename__ = 'resolucion_estados'
+    __tablename__ = 'acta_coe_resolucion_estados'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.Text, nullable=False)
     descripcion = db.Column(db.Text)
@@ -486,14 +509,11 @@ class ResolucionEstado(db.Model):
         }
 
 class CoeActaResolucion(db.Model):
-    __tablename__ = 'coe_acta_resoluciones'
+    __tablename__ = 'acta_coe_resoluciones'
     id = db.Column(db.Integer, primary_key=True)
-    coe_acta_id = db.Column(db.Integer, db.ForeignKey('coe_actas.id'), nullable=False)
-    mesa_id = db.Column(db.Integer, db.ForeignKey('mesas.id'), nullable=False)
+    acta_coe_id = db.Column(db.Integer, db.ForeignKey('actas_coe.id'), nullable=False)
     detalle = db.Column(db.Text)
-    fecha_cumplimiento = db.Column(db.DateTime)
-    responsable = db.Column(db.Text)
-    resolucion_estado_id = db.Column(db.Integer, db.ForeignKey('resolucion_estados.id'), nullable=False)
+    acta_coe_resolucion_estado_id = db.Column(db.Integer, nullable=False)
     activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -502,18 +522,43 @@ class CoeActaResolucion(db.Model):
 
     # Relaciones
     coe_acta = db.relationship('CoeActa', backref='resoluciones')
-    mesa = db.relationship('Mesa', backref='resoluciones')
-    resolucion_estado = db.relationship('ResolucionEstado', backref='resoluciones')
 
     def to_dict(self):
         return {
             'id': self.id,
-            'coe_acta_id': self.coe_acta_id,
-            'mesa_id': self.mesa_id,
+            'acta_coe_id': self.acta_coe_id,
             'detalle': self.detalle,
+            'acta_coe_resolucion_estado_id': self.acta_coe_resolucion_estado_id,
+            'activo': self.activo,
+            'creador': self.creador,
+            'creacion': self.creacion.isoformat() if self.creacion else None,
+            'modificador': self.modificador,
+            'modificacion': self.modificacion.isoformat() if self.modificacion else None
+        }
+
+
+class ActaCoeResolucionMesa(db.Model):
+    __tablename__ = 'acta_coe_resolucion_mesas'
+    id = db.Column(db.Integer, primary_key=True)
+    acta_coe_resolucion_id = db.Column(db.Integer, nullable=False)
+    mesa_id = db.Column(db.Integer, nullable=False)
+    fecha_cumplimiento = db.Column(db.DateTime)
+    responsable = db.Column(db.Text)
+    acta_coe_resolucion_mesa_estado_id = db.Column(db.Integer, nullable=False)
+    activo = db.Column(db.Boolean, default=True)
+    creador = db.Column(db.String(100))
+    creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    modificador = db.Column(db.String(100))
+    modificacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'acta_coe_resolucion_id': self.acta_coe_resolucion_id,
+            'mesa_id': self.mesa_id,
             'fecha_cumplimiento': self.fecha_cumplimiento.isoformat() if self.fecha_cumplimiento else None,
             'responsable': self.responsable,
-            'resolucion_estado_id': self.resolucion_estado_id,
+            'acta_coe_resolucion_mesa_estado_id': self.acta_coe_resolucion_mesa_estado_id,
             'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,

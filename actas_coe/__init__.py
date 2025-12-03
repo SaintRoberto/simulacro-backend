@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-coe_actas_bp = Blueprint('coe_actas', __name__)
+actas_coe_bp = Blueprint('actas_coe', __name__)
 
 from .routes import *

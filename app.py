@@ -93,13 +93,23 @@ from usuario_perfil import usuario_perfil_bp
 from perfil_menu import perfil_menu_bp
 from afectacion_variable_registros import afectacion_variable_registros_bp
 from afectacion_variables import afectacion_variables_bp
-from coe_actas import coe_actas_bp
-from coe_acta_resoluciones import coe_acta_resoluciones_bp
-from resolucion_estados import resolucion_estados_bp
+from acta_coe_resoluciones import acta_coe_resoluciones_bp
+from acta_coe_resolucion_mesas import acta_coe_resolucion_mesas_bp
+from acta_coe_resolucion_estados import acta_coe_resolucion_estados_bp
+from acta_coe_estados import acta_coe_estados_bp
 from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
-from respuesta_acciones import respuesta_acciones_bp
-from respuesta_accion_detalles import respuesta_accion_detalles_bp
-from evento_atencion_estados.routes import evento_atencion_estados_bp
+from acciones_respuesta import acciones_respuesta_bp
+from accion_respuesta_origenes import accion_respuesta_origenes_bp
+from accion_respuesta_estados import accion_respuesta_estados_bp
+from actividades_ejecucion import actividades_ejecucion_bp
+from actividad_ejecucion_apoyo import actividad_ejecucion_apoyo_bp
+from actas_coe import actas_coe_bp
+
+
+
+
+
+
 
 app.register_blueprint(instituciones_bp)
 app.register_blueprint(usuarios_bp)
@@ -144,13 +154,20 @@ app.register_blueprint(usuario_perfil_bp)
 app.register_blueprint(perfil_menu_bp)
 app.register_blueprint(afectacion_variable_registros_bp)
 app.register_blueprint(afectacion_variables_bp)
-app.register_blueprint(coe_actas_bp)
-app.register_blueprint(coe_acta_resoluciones_bp)
-app.register_blueprint(resolucion_estados_bp)
+app.register_blueprint(actas_coe_bp)
+app.register_blueprint(acta_coe_resoluciones_bp)
+app.register_blueprint(acta_coe_resolucion_mesas_bp)
+app.register_blueprint(acta_coe_resolucion_estados_bp)
+app.register_blueprint(acta_coe_estados_bp)
 app.register_blueprint(afectacion_variable_registro_detalles_bp)
-app.register_blueprint(respuesta_acciones_bp)
-app.register_blueprint(respuesta_accion_detalles_bp)
-app.register_blueprint(evento_atencion_estados_bp)
+app.register_blueprint(acciones_respuesta_bp)
+app.register_blueprint(accion_respuesta_origenes_bp)
+app.register_blueprint(accion_respuesta_estados_bp)
+app.register_blueprint(actividades_ejecucion_bp)
+app.register_blueprint(actividad_ejecucion_apoyo_bp)
+
+
+
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
 swagger = Swagger(app, template=swagger_template)
 

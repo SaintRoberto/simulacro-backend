@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from respuesta_acciones import respuesta_acciones_bp
+from acciones_respuesta import acciones_respuesta_bp
 from models import db
 from datetime import datetime, timezone
 
@@ -14,12 +14,12 @@ def _row_to_dict(row):
             mapping[k] = v.isoformat()
     return mapping
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones', methods=['GET'])
-def get_respuesta_acciones():
+@acciones_respuesta_bp.route('/api/acciones_respuesta', methods=['GET'])
+def get_acciones_respuesta():
     """Listar acciones de respuesta
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     responses:
       200:
         description: Lista de acciones de respuesta
@@ -29,11 +29,11 @@ def get_respuesta_acciones():
             type: object
             properties:
               id: {type: integer}
-              resolucion_id: {type: integer}
+              coe_acta_resolucion_id: {type: integer}
               usuario_id: {type: integer}
-              respuesta_accion_origen_id: {type: integer}
+              accion_respuesta_origen_id: {type: integer}
               detalle: {type: string}
-              respuesta_estado_id: {type: integer}
+              accion_respuesta_estado_id: {type: integer}
               fecha_final: {type: string}
               activo: {type: boolean}
               creador: {type: string}
@@ -41,16 +41,16 @@ def get_respuesta_acciones():
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM respuesta_acciones"))
+    result = db.session.execute(db.text("SELECT * FROM acciones_respuesta"))
     items = [_row_to_dict(row) for row in result]
     return jsonify(items)
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones/usuario/<int:usuario_id>', methods=['GET'])
-def get_respuesta_acciones_by_usuario(usuario_id):
+@acciones_respuesta_bp.route('/api/acciones_respuesta/usuario/<int:usuario_id>', methods=['GET'])
+def get_acciones_respuesta_by_usuario(usuario_id):
     """Listar acciones de respuesta por usuario
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     parameters:
       - name: usuario_id
         in: path
@@ -64,8 +64,8 @@ def get_respuesta_acciones_by_usuario(usuario_id):
           items:
             type: object
             properties:
-              respuesta_accion_id: {type: integer}
-              resolucion_id: {type: integer}
+              accion_respuesta_id: {type: integer}
+              coe_acta_resolucion_id: {type: integer}
               detalle: {type: string}
               origen_id: {type: integer}
               origen_nombre: {type: string}
@@ -74,12 +74,12 @@ def get_respuesta_acciones_by_usuario(usuario_id):
               fecha_final: {type: string}
     """
     query = db.text("""
-        SELECT ar.id respuesta_accion_id, ar.resolucion_id, ar.detalle,
-               ar.respuesta_accion_origen_id origen_id, o.nombre origen_nombre,
-               ar.respuesta_estado_id estado_id, e.nombre estado_nombre, ar.fecha_final
-        FROM public.respuesta_acciones ar
-        INNER JOIN public.respuesta_accion_origenes o ON ar.respuesta_accion_origen_id = o.id
-        INNER JOIN public.respuesta_estados e ON ar.respuesta_estado_id = e.id
+        SELECT ar.id accion_respuesta_id, ar.coe_acta_resolucion_id, ar.detalle,
+               ar.accion_respuesta_origen_id origen_id, o.nombre origen_nombre,
+               ar.accion_respuesta_estado_id estado_id, e.nombre estado_nombre, ar.fecha_final
+        FROM public.acciones_respuesta ar
+        INNER JOIN public.accion_respuesta_origenes o ON ar.accion_respuesta_origen_id = o.id
+        INNER JOIN public.accion_respuesta_estados e ON ar.accion_respuesta_estado_id = e.id
         WHERE ar.usuario_id = :usuario_id
         ORDER BY ar.id ASC
     """)
@@ -87,8 +87,8 @@ def get_respuesta_acciones_by_usuario(usuario_id):
     items = []
     for row in result:
         items.append({
-            'respuesta_accion_id': row.respuesta_accion_id,
-            'resolucion_id': row.resolucion_id,
+            'accion_respuesta_id': row.accion_respuesta_id,
+            'coe_acta_resolucion_id': row.coe_acta_resolucion_id,
             'detalle': row.detalle,
             'origen_id': row.origen_id,
             'origen_nombre': row.origen_nombre,
@@ -98,12 +98,12 @@ def get_respuesta_acciones_by_usuario(usuario_id):
         })
     return jsonify(items)
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones', methods=['POST'])
-def create_respuesta_accion():
+@acciones_respuesta_bp.route('/api/acciones_respuesta', methods=['POST'])
+def create_accion_respuesta():
     """Crear acción de respuesta
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     consumes:
       - application/json
     parameters:
@@ -112,13 +112,13 @@ def create_respuesta_accion():
         required: true
         schema:
           type: object
-          required: [usuario_id, respuesta_accion_origen_id, respuesta_estado_id]
+          required: [usuario_id, accion_respuesta_origen_id, accion_respuesta_estado_id]
           properties:
-            resolucion_id: {type: integer}
+            coe_acta_resolucion_id: {type: integer}
             usuario_id: {type: integer}
-            respuesta_accion_origen_id: {type: integer}
+            accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
-            respuesta_estado_id: {type: integer}
+            accion_respuesta_estado_id: {type: integer}
             fecha_final: {type: string, format: date-time}
             activo: {type: boolean}
             creador: {type: string}
@@ -133,42 +133,42 @@ def create_respuesta_accion():
     now = datetime.now(timezone.utc)
 
     # Validate required fields
-    required = ['usuario_id', 'respuesta_accion_origen_id', 'respuesta_estado_id']
+    required = ['usuario_id', 'accion_respuesta_origen_id', 'accion_respuesta_estado_id']
     missing = [f for f in required if f not in data]
     if missing:
         return jsonify({'error': 'Missing required fields', 'missing': missing}), 400
 
     # Prepare insert with explicit columns to match DB schema
-    resolucion_id = data.get('resolucion_id', 0)
+    coe_acta_resolucion_id = data.get('coe_acta_resolucion_id', 0)
     usuario_id = data['usuario_id']
-    respuesta_accion_origen_id = data['respuesta_accion_origen_id']
+    accion_respuesta_origen_id = data['accion_respuesta_origen_id']
     detalle = data.get('detalle')
-    respuesta_estado_id = data['respuesta_estado_id']
+    accion_respuesta_estado_id = data['accion_respuesta_estado_id']
     fecha_final = data.get('fecha_final')
     activo = data.get('activo', True)
     creador = data.get('creador', 'Sistema')
     modificador = data.get('modificador', creador)
 
     query = db.text("""
-        INSERT INTO respuesta_acciones (
-            resolucion_id, usuario_id, respuesta_accion_origen_id,
-            detalle, respuesta_estado_id, fecha_final,
+        INSERT INTO acciones_respuesta (
+            coe_acta_resolucion_id, usuario_id, accion_respuesta_origen_id,
+            detalle, accion_respuesta_estado_id, fecha_final,
             activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :resolucion_id, :usuario_id, :respuesta_accion_origen_id,
-            :detalle, :respuesta_estado_id, :fecha_final,
+            :coe_acta_resolucion_id, :usuario_id, :accion_respuesta_origen_id,
+            :detalle, :accion_respuesta_estado_id, :fecha_final,
             :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
 
     params = {
-        'resolucion_id': resolucion_id,
+        'coe_acta_resolucion_id': coe_acta_resolucion_id,
         'usuario_id': usuario_id,
-        'respuesta_accion_origen_id': respuesta_accion_origen_id,
+        'accion_respuesta_origen_id': accion_respuesta_origen_id,
         'detalle': detalle,
-        'respuesta_estado_id': respuesta_estado_id,
+        'accion_respuesta_estado_id': accion_respuesta_estado_id,
         'fecha_final': fecha_final,
         'activo': activo,
         'creador': creador,
@@ -185,18 +185,18 @@ def create_respuesta_accion():
     new_id = row[0]
     db.session.commit()
 
-    created = db.session.execute(db.text("SELECT * FROM respuesta_acciones WHERE id = :id"), {'id': new_id}).fetchone()
+    created = db.session.execute(db.text("SELECT * FROM acciones_respuesta WHERE id = :id"), {'id': new_id}).fetchone()
     if not created:
         return jsonify({'error': 'Created row not found'}), 500
 
     return jsonify(_row_to_dict(created)), 201
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones/<int:id>', methods=['GET'])
-def get_respuesta_accion(id):
+@acciones_respuesta_bp.route('/api/acciones_respuesta/<int:id>', methods=['GET'])
+def get_accion_respuesta(id):
     """Obtener acción de respuesta por ID
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     parameters:
       - name: id
         in: path
@@ -208,18 +208,18 @@ def get_respuesta_accion(id):
       404:
         description: No encontrada
     """
-    result = db.session.execute(db.text("SELECT * FROM respuesta_acciones WHERE id = :id"), {'id': id})
+    result = db.session.execute(db.text("SELECT * FROM acciones_respuesta WHERE id = :id"), {'id': id})
     row = result.fetchone()
     if not row:
         return jsonify({'error': 'No encontrado'}), 404
     return jsonify(_row_to_dict(row))
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones/<int:id>', methods=['PUT'])
-def update_respuesta_accion(id):
+@acciones_respuesta_bp.route('/api/acciones_respuesta/<int:id>', methods=['PUT'])
+def update_accion_respuesta(id):
     """Actualizar acción de respuesta
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     consumes:
       - application/json
     parameters:
@@ -233,11 +233,11 @@ def update_respuesta_accion(id):
         schema:
           type: object
           properties:
-            resolucion_id: {type: integer}
+            coe_acta_resolucion_id: {type: integer}
             usuario_id: {type: integer}
-            respuesta_accion_origen_id: {type: integer}
+            accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
-            respuesta_estado_id: {type: integer}
+            accion_respuesta_estado_id: {type: integer}
             fecha_final: {type: string, format: date-time}
             activo: {type: boolean}
             modificador: {type: string}
@@ -257,11 +257,11 @@ def update_respuesta_accion(id):
 
     # Only allow these fields to be updated
     allowed = {
-        'resolucion_id',
+        'coe_acta_resolucion_id',
         'usuario_id',
-        'respuesta_accion_origen_id',
+        'accion_respuesta_origen_id',
         'detalle',
-        'respuesta_estado_id',
+        'accion_respuesta_estado_id',
         'fecha_final',
         'activo',
         'modificador',
@@ -279,25 +279,25 @@ def update_respuesta_accion(id):
         return jsonify({'error': 'No updatable fields provided'}), 400
 
     set_sql = ', '.join(set_parts)
-    query = db.text(f"UPDATE respuesta_acciones SET {set_sql} WHERE id = :id")
+    query = db.text(f"UPDATE acciones_respuesta SET {set_sql} WHERE id = :id")
     result = db.session.execute(query, params)
 
     if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'No encontrado'}), 404
 
     db.session.commit()
-    updated = db.session.execute(db.text("SELECT * FROM respuesta_acciones WHERE id = :id"), {'id': id}).fetchone()
+    updated = db.session.execute(db.text("SELECT * FROM acciones_respuesta WHERE id = :id"), {'id': id}).fetchone()
     if not updated:
         return jsonify({'error': 'No encontrado después de actualizar'}), 404
 
     return jsonify(_row_to_dict(updated))
 
-@respuesta_acciones_bp.route('/api/respuesta_acciones/<int:id>', methods=['DELETE'])
-def delete_respuesta_accion(id):
+@acciones_respuesta_bp.route('/api/acciones_respuesta/<int:id>', methods=['DELETE'])
+def delete_accion_respuesta(id):
     """Eliminar acción de respuesta
     ---
     tags:
-      - Respuesta Acciones
+      - Acciones Respuesta
     parameters:
       - name: id
         in: path
@@ -309,7 +309,7 @@ def delete_respuesta_accion(id):
       404:
         description: No encontrado
     """
-    result = db.session.execute(db.text("DELETE FROM respuesta_acciones WHERE id = :id"), {'id': id})
+    result = db.session.execute(db.text("DELETE FROM acciones_respuesta WHERE id = :id"), {'id': id})
     if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'No encontrado'}), 404
     db.session.commit()
