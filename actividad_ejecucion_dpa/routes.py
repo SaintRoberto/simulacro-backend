@@ -37,7 +37,7 @@ def get_actividades_ejecucion_dpa():
     return jsonify(items)
 
 @actividad_ejecucion_dpa_bp.route('/api/actividad_ejecucion_dpa/actividad_ejecucion/<int:actividad_ejecucion_id>', methods=['GET'])
-def get_actividades_ejecucion_dpa_by_actividad(actividad_ejecucion_id):
+def get_actividades_ejecucion_dpa_by_actividad_ejecucion(actividad_ejecucion_id):
     """Obtener actividades DPA por ID de actividad de ejecución
     ---
     tags:
@@ -83,6 +83,67 @@ def get_actividades_ejecucion_dpa_by_actividad(actividad_ejecucion_id):
             if isinstance(v, datetime):
                 item[k] = v.isoformat()
     return jsonify(items)
+
+@actividad_ejecucion_dpa_bp.route('/api/actividad_ejecucion_dpa/<int:id>', methods=['GET'])
+def get_actividades_ejecucion_dpa_by_id(id):
+    """Obtener una actividad de ejecución DPA por su ID
+    ---
+    tags:
+      - Actividad Ejecución DPA
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+        description: ID de la actividad de ejecución DPA
+    responses:
+      200:
+        description: Detalle de la actividad de ejecución DPA
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            actividad_ejecucion_id: {type: integer}
+            provincia_id: {type: integer}
+            provincia_nombre: {type: string}
+            canton_id: {type: integer}
+            canton_nombre: {type: string}
+            parroquia_id: {type: integer}
+            parroquia_nombre: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+      404:
+        description: No se encontró la actividad de ejecución DPA
+    """
+    query = db.text("""
+        SELECT aed.*, 
+               p.nombre as provincia_nombre,
+               c.nombre as canton_nombre,
+               pa.nombre as parroquia_nombre
+        FROM actividad_ejecucion_dpa aed
+        LEFT JOIN provincias p ON aed.provincia_id = p.id
+        LEFT JOIN cantones c ON aed.canton_id = c.id
+        LEFT JOIN parroquias pa ON aed.parroquia_id = pa.id
+        WHERE aed.id = :id
+    """)
+    
+    result = db.session.execute(query, {'id': id}).fetchone()
+    
+    if not result:
+        return jsonify({'error': 'Actividad de ejecución DPA no encontrada'}), 404
+    
+    # Convertir el resultado a diccionario
+    item = dict(result._mapping)
+    
+    # Formatear fechas
+    for k, v in item.items():
+        if isinstance(v, datetime):
+            item[k] = v.isoformat()
+    
+    return jsonify(item)
 
 @actividad_ejecucion_dpa_bp.route('/api/actividad_ejecucion_dpa', methods=['POST'])
 def create_actividad_ejecucion_dpa():

@@ -179,6 +179,70 @@ def get_actividad_ejecucion_apoyo_by_id(id):
     })
 
 
+@actividad_ejecucion_apoyo_bp.route('/api/actividad_ejecucion_apoyo/actividad_ejecucion/<int:actividad_ejecucion_id>', methods=['GET'])
+def get_actividades_ejecucion_apoyo_by_actividad_ejecucion(actividad_ejecucion_id):
+    """Obtener actividades de apoyo por ID de actividad de ejecución
+    ---
+    tags:
+      - Actividad Ejecucion Apoyo
+    parameters:
+      - name: actividad_ejecucion_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la actividad de ejecución
+    responses:
+      200:
+        description: Lista de actividades de apoyo para la actividad de ejecución
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              actividad_ejecucion_id: {type: integer}
+              institucion_id: {type: integer}
+              institucion_nombre: {type: string}
+              institucion_siglas: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT aea.*, 
+               i.nombre as institucion_nombre,
+               i.siglas as institucion_siglas
+        FROM actividad_ejecucion_apoyo aea
+        LEFT JOIN instituciones i ON aea.institucion_id = i.id
+        WHERE aea.actividad_ejecucion_id = :actividad_ejecucion_id
+        AND aea.activo = true
+    """)
+    
+    result = db.session.execute(query, {'actividad_ejecucion_id': actividad_ejecucion_id})
+    items = []
+    for row in result:
+        item = {
+            'id': row.id,
+            'actividad_ejecucion_id': row.actividad_ejecucion_id,
+            'institucion_id': row.institucion_id,
+            'institucion_nombre': row.institucion_nombre,
+            'institucion_siglas': row.institucion_siglas,
+            'activo': row.activo,
+            'creador': row.creador,
+            'modificador': row.modificador,
+        }
+        # Format datetime fields
+        if hasattr(row, 'creacion') and row.creacion:
+            item['creacion'] = row.creacion.isoformat()
+        if hasattr(row, 'modificacion') and row.modificacion:
+            item['modificacion'] = row.modificacion.isoformat()
+        items.append(item)
+    
+    return jsonify(items)
+
+
 @actividad_ejecucion_apoyo_bp.route('/api/actividad_ejecucion_apoyo/<int:id>', methods=['PUT'])
 def update_actividad_ejecucion_apoyo(id):
     """Actualizar actividad_ejecucion_apoyo
