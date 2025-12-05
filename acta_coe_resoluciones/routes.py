@@ -93,7 +93,7 @@ def create_acta_coe_resolucion():
     """Crear acta_coe_resolucion
     ---
     tags:
-      - Coe Acta Resoluciones
+      - Acta Coe Resoluciones
     consumes:
       - application/json
     parameters:
@@ -227,7 +227,7 @@ def update_acta_coe_resolucion(id):
     """Actualizar acta_coe_resolucion
     ---
     tags:
-      - Coe Acta Resoluciones
+      - Acta Coe Resoluciones
     consumes:
       - application/json
     parameters:
@@ -305,7 +305,7 @@ def delete_acta_coe_resolucion(id):
     """Eliminar acta_coe_resolucion
     ---
     tags:
-      - Coe Acta Resoluciones
+      - Acta Coe Resoluciones
     parameters:
       - name: id
         in: path
