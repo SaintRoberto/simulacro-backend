@@ -20,6 +20,7 @@ def get_acta_coe_resoluciones():
                 id: {type: integer}
                 acta_coe_id: {type: integer}
                 detalle: {type: string}
+                fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución'}
                 acta_coe_resolucion_estado_id: {type: integer}
                 activo: {type: boolean}
                 creador: {type: string}
@@ -34,6 +35,7 @@ def get_acta_coe_resoluciones():
             'id': row.id,
             'acta_coe_id': row.acta_coe_id,
             'detalle': row.detalle,
+            'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
             'activo': row.activo,
             'creador': row.creador,
@@ -65,6 +67,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
                 id: {type: integer}
                 acta_coe_id: {type: integer}
                 detalle: {type: string}
+                fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución'}
                 acta_coe_resolucion_estado_id: {type: integer}
                 activo: {type: boolean}
                 creador: {type: string}
@@ -79,6 +82,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
             'id': row.id,
             'acta_coe_id': row.acta_coe_id,
             'detalle': row.detalle,
+            'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
             'activo': row.activo,
             'creador': row.creador,
@@ -104,11 +108,12 @@ def create_acta_coe_resolucion():
           type: object
           required: [acta_coe_id, acta_coe_resolucion_estado_id]
           properties:
-            acta_coe_id: {type: integer}
-            detalle: {type: string}
-            acta_coe_resolucion_estado_id: {type: integer}
-            activo: {type: boolean}
-            creador: {type: string}
+            acta_coe_id: {type: integer, description: 'ID del acta COE relacionada'}
+            detalle: {type: string, description: 'Detalle de la resolución'}
+            fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución (opcional)'}
+            acta_coe_resolucion_estado_id: {type: integer, description: 'ID del estado de la resolución'}
+            activo: {type: boolean, description: 'Indica si el registro está activo'}
+            creador: {type: string, description: 'Usuario que creó el registro'}
     responses:
       201:
         description: Acta COE resolucion creada
@@ -118,6 +123,7 @@ def create_acta_coe_resolucion():
             id: {type: integer}
             acta_coe_id: {type: integer}
             detalle: {type: string}
+            fecha_cumplimiento: {type: string}
             acta_coe_resolucion_estado_id: {type: integer}
             activo: {type: boolean}
             creador: {type: string}
@@ -129,14 +135,15 @@ def create_acta_coe_resolucion():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO acta_coe_resoluciones (acta_coe_id, detalle, acta_coe_resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
-        VALUES (:acta_coe_id, :detalle, :acta_coe_resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO acta_coe_resoluciones (acta_coe_id, detalle, fecha_cumplimiento, acta_coe_resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
+        VALUES (:acta_coe_id, :detalle, :fecha_cumplimiento, :acta_coe_resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'acta_coe_id': data['acta_coe_id'],
         'detalle': data.get('detalle'),
+        'fecha_cumplimiento': datetime.fromisoformat(data['fecha_cumplimiento']) if 'fecha_cumplimiento' in data and data['fecha_cumplimiento'] else None,
         'acta_coe_resolucion_estado_id': data['acta_coe_resolucion_estado_id'],
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
@@ -164,6 +171,7 @@ def create_acta_coe_resolucion():
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
         'detalle': coe_acta_resolucion.detalle,
+        'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,
         'activo': coe_acta_resolucion.activo,
         'creador': coe_acta_resolucion.creador,
@@ -192,6 +200,7 @@ def get_acta_coe_resolucion(id):
             id: {type: integer}
             acta_coe_id: {type: integer}
             detalle: {type: string}
+            fecha_cumplimiento: {type: string}
             acta_coe_resolucion_estado_id: {type: integer}
             activo: {type: boolean}
             creador: {type: string}
@@ -214,6 +223,7 @@ def get_acta_coe_resolucion(id):
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
         'detalle': coe_acta_resolucion.detalle,
+        'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,
         'activo': coe_acta_resolucion.activo,
         'creador': coe_acta_resolucion.creador,
@@ -243,6 +253,7 @@ def update_acta_coe_resolucion(id):
           properties:
             acta_coe_id: {type: integer}
             detalle: {type: string}
+            fecha_cumplimiento: {type: string}
             acta_coe_resolucion_estado_id: {type: integer}
             activo: {type: boolean}
     responses:
@@ -256,8 +267,8 @@ def update_acta_coe_resolucion(id):
 
     query = db.text("""
         UPDATE acta_coe_resoluciones
-        SET acta_coe_id = :acta_coe_id,
-            detalle = :detalle,
+        SET detalle = :detalle,
+            fecha_cumplimiento = :fecha_cumplimiento,
             acta_coe_resolucion_estado_id = :acta_coe_resolucion_estado_id,
             activo = :activo,
             modificador = :modificador,
@@ -267,8 +278,8 @@ def update_acta_coe_resolucion(id):
 
     result = db.session.execute(query, {
         'id': id,
-        'acta_coe_id': data.get('acta_coe_id'),
         'detalle': data.get('detalle'),
+        'fecha_cumplimiento': datetime.fromisoformat(data['fecha_cumplimiento']) if 'fecha_cumplimiento' in data and data['fecha_cumplimiento'] else None,
         'acta_coe_resolucion_estado_id': data.get('acta_coe_resolucion_estado_id'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
@@ -292,6 +303,7 @@ def update_acta_coe_resolucion(id):
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
         'detalle': coe_acta_resolucion.detalle,
+        'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,
         'activo': coe_acta_resolucion.activo,
         'creador': coe_acta_resolucion.creador,
