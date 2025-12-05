@@ -29,7 +29,7 @@ def get_acciones_respuesta():
             type: object
             properties:
               id: {type: integer}
-              coe_acta_resolucion_id: {type: integer}
+              coe_acta_resolucion_mesa_id: {type: integer}
               usuario_id: {type: integer}
               accion_respuesta_origen_id: {type: integer}
               detalle: {type: string}
@@ -65,7 +65,7 @@ def get_acciones_respuesta_by_usuario(usuario_id):
             type: object
             properties:
               accion_respuesta_id: {type: integer}
-              coe_acta_resolucion_id: {type: integer}
+              coe_acta_resolucion_mesa_id: {type: integer}
               detalle: {type: string}
               origen_id: {type: integer}
               origen_nombre: {type: string}
@@ -74,7 +74,7 @@ def get_acciones_respuesta_by_usuario(usuario_id):
               fecha_final: {type: string}
     """
     query = db.text("""
-        SELECT ar.id accion_respuesta_id, ar.coe_acta_resolucion_id, ar.detalle,
+        SELECT ar.id accion_respuesta_id, ar.coe_acta_resolucion_mesa_id, ar.detalle,
                ar.accion_respuesta_origen_id origen_id, o.nombre origen_nombre,
                ar.accion_respuesta_estado_id estado_id, e.nombre estado_nombre, ar.fecha_final
         FROM public.acciones_respuesta ar
@@ -88,7 +88,7 @@ def get_acciones_respuesta_by_usuario(usuario_id):
     for row in result:
         items.append({
             'accion_respuesta_id': row.accion_respuesta_id,
-            'coe_acta_resolucion_id': row.coe_acta_resolucion_id,
+            'coe_acta_resolucion_mesa_id': row.coe_acta_resolucion_mesa_id,
             'detalle': row.detalle,
             'origen_id': row.origen_id,
             'origen_nombre': row.origen_nombre,
@@ -114,7 +114,7 @@ def create_accion_respuesta():
           type: object
           required: [usuario_id, accion_respuesta_origen_id, accion_respuesta_estado_id]
           properties:
-            coe_acta_resolucion_id: {type: integer}
+            coe_acta_resolucion_mesa_id: {type: integer}
             usuario_id: {type: integer}
             accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
@@ -139,7 +139,7 @@ def create_accion_respuesta():
         return jsonify({'error': 'Missing required fields', 'missing': missing}), 400
 
     # Prepare insert with explicit columns to match DB schema
-    coe_acta_resolucion_id = data.get('coe_acta_resolucion_id', 0)
+    coe_acta_resolucion_mesa_id = data.get('coe_acta_resolucion_mesa_id', 0)
     usuario_id = data['usuario_id']
     accion_respuesta_origen_id = data['accion_respuesta_origen_id']
     detalle = data.get('detalle')
@@ -151,12 +151,12 @@ def create_accion_respuesta():
 
     query = db.text("""
         INSERT INTO acciones_respuesta (
-            coe_acta_resolucion_id, usuario_id, accion_respuesta_origen_id,
+            coe_acta_resolucion_mesa_id, usuario_id, accion_respuesta_origen_id,
             detalle, accion_respuesta_estado_id, fecha_final,
             activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :coe_acta_resolucion_id, :usuario_id, :accion_respuesta_origen_id,
+            :coe_acta_resolucion_mesa_id, :usuario_id, :accion_respuesta_origen_id,
             :detalle, :accion_respuesta_estado_id, :fecha_final,
             :activo, :creador, :creacion, :modificador, :modificacion
         )
@@ -164,7 +164,7 @@ def create_accion_respuesta():
     """)
 
     params = {
-        'coe_acta_resolucion_id': coe_acta_resolucion_id,
+        'coe_acta_resolucion_mesa_id': coe_acta_resolucion_mesa_id,
         'usuario_id': usuario_id,
         'accion_respuesta_origen_id': accion_respuesta_origen_id,
         'detalle': detalle,
@@ -233,7 +233,7 @@ def update_accion_respuesta(id):
         schema:
           type: object
           properties:
-            coe_acta_resolucion_id: {type: integer}
+            coe_acta_resolucion_mesa_id: {type: integer}
             usuario_id: {type: integer}
             accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
