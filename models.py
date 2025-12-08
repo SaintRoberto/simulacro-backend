@@ -568,6 +568,47 @@ class ActaCoeResolucionMesa(db.Model):
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
 
+class ActividadEjecucion(db.Model):
+    __tablename__ = 'actividades_ejecucion'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    accion_respuesta_id = db.Column(db.Integer, db.ForeignKey('acciones_respuesta.id'), nullable=False)
+    institucion_ejecutora_id = db.Column(db.Integer, db.ForeignKey('instituciones.id'), nullable=False)
+    actividad_ejecucion_funcion_id = db.Column(db.Integer, nullable=False)
+    detalle = db.Column(db.Text)
+    porcentaje_avance_id = db.Column(db.Integer, nullable=False, default=0)
+    actividad_ejecucion_estado_id = db.Column(db.Integer, nullable=False)
+    fecha_inicio = db.Column(db.DateTime(timezone=True), nullable=False)
+    fecha_final = db.Column(db.DateTime(timezone=True))
+    activo = db.Column(db.Boolean, default=True)
+    creador = db.Column(db.Text)
+    creacion = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    modificador = db.Column(db.Text)
+    modificacion = db.Column(db.DateTime(timezone=True), onupdate=lambda: datetime.now(timezone.utc))
+    
+    # Relationships
+    accion_respuesta = db.relationship('AccionRespuesta', backref='actividades_ejecucion')
+    institucion_ejecutora = db.relationship('Institucion', backref='actividades_ejecucion')
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'accion_respuesta_id': self.accion_respuesta_id,
+            'institucion_ejecutora_id': self.institucion_ejecutora_id,
+            'actividad_ejecucion_funcion_id': self.actividad_ejecucion_funcion_id,
+            'detalle': self.detalle,
+            'porcentaje_avance_id': self.porcentaje_avance_id,
+            'actividad_ejecucion_estado_id': self.actividad_ejecucion_estado_id,
+            'fecha_inicio': self.fecha_inicio.isoformat() if self.fecha_inicio else None,
+            'fecha_final': self.fecha_final.isoformat() if self.fecha_final else None,
+            'activo': self.activo,
+            'creador': self.creador,
+            'creacion': self.creacion.isoformat() if self.creacion else None,
+            'modificador': self.modificador,
+            'modificacion': self.modificacion.isoformat() if self.modificacion else None
+        }
+
+
 class AfectacionVariableRegistroDetalle(db.Model):
     __tablename__ = 'afectacion_variable_registro_detalles'
     id = db.Column(db.Integer, primary_key=True)
