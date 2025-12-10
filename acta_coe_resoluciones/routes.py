@@ -70,13 +70,20 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
                 detalle: {type: string}
                 fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución'}
                 acta_coe_resolucion_estado_id: {type: integer}
+                acta_coe_resolucion_estado_nombre: {type: string}
+                estado_descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
                 creacion: {type: string}
                 modificador: {type: string}
                 modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM acta_coe_resoluciones WHERE acta_coe_id = :acta_coe_id"), {'acta_coe_id': acta_coe_id})
+    result = db.session.execute(db.text("""
+        SELECT r.*, e.nombre as estado_nombre, e.descripcion as estado_descripcion
+        FROM acta_coe_resoluciones r
+        LEFT JOIN acta_coe_resolucion_estados e ON r.acta_coe_resolucion_estado_id = e.id
+        WHERE r.acta_coe_id = :acta_coe_id
+    """), {'acta_coe_id': acta_coe_id})
     acta_coe_resoluciones = []
     for row in result:
         acta_coe_resoluciones.append({  # type: ignore
@@ -86,6 +93,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
             'detalle': row.detalle,
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
+            'acta_coe_resolucion_estado_nombre': row.acta_coe_resolucion_estado_nombre,
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
