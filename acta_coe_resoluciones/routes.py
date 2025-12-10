@@ -96,6 +96,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
             'acta_coe_resolucion_estado_nombre': row.acta_coe_resolucion_estado_nombre,
+            'acta_coe_resolucion_estado_descripcion': row.acta_coe_resolucion_estado_descripcion,   
             'activo': row.activo,
             'creador': row.creador,
             'creacion': row.creacion.isoformat() if row.creacion else None,
