@@ -512,6 +512,7 @@ class CoeActaResolucion(db.Model):
     __tablename__ = 'acta_coe_resoluciones'
     id = db.Column(db.Integer, primary_key=True)
     acta_coe_id = db.Column(db.Integer, db.ForeignKey('actas_coe.id'), nullable=False)
+    responsable = db.Column(db.Text)
     detalle = db.Column(db.Text)
     fecha_cumplimiento = db.Column(db.DateTime)
     acta_coe_resolucion_estado_id = db.Column(db.Integer, nullable=False)
@@ -528,6 +529,7 @@ class CoeActaResolucion(db.Model):
         return {
             'id': self.id,
             'acta_coe_id': self.acta_coe_id,
+            'responsable': self.responsable,
             'detalle': self.detalle,
             'fecha_cumplimiento': self.fecha_cumplimiento.isoformat() if self.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': self.acta_coe_resolucion_estado_id,
@@ -545,7 +547,6 @@ class ActaCoeResolucionMesa(db.Model):
     acta_coe_resolucion_id = db.Column(db.Integer, nullable=False)
     mesa_id = db.Column(db.Integer, nullable=False)
     fecha_cumplimiento = db.Column(db.DateTime)
-    responsable = db.Column(db.Text)
     acta_coe_resolucion_mesa_estado_id = db.Column(db.Integer, nullable=False)
     activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
@@ -559,7 +560,6 @@ class ActaCoeResolucionMesa(db.Model):
             'acta_coe_resolucion_id': self.acta_coe_resolucion_id,
             'mesa_id': self.mesa_id,
             'fecha_cumplimiento': self.fecha_cumplimiento.isoformat() if self.fecha_cumplimiento else None,
-            'responsable': self.responsable,
             'acta_coe_resolucion_mesa_estado_id': self.acta_coe_resolucion_mesa_estado_id,
             'activo': self.activo,
             'creador': self.creador,

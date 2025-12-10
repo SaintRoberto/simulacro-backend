@@ -34,6 +34,7 @@ def get_acta_coe_resoluciones():
         acta_coe_resoluciones.append({  # type: ignore
             'id': row.id,
             'acta_coe_id': row.acta_coe_id,
+            'responsable': row.responsable,
             'detalle': row.detalle,
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
@@ -81,6 +82,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
         acta_coe_resoluciones.append({  # type: ignore
             'id': row.id,
             'acta_coe_id': row.acta_coe_id,
+            'responsable': row.responsable,
             'detalle': row.detalle,
             'fecha_cumplimiento': row.fecha_cumplimiento.isoformat() if row.fecha_cumplimiento else None,
             'acta_coe_resolucion_estado_id': row.acta_coe_resolucion_estado_id,
@@ -109,6 +111,7 @@ def create_acta_coe_resolucion():
           required: [acta_coe_id, acta_coe_resolucion_estado_id]
           properties:
             acta_coe_id: {type: integer, description: 'ID del acta COE relacionada'}
+            responsable: {type: string, description: 'Persona responsable de la resolución'}
             detalle: {type: string, description: 'Detalle de la resolución'}
             fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución (opcional)'}
             acta_coe_resolucion_estado_id: {type: integer, description: 'ID del estado de la resolución'}
@@ -135,13 +138,14 @@ def create_acta_coe_resolucion():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO acta_coe_resoluciones (acta_coe_id, detalle, fecha_cumplimiento, acta_coe_resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
-        VALUES (:acta_coe_id, :detalle, :fecha_cumplimiento, :acta_coe_resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO acta_coe_resoluciones (acta_coe_id, responsable, detalle, fecha_cumplimiento, acta_coe_resolucion_estado_id, activo, creador, creacion, modificador, modificacion)
+        VALUES (:acta_coe_id, :responsable, :detalle, :fecha_cumplimiento, :acta_coe_resolucion_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
     
     result = db.session.execute(query, {
         'acta_coe_id': data['acta_coe_id'],
+        'responsable': data.get('responsable'),
         'detalle': data.get('detalle'),
         'fecha_cumplimiento': datetime.fromisoformat(data['fecha_cumplimiento']) if 'fecha_cumplimiento' in data and data['fecha_cumplimiento'] else None,
         'acta_coe_resolucion_estado_id': data['acta_coe_resolucion_estado_id'],
@@ -170,6 +174,7 @@ def create_acta_coe_resolucion():
     return jsonify({  # type: ignore
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
+        'responsable': coe_acta_resolucion.responsable,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,
@@ -222,6 +227,7 @@ def get_acta_coe_resolucion(id):
     return jsonify({
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
+        'responsable': coe_acta_resolucion.responsable,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,
@@ -267,7 +273,8 @@ def update_acta_coe_resolucion(id):
 
     query = db.text("""
         UPDATE acta_coe_resoluciones
-        SET detalle = :detalle,
+        SET responsable = :responsable,
+            detalle = :detalle,
             fecha_cumplimiento = :fecha_cumplimiento,
             acta_coe_resolucion_estado_id = :acta_coe_resolucion_estado_id,
             activo = :activo,
@@ -278,6 +285,7 @@ def update_acta_coe_resolucion(id):
 
     result = db.session.execute(query, {
         'id': id,
+        'responsable': data.get('responsable'),
         'detalle': data.get('detalle'),
         'fecha_cumplimiento': datetime.fromisoformat(data['fecha_cumplimiento']) if 'fecha_cumplimiento' in data and data['fecha_cumplimiento'] else None,
         'acta_coe_resolucion_estado_id': data.get('acta_coe_resolucion_estado_id'),
@@ -302,6 +310,7 @@ def update_acta_coe_resolucion(id):
     return jsonify({  # type: ignore
         'id': coe_acta_resolucion.id,
         'acta_coe_id': coe_acta_resolucion.acta_coe_id,
+        'responsable': coe_acta_resolucion.responsable,
         'detalle': coe_acta_resolucion.detalle,
         'fecha_cumplimiento': coe_acta_resolucion.fecha_cumplimiento.isoformat() if coe_acta_resolucion.fecha_cumplimiento else None,
         'acta_coe_resolucion_estado_id': coe_acta_resolucion.acta_coe_resolucion_estado_id,

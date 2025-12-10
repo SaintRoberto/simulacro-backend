@@ -21,7 +21,6 @@ def get_acta_coe_resolucion_mesas():
               id: {type: integer}
               acta_coe_resolucion_id: {type: integer}
               mesa_id: {type: integer}
-              responsable: {type: string}
               acta_coe_resolucion_mesa_estado_id: {type: integer}
               activo: {type: boolean}
               creador: {type: string}
@@ -36,7 +35,6 @@ def get_acta_coe_resolucion_mesas():
             'id': row.id,
             'acta_coe_resolucion_id': row.acta_coe_resolucion_id,
             'mesa_id': row.mesa_id,
-            'responsable': row.responsable,
             'acta_coe_resolucion_mesa_estado_id': row.acta_coe_resolucion_mesa_estado_id,
             'activo': row.activo,
             'creador': row.creador,
@@ -69,7 +67,6 @@ def get_acta_coe_resolucion_mesas_by_resolucion(acta_coe_resolucion_id):
               id: {type: integer}
               acta_coe_resolucion_id: {type: integer}
               mesa_id: {type: integer}
-              responsable: {type: string}
               acta_coe_resolucion_mesa_estado_id: {type: integer}
               activo: {type: boolean}
               creador: {type: string}
@@ -87,7 +84,6 @@ def get_acta_coe_resolucion_mesas_by_resolucion(acta_coe_resolucion_id):
             'id': row.id,
             'acta_coe_resolucion_id': row.acta_coe_resolucion_id,
             'mesa_id': row.mesa_id,
-            'responsable': row.responsable,
             'acta_coe_resolucion_mesa_estado_id': row.acta_coe_resolucion_mesa_estado_id,
             'activo': row.activo,
             'creador': row.creador,
@@ -116,7 +112,6 @@ def create_acta_coe_resolucion_mesa():
           properties:
             acta_coe_resolucion_id: {type: integer, description: 'ID de la resolución del acta COE'}
             mesa_id: {type: integer, description: 'ID de la mesa'}
-            responsable: {type: string, description: 'Nombre del responsable de la mesa'}
             acta_coe_resolucion_mesa_estado_id: {type: integer, description: 'ID del estado de la resolución de la mesa'}
             activo: {type: boolean, description: 'Indica si el registro está activo'}
             creador: {type: string, description: 'Usuario que creó el registro'}
@@ -129,7 +124,6 @@ def create_acta_coe_resolucion_mesa():
             id: {type: integer, description: 'ID del registro'}
             acta_coe_resolucion_id: {type: integer, description: 'ID de la resolución del acta COE'}
             mesa_id: {type: integer, description: 'ID de la mesa'}
-            responsable: {type: string, description: 'Nombre del responsable de la mesa'}
             acta_coe_resolucion_mesa_estado_id: {type: integer, description: 'ID del estado de la resolución de la mesa'}
             activo: {type: boolean, description: 'Indica si el registro está activo'}
             creador: {type: string, description: 'Usuario que creó el registro'}
@@ -141,15 +135,14 @@ def create_acta_coe_resolucion_mesa():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO acta_coe_resolucion_mesas (acta_coe_resolucion_id, mesa_id, responsable, acta_coe_resolucion_mesa_estado_id, activo, creador, creacion, modificador, modificacion)
-        VALUES (:acta_coe_resolucion_id, :mesa_id, :responsable, :acta_coe_resolucion_mesa_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO acta_coe_resolucion_mesas (acta_coe_resolucion_id, mesa_id, acta_coe_resolucion_mesa_estado_id, activo, creador, creacion, modificador, modificacion)
+        VALUES (:acta_coe_resolucion_id, :mesa_id, :acta_coe_resolucion_mesa_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
 
     result = db.session.execute(query, {
         'acta_coe_resolucion_id': data['acta_coe_resolucion_id'],
         'mesa_id': data['mesa_id'],
-        'responsable': data.get('responsable'),
         'acta_coe_resolucion_mesa_estado_id': data['acta_coe_resolucion_mesa_estado_id'],
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
@@ -178,7 +171,6 @@ def create_acta_coe_resolucion_mesa():
         'id': item.id,
         'acta_coe_resolucion_id': item.acta_coe_resolucion_id,
         'mesa_id': item.mesa_id,
-        'responsable': item.responsable,
         'acta_coe_resolucion_mesa_estado_id': item.acta_coe_resolucion_mesa_estado_id,
         'activo': item.activo,
         'creador': item.creador,
@@ -208,7 +200,6 @@ def get_acta_coe_resolucion_mesa(id):
             id: {type: integer, description: 'ID del registro'}
             acta_coe_resolucion_id: {type: integer, description: 'ID de la resolución del acta COE'}
             mesa_id: {type: integer, description: 'ID de la mesa'}
-            responsable: {type: string, description: 'Nombre del responsable de la mesa'}
             acta_coe_resolucion_mesa_estado_id: {type: integer, description: 'ID del estado de la resolución de la mesa'}
             activo: {type: boolean, description: 'Indica si el registro está activo'}
             creador: {type: string, description: 'Usuario que creó el registro'}
@@ -231,7 +222,6 @@ def get_acta_coe_resolucion_mesa(id):
         'id': item.id,
         'acta_coe_resolucion_id': item.acta_coe_resolucion_id,
         'mesa_id': item.mesa_id,
-        'responsable': item.responsable,
         'acta_coe_resolucion_mesa_estado_id': item.acta_coe_resolucion_mesa_estado_id,
         'activo': item.activo,
         'creador': item.creador,
@@ -263,7 +253,6 @@ def update_acta_coe_resolucion_mesa(id):
             acta_coe_resolucion_id: {type: integer}
             mesa_id: {type: integer}
             fecha_cumplimiento: {type: string}
-            responsable: {type: string}
             acta_coe_resolucion_mesa_estado_id: {type: integer}
             activo: {type: boolean}
     responses:
@@ -279,7 +268,6 @@ def update_acta_coe_resolucion_mesa(id):
         UPDATE acta_coe_resolucion_mesas
         SET acta_coe_resolucion_id = :acta_coe_resolucion_id,
             mesa_id = :mesa_id,
-            responsable = :responsable,
             acta_coe_resolucion_mesa_estado_id = :acta_coe_resolucion_mesa_estado_id,
             activo = :activo,
             modificador = :modificador,
@@ -291,7 +279,6 @@ def update_acta_coe_resolucion_mesa(id):
         'id': id,
         'acta_coe_resolucion_id': data.get('acta_coe_resolucion_id'),
         'mesa_id': data.get('mesa_id'),
-        'responsable': data.get('responsable'),
         'acta_coe_resolucion_mesa_estado_id': data.get('acta_coe_resolucion_mesa_estado_id'),
         'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
@@ -315,7 +302,6 @@ def update_acta_coe_resolucion_mesa(id):
         'id': item.id,
         'acta_coe_resolucion_id': item.acta_coe_resolucion_id,
         'mesa_id': item.mesa_id,
-        'responsable': item.responsable,
         'acta_coe_resolucion_mesa_estado_id': item.acta_coe_resolucion_mesa_estado_id,
         'activo': item.activo,
         'creador': item.creador,
