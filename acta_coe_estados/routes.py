@@ -26,7 +26,7 @@ def get_acta_coe_estados():
                 modificador: {type: string}
                 modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM coe_acta_estados"))
+    result = db.session.execute(db.text("SELECT * FROM acta_coe_estados"))
     acta_coe_estados = []
     for row in result:
         acta_coe_estados.append({  # type: ignore
@@ -80,7 +80,7 @@ def create_acta_coe_estado():
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        INSERT INTO coe_acta_estados (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
+        INSERT INTO acta_coe_estados (nombre, descripcion, activo, creador, creacion, modificador, modificacion)
         VALUES (:nombre, :descripcion, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
@@ -103,7 +103,7 @@ def create_acta_coe_estado():
     db.session.commit()
 
     acta_coe_estado = db.session.execute(
-        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
+        db.text("SELECT * FROM acta_coe_estados WHERE id = :id"),
         {'id': acta_coe_estado_id}
     ).fetchone()
 
@@ -139,7 +139,7 @@ def get_acta_coe_estado(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
+        db.text("SELECT * FROM acta_coe_estados WHERE id = :id"),
         {'id': id}
     )
     acta_coe_estado = result.fetchone()
@@ -190,7 +190,7 @@ def update_acta_coe_estado(id):
     now = datetime.now(timezone.utc)
 
     query = db.text("""
-        UPDATE coe_acta_estados
+        UPDATE acta_coe_estados
         SET nombre = :nombre,
             descripcion = :descripcion,
             activo = :activo,
@@ -214,7 +214,7 @@ def update_acta_coe_estado(id):
     db.session.commit()
 
     acta_coe_estado = db.session.execute(
-        db.text("SELECT * FROM coe_acta_estados WHERE id = :id"),
+        db.text("SELECT * FROM acta_coe_estados WHERE id = :id"),
         {'id': id}
     ).fetchone()
 
@@ -250,7 +250,7 @@ def delete_acta_coe_estado(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("DELETE FROM coe_acta_estados WHERE id = :id"),
+        db.text("DELETE FROM acta_coe_estados WHERE id = :id"),
         {'id': id}
     )
 
