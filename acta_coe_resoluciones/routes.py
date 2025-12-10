@@ -71,7 +71,7 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
                 fecha_cumplimiento: {type: string, format: date-time, description: 'Fecha de cumplimiento de la resolución'}
                 acta_coe_resolucion_estado_id: {type: integer}
                 acta_coe_resolucion_estado_nombre: {type: string}
-                estado_descripcion: {type: string}
+                acta_coe_resolucion_estado_descripcion: {type: string}
                 activo: {type: boolean}
                 creador: {type: string}
                 creacion: {type: string}
@@ -79,7 +79,9 @@ def get_acta_coe_resoluciones_by_acta_coe(acta_coe_id):
                 modificacion: {type: string}
     """
     result = db.session.execute(db.text("""
-        SELECT r.*, e.nombre as estado_nombre, e.descripcion as estado_descripcion
+        SELECT r.*, 
+        e.nombre as acta_coe_resolucion_estado_nombre, 
+        e.descripcion as acta_coe_resolucion_estado_descripcion
         FROM acta_coe_resoluciones r
         LEFT JOIN acta_coe_resolucion_estados e ON r.acta_coe_resolucion_estado_id = e.id
         WHERE r.acta_coe_id = :acta_coe_id
