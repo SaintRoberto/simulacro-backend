@@ -78,8 +78,8 @@ def get_acciones_respuesta_by_usuario(usuario_id):
                ar.accion_respuesta_origen_id origen_id, o.nombre origen_nombre,
                ar.accion_respuesta_estado_id estado_id, e.nombre estado_nombre, ar.fecha_final
         FROM public.acciones_respuesta ar
-        INNER JOIN public.accion_respuesta_origenes o ON ar.accion_respuesta_origen_id = o.id
-        INNER JOIN public.accion_respuesta_estados e ON ar.accion_respuesta_estado_id = e.id
+        LEFT JOIN public.accion_respuesta_origenes o ON ar.accion_respuesta_origen_id = o.id
+        LEFT JOIN public.accion_respuesta_estados e ON ar.accion_respuesta_estado_id = e.id
         WHERE ar.usuario_id = :usuario_id
         ORDER BY ar.id ASC
     """)
