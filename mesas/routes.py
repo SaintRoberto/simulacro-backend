@@ -42,18 +42,15 @@ def get_mesas_by_coe(coe_id):
               type: object
               properties:
                 id: {type: integer}
-                nombre: {type: string}
-                siglas: {type: string}
-                tipo_id: {type: integer}
-                activo: {type: boolean}
-                creador: {type: string}
-                creacion: {type: string}
-                modificador: {type: string}
-                modificacion: {type: string}
+                mesa_nombre: {type: string}
+                mesa_siglas: {type: string}
+                grupo_mesa_nombre: {type: string}
+                grupo_mesa_abreviatura: {type: string}
     """
     query = db.text("""
-        SELECT m.id, m.nombre, m.siglas
+        SELECT m.id, m.nombre mesa_nombre, m.siglas mesa_siglas, g.nombre grupo_mesa_nombre, g.abreviatura grupo_mesa_abreviatura
         FROM mesas m
+        INNER JOIN public.mesa_grupos g ON m.mesa_grupo_id = g.id
         WHERE m.coe_id = :coe_id
     """)
     result = db.session.execute(query, {'coe_id': coe_id})
@@ -61,8 +58,10 @@ def get_mesas_by_coe(coe_id):
     for row in result:
         mesas.append({  # type: ignore
             'id': row.id,
-            'nombre': row.nombre,
-            'siglas': row.siglas
+            'mesa_nombre': row.mesa_nombre,
+            'mesa_siglas': row.mesa_siglas,
+            'grupo_mesa_nombre': row.grupo_mesa_nombre,
+            'grupo_mesa_abreviatura': row.grupo_mesa_abreviatura  
         })
     return jsonify(mesas)
 
