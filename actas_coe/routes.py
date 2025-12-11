@@ -291,13 +291,9 @@ def update_acta_coe(id):
 
     query = db.text("""
         UPDATE actas_coe
-        SET usuario_id = :usuario_id,
-            emergencia_id = :emergencia_id,
-            fecha_sesion = :fecha_sesion,
-            detalle = :detalle,
+        SET detalle = :detalle,
             fecha_finalizado = :fecha_finalizado,
             acta_coe_estado_id = :acta_coe_estado_id,
-            activo = :activo,
             modificador = :modificador,
             modificacion = :modificacion
         WHERE id = :id
@@ -305,13 +301,9 @@ def update_acta_coe(id):
 
     result = db.session.execute(query, {
         'id': id,
-        'usuario_id': data.get('usuario_id'),
-        'emergencia_id': data.get('emergencia_id'),
-        'fecha_sesion': data.get('fecha_sesion'),
         'detalle': data.get('detalle'),
         'fecha_finalizado': fecha_finalizado,
         'acta_coe_estado_id': acta_coe_estado_id,
-        'activo': data.get('activo'),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     })
@@ -331,13 +323,9 @@ def update_acta_coe(id):
 
     return jsonify({  # type: ignore
         'id': coe_acta.id,
-        'usuario_id': coe_acta.usuario_id,
-        'emergencia_id': coe_acta.emergencia_id,
-        'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
         'detalle': coe_acta.detalle,
         'fecha_finalizado': coe_acta.fecha_finalizado.isoformat() if getattr(coe_acta, 'fecha_finalizado', None) else None,
         'acta_coe_estado_id': getattr(coe_acta, 'acta_coe_estado_id', None),
-        'activo': coe_acta.activo,
         'creador': coe_acta.creador,
         'creacion': coe_acta.creacion.isoformat() if coe_acta.creacion else None,
         'modificador': coe_acta.modificador,
