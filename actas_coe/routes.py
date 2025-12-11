@@ -21,7 +21,6 @@ def get_actas_coe():
                 usuario_id: {type: integer}
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
-                hora_sesion: {type: string}
                 detalle: {type: string}
                 fecha_finalizado: {type: string}
                 acta_coe_estado_id: {type: integer}
@@ -39,7 +38,6 @@ def get_actas_coe():
             'usuario_id': row.usuario_id,
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
-            'hora_sesion': row.hora_sesion,
             'detalle': row.detalle,
             'fecha_finalizado': row.fecha_finalizado.isoformat() if getattr(row, 'fecha_finalizado', None) else None,
             'acta_coe_estado_id': getattr(row, 'acta_coe_estado_id', None),
@@ -78,7 +76,6 @@ def get_actas_coe_by_usuario_by_emergencia(usuario_id, emergencia_id):
                 usuario_id: {type: integer}
                 emergencia_id: {type: integer}
                 fecha_sesion: {type: string}
-                hora_sesion: {type: string}
                 detalle: {type: string}
                 fecha_finalizado: {type: string}
                 acta_coe_estado_id: {type: integer}
@@ -96,7 +93,6 @@ def get_actas_coe_by_usuario_by_emergencia(usuario_id, emergencia_id):
             'usuario_id': row.usuario_id,
             'emergencia_id': row.emergencia_id,
             'fecha_sesion': row.fecha_sesion.isoformat() if row.fecha_sesion else None,
-            'hora_sesion': row.hora_sesion,
             'detalle': row.detalle,
             'fecha_finalizado': row.fecha_finalizado.isoformat() if getattr(row, 'fecha_finalizado', None) else None,
             'acta_coe_estado_id': getattr(row, 'acta_coe_estado_id', None),
@@ -127,7 +123,6 @@ def create_acta_coe():
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
-            hora_sesion: {type: string}
             detalle: {type: string}
             acta_coe_estado_id: {type: integer}
             activo: {type: boolean}
@@ -142,7 +137,6 @@ def create_acta_coe():
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string}
-            hora_sesion: {type: string}
             detalle: {type: string}
             fecha_finalizado: {type: string}
             acta_coe_estado_id: {type: integer}
@@ -163,8 +157,8 @@ def create_acta_coe():
         fecha_finalizado = now
 
     query = db.text("""
-        INSERT INTO actas_coe (usuario_id, emergencia_id, fecha_sesion, hora_sesion, detalle, fecha_finalizado, acta_coe_estado_id, activo, creador, creacion, modificador, modificacion)
-        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :hora_sesion, :detalle, :fecha_finalizado, :acta_coe_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
+        INSERT INTO actas_coe (usuario_id, emergencia_id, fecha_sesion, detalle, fecha_finalizado, acta_coe_estado_id, activo, creador, creacion, modificador, modificacion)
+        VALUES (:usuario_id, :emergencia_id, :fecha_sesion, :detalle, :fecha_finalizado, :acta_coe_estado_id, :activo, :creador, :creacion, :modificador, :modificacion)
         RETURNING id
     """)
 
@@ -172,7 +166,6 @@ def create_acta_coe():
         'usuario_id': data['usuario_id'],
         'emergencia_id': data['emergencia_id'],
         'fecha_sesion': data.get('fecha_sesion'),
-        'hora_sesion': data.get('hora_sesion'),
         'detalle': data.get('detalle'),
         'fecha_finalizado': fecha_finalizado,
         'acta_coe_estado_id': acta_coe_estado_id,
@@ -204,7 +197,6 @@ def create_acta_coe():
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'detalle': coe_acta.detalle,
         'fecha_finalizado': coe_acta.fecha_finalizado.isoformat() if getattr(coe_acta, 'fecha_finalizado', None) else None,
         'acta_coe_estado_id': getattr(coe_acta, 'acta_coe_estado_id', None),
@@ -246,7 +238,6 @@ def get_acta_coe(id):
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'detalle': coe_acta.detalle,
         'fecha_finalizado': coe_acta.fecha_finalizado.isoformat() if getattr(coe_acta, 'fecha_finalizado', None) else None,
         'acta_coe_estado_id': getattr(coe_acta, 'acta_coe_estado_id', None),
@@ -279,7 +270,6 @@ def update_acta_coe(id):
             usuario_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_sesion: {type: string, format: date-time}
-            hora_sesion: {type: string}
             detalle: {type: string}
             acta_coe_estado_id: {type: integer}
             activo: {type: boolean}
@@ -304,7 +294,6 @@ def update_acta_coe(id):
         SET usuario_id = :usuario_id,
             emergencia_id = :emergencia_id,
             fecha_sesion = :fecha_sesion,
-            hora_sesion = :hora_sesion,
             detalle = :detalle,
             fecha_finalizado = :fecha_finalizado,
             acta_coe_estado_id = :acta_coe_estado_id,
@@ -319,7 +308,6 @@ def update_acta_coe(id):
         'usuario_id': data.get('usuario_id'),
         'emergencia_id': data.get('emergencia_id'),
         'fecha_sesion': data.get('fecha_sesion'),
-        'hora_sesion': data.get('hora_sesion'),
         'detalle': data.get('detalle'),
         'fecha_finalizado': fecha_finalizado,
         'acta_coe_estado_id': acta_coe_estado_id,
@@ -346,7 +334,6 @@ def update_acta_coe(id):
         'usuario_id': coe_acta.usuario_id,
         'emergencia_id': coe_acta.emergencia_id,
         'fecha_sesion': coe_acta.fecha_sesion.isoformat() if coe_acta.fecha_sesion else None,
-        'hora_sesion': coe_acta.hora_sesion,
         'detalle': coe_acta.detalle,
         'fecha_finalizado': coe_acta.fecha_finalizado.isoformat() if getattr(coe_acta, 'fecha_finalizado', None) else None,
         'acta_coe_estado_id': getattr(coe_acta, 'acta_coe_estado_id', None),

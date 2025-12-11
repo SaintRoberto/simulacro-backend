@@ -312,7 +312,6 @@ CREATE TABLE actas_coe (
     usuario_id INTEGER NOT NULL,
     emergencia_id INTEGER NOT NULL,
     fecha_sesion TIMESTAMP,
-    hora_sesion TEXT,
     activo BOOLEAN DEFAULT TRUE,
     creador VARCHAR(100),
     creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

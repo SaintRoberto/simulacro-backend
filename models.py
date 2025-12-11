@@ -437,7 +437,6 @@ class CoeActa(db.Model):
     usuario_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=False)
     emergencia_id = db.Column(db.Integer, db.ForeignKey('emergencias.id'), nullable=False)
     fecha_sesion = db.Column(db.DateTime)
-    hora_sesion = db.Column(db.Text)
     activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.String(100))
     creacion = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
@@ -454,7 +453,6 @@ class CoeActa(db.Model):
             'usuario_id': self.usuario_id,
             'emergencia_id': self.emergencia_id,
             'fecha_sesion': self.fecha_sesion.isoformat() if self.fecha_sesion else None,
-            'hora_sesion': self.hora_sesion,
             'activo': self.activo,
             'creador': self.creador,
             'creacion': self.creacion.isoformat() if self.creacion else None,
