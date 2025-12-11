@@ -46,6 +46,11 @@ def get_mesas_by_coe(coe_id):
                 mesa_siglas: {type: string}
                 grupo_mesa_nombre: {type: string}
                 grupo_mesa_abreviatura: {type: string}
+                activo: {type: boolean}
+                creador: {type: string}
+                creacion: {type: string}
+                modificador: {type: string}
+                modificacion: {type: string}                
     """
     query = db.text("""
         SELECT m.id, m.nombre mesa_nombre, m.siglas mesa_siglas, g.nombre grupo_mesa_nombre, g.abreviatura grupo_mesa_abreviatura
