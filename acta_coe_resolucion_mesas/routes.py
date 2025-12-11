@@ -67,6 +67,8 @@ def get_acta_coe_resolucion_mesas_by_resolucion(acta_coe_resolucion_id):
               id: {type: integer}
               acta_coe_resolucion_id: {type: integer}
               mesa_id: {type: integer}
+              mesa_nombre: {type: string}
+              mesa_abreviatura: {type: string}
               acta_coe_resolucion_mesa_estado_id: {type: integer}
               activo: {type: boolean}
               creador: {type: string}
@@ -75,7 +77,7 @@ def get_acta_coe_resolucion_mesas_by_resolucion(acta_coe_resolucion_id):
               modificacion: {type: string}
     """
     result = db.session.execute(
-        db.text("SELECT * FROM acta_coe_resolucion_mesas WHERE acta_coe_resolucion_id = :acta_coe_resolucion_id"),
+        db.text("SELECT rm.*, g.nombre mesa_nombre, g.abreviatura mesa_abreviatura FROM acta_coe_resolucion_mesas rm INNER JOIN public.mesas m ON rm.mesa_id = m.id INNER JOIN public.mesa_grupos g ON m.mesa_grupo_id = g.id WHERE rm.acta_coe_resolucion_id = :acta_coe_resolucion_id"),
         {'acta_coe_resolucion_id': acta_coe_resolucion_id}
     )
     items = []
@@ -84,6 +86,8 @@ def get_acta_coe_resolucion_mesas_by_resolucion(acta_coe_resolucion_id):
             'id': row.id,
             'acta_coe_resolucion_id': row.acta_coe_resolucion_id,
             'mesa_id': row.mesa_id,
+            'mesa_nombre': row.mesa_nombre,
+            'mesa_abreviatura': row.mesa_abreviatura,
             'acta_coe_resolucion_mesa_estado_id': row.acta_coe_resolucion_mesa_estado_id,
             'activo': row.activo,
             'creador': row.creador,
