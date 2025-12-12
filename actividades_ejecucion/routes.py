@@ -30,20 +30,67 @@ def get_actividades_ejecucion():
               id: {type: integer, description: 'ID único de la actividad de ejecución'}
               accion_respuesta_id: {type: integer, description: 'ID de la acción de respuesta relacionada'}
               actividad_ejecucion_funcion_id: {type: integer, description: 'ID de la función de ejecución'}
+              funcion_descripcion: {type: string, description: 'Nombre de la funcion a ejecutar'}
+              funcion_linea_accion: {type: string, description: 'Nombre de la linea de ejecucion de la funcion a ejecutar'}
               institucion_ejecutora_id: {type: integer, description: 'ID de la institución ejecutora'}
+              institucion_ejecutora_nombre: {type: string, description: 'Nombre de la institución ejecutora'}
+              institucion_ejecutora_siglas: {type: string, description: 'Siglas de la institución ejecutora'}
               fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
               porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
+              porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
               fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
               actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
+              actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
               detalle: {type: string, description: 'Detalle descriptivo de la actividad', nullable: true}
-              activo: {type: boolean, description: 'Indica si el registro está activo'}
-              creador: {type: string, description: 'Usuario que creó el registro', nullable: true}
-              creacion: {type: string, format: date-time, description: 'Fecha de creación del registro'}
-              modificador: {type: string, description: 'Usuario que modificó por última vez el registro', nullable: true}
-              modificacion: {type: string, format: date-time, nullable: true, description: 'Fecha de la última modificación'}
     """
-    actividades = ActividadEjecucion.query.filter_by(activo=True).all()
-    return jsonify([actividad.to_dict() for actividad in actividades])
+    query = """
+          SELECT 
+              ae.id, 
+              ae.accion_respuesta_id,
+              ae.actividad_ejecucion_funcion_id,
+              f.descripcion as funcion_descripcion,
+              f.linea_accion as funcion_linea_accion,
+              ae.institucion_ejecutora_id,
+              i.nombre as institucion_ejecutora_nombre,
+              i.siglas as institucion_ejecutora_siglas,
+              ae.fecha_inicio, 
+              ae.porcentaje_avance_id, p.nombre as porcentaje_avance,
+              ae.fecha_final,
+              ae.actividad_ejecucion_estado_id,
+              e.nombre as actividad_ejecucion_estado,
+      			  ae.detalle
+          FROM actividades_ejecucion ae
+          LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
+          LEFT JOIN actividad_ejecucion_estados e ON ae.actividad_ejecucion_estado_id = e.id
+          LEFT JOIN respuesta_avances p ON ae.porcentaje_avance_id = p.id
+		      LEFT JOIN actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
+          WHERE ae.activo = true
+          ORDER BY ae.fecha_inicio DESC
+    """
+    result = db.session.execute(db.text(query))
+    items = []
+    for row in result:
+        item = _row_to_dict(row)
+        # Format the response to match the expected schema
+        response_item = {
+            'id': item.get('id'),
+            'accion_respuesta_id': item.get('accion_respuesta_id'),
+            'actividad_ejecucion_funcion_id': item.get('actividad_ejecucion_funcion_id'),
+            'funcion_descripcion': item.get('funcion_descripcion'),
+            'funcion_linea_accion': item.get('funcion_linea_accion'),
+            'institucion_ejecutora_id': item.get('institucion_ejecutora_id'),
+            'institucion_ejecutora_nombre': item.get('institucion_ejecutora_nombre'),
+            'institucion_ejecutora_siglas': item.get('institucion_ejecutora_siglas'),
+            'fecha_inicio': item.get('fecha_inicio'),
+            'porcentaje_avance_id': item.get('porcentaje_avance_id'),
+            'porcentaje_avance': item.get('porcentaje_avance'),
+            'fecha_final': item.get('fecha_final'),
+            'actividad_ejecucion_estado_id': item.get('actividad_ejecucion_estado_id'),
+            'actividad_ejecucion_estado': item.get('actividad_ejecucion_estado'),
+            'detalle': item.get('detalle')
+        }
+        items.append(response_item)
+    return jsonify(items)
 
 @actividades_ejecucion_bp.route('/api/actividades_ejecucion/accion_respuesta/<int:accion_respuesta_id>', methods=['GET'])
 def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
@@ -65,29 +112,43 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
           items:
             type: object
             properties:
-              id: {type: integer, description: 'ID único de la actividad'}
-              accion_respuesta_id: {type: integer, description: 'ID de la acción de respuesta'}
+              id: {type: integer, description: 'ID único de la actividad de ejecución'}
+              accion_respuesta_id: {type: integer, description: 'ID de la acción de respuesta relacionada'}
               actividad_ejecucion_funcion_id: {type: integer, description: 'ID de la función de ejecución'}
+              funcion_descripcion: {type: string, description: 'Nombre de la funcion a ejecutar'}
+              funcion_linea_accion: {type: string, description: 'Nombre de la linea de ejecucion de la funcion a ejecutar'}
               institucion_ejecutora_id: {type: integer, description: 'ID de la institución ejecutora'}
               institucion_ejecutora_nombre: {type: string, description: 'Nombre de la institución ejecutora'}
               institucion_ejecutora_siglas: {type: string, description: 'Siglas de la institución ejecutora'}
               fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
               porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
+              porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
               fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
               actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
               actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
               detalle: {type: string, description: 'Detalle descriptivo de la actividad', nullable: true}
-              activo: {type: boolean, description: 'Indica si el registro está activo'}
     """
     query = """
         SELECT 
-            ae.*,
+            ae.id, 
+            ae.accion_respuesta_id,
+            ae.actividad_ejecucion_funcion_id,
+            f.descripcion as funcion_descripcion,
+            f.linea_accion as funcion_linea_accion,
+            ae.institucion_ejecutora_id,
             i.nombre as institucion_ejecutora_nombre,
             i.siglas as institucion_ejecutora_siglas,
-            e.nombre as actividad_ejecucion_estado
+            ae.fecha_inicio, 
+            ae.porcentaje_avance_id, p.nombre as porcentaje_avance,
+            ae.fecha_final,
+            ae.actividad_ejecucion_estado_id,
+            e.nombre as actividad_ejecucion_estado,
+            ae.detalle
         FROM actividades_ejecucion ae
         LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
-        LEFT JOIN estados e ON ae.actividad_ejecucion_estado_id = e.id
+        LEFT JOIN actividad_ejecucion_estados e ON ae.actividad_ejecucion_estado_id = e.id
+        LEFT JOIN respuesta_avances p ON ae.porcentaje_avance_id = p.id
+        LEFT JOIN actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
         WHERE ae.accion_respuesta_id = :accion_respuesta_id
         AND ae.activo = true
         ORDER BY ae.fecha_inicio DESC
@@ -96,12 +157,24 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
     items = []
     for row in result:
         item = _row_to_dict(row)
-        # Remove raw database fields that are not needed in the response
-        item.pop('creador', None)
-        item.pop('creacion', None)
-        item.pop('modificador', None)
-        item.pop('modificacion', None)
-        items.append(item)
+        response_item = {
+            'id': item.get('id'),
+            'accion_respuesta_id': item.get('accion_respuesta_id'),
+            'actividad_ejecucion_funcion_id': item.get('actividad_ejecucion_funcion_id'),
+            'funcion_descripcion': item.get('funcion_descripcion'),
+            'funcion_linea_accion': item.get('funcion_linea_accion'),
+            'institucion_ejecutora_id': item.get('institucion_ejecutora_id'),
+            'institucion_ejecutora_nombre': item.get('institucion_ejecutora_nombre'),
+            'institucion_ejecutora_siglas': item.get('institucion_ejecutora_siglas'),
+            'fecha_inicio': item.get('fecha_inicio'),
+            'porcentaje_avance_id': item.get('porcentaje_avance_id'),
+            'porcentaje_avance': item.get('porcentaje_avance'),
+            'fecha_final': item.get('fecha_final'),
+            'actividad_ejecucion_estado_id': item.get('actividad_ejecucion_estado_id'),
+            'actividad_ejecucion_estado': item.get('actividad_ejecucion_estado'),
+            'detalle': item.get('detalle')
+        }
+        items.append(response_item)
     return jsonify(items)
 
 @actividades_ejecucion_bp.route('/api/actividades_ejecucion', methods=['POST'])
@@ -181,7 +254,8 @@ def create_actividad_ejecucion():
         'actividad_ejecucion_funcion_id', 
         'institucion_ejecutora_id', 
         'fecha_inicio',
-        'actividad_ejecucion_estado_id'
+        'actividad_ejecucion_estado_id',
+        'detalle'
     ]
     
     missing_fields = [field for field in required_fields if field not in data]
@@ -194,16 +268,16 @@ def create_actividad_ejecucion():
     try:
         # Crear nueva actividad de ejecución
         actividad = ActividadEjecucion(
-            accion_respuesta_id=data['accion_respuesta_id'],
-            actividad_ejecucion_funcion_id=data['actividad_ejecucion_funcion_id'],
-            institucion_ejecutora_id=data['institucion_ejecutora_id'],
-            fecha_inicio=datetime.fromisoformat(data['fecha_inicio']),
-            porcentaje_avance_id=data.get('porcentaje_avance_id', 0),
-            fecha_final=datetime.fromisoformat(data['fecha_final']) if data.get('fecha_final') else None,
-            actividad_ejecucion_estado_id=data['actividad_ejecucion_estado_id'],
-            detalle=data.get('detalle'),
-            creador=data.get('creador', 'Sistema'),
-            activo=True
+          accion_respuesta_id=data['accion_respuesta_id'],
+          actividad_ejecucion_funcion_id=data['actividad_ejecucion_funcion_id'],
+          institucion_ejecutora_id=data['institucion_ejecutora_id'],
+          fecha_inicio=datetime.fromisoformat(data['fecha_inicio']),
+          porcentaje_avance_id=data.get('porcentaje_avance_id', 0),
+          fecha_final=datetime.fromisoformat(data['fecha_final']) if data.get('fecha_final') else None,
+          actividad_ejecucion_estado_id=data['actividad_ejecucion_estado_id'],
+          detalle=data.get('detalle'),
+          creador=data.get('creador', 'Sistema'),
+          activo=True
         )
         
         db.session.add(actividad)
@@ -239,46 +313,53 @@ def get_actividad_ejecucion(id):
         schema:
           type: object
           properties:
-            id: {type: integer, description: 'ID único de la actividad'}
-            accion_respuesta_id: {type: integer, description: 'ID de la acción de respuesta relacionada'}
-            actividad_ejecucion_funcion_id: {type: integer, description: 'ID de la función de ejecución'}
-            institucion_ejecutora_id: {type: integer, description: 'ID de la institución ejecutora'}
-            institucion_ejecutora_nombre: {type: string, description: 'Nombre de la institución ejecutora'}
-            fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
-            porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
-            fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
-            actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
-            actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
-            detalle: {type: string, description: 'Detalle descriptivo de la actividad', nullable: true}
-            activo: {type: boolean, description: 'Indica si el registro está activo'}
-            creador: {type: string, description: 'Usuario que creó el registro', nullable: true}
-            creacion: {type: string, format: date-time, description: 'Fecha de creación del registro'}
-            modificador: {type: string, description: 'Usuario que modificó por última vez el registro', nullable: true}
-            modificacion: {type: string, format: date-time, nullable: true, description: 'Fecha de la última modificación'}
-      404:
-        description: La actividad de ejecución no fue encontrada
-      500:
-        description: Error interno del servidor
+              id: {type: integer, description: 'ID único de la actividad de ejecución'}
+              accion_respuesta_id: {type: integer, description: 'ID de la acción de respuesta relacionada'}
+              actividad_ejecucion_funcion_id: {type: integer, description: 'ID de la función de ejecución'}
+              funcion_descripcion: {type: string, description: 'Nombre de la funcion a ejecutar'}
+              funcion_linea_accion: {type: string, description: 'Nombre de la linea de ejecucion de la funcion a ejecutar'}
+              institucion_ejecutora_id: {type: integer, description: 'ID de la institución ejecutora'}
+              institucion_ejecutora_nombre: {type: string, description: 'Nombre de la institución ejecutora'}
+              institucion_ejecutora_siglas: {type: string, description: 'Siglas de la institución ejecutora'}
+              fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
+              porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
+              porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
+              fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
+              actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
+              actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
+              detalle: {type: string, description: 'Detalle descriptivo de la actividad', nullable: true}
     """
     try:
+        # Query to get the actividad_ejecucion with related data
         query = """
             SELECT 
                 ae.*,
+                aef.descripcion as funcion_descripcion,
+                aef.linea_accion as funcion_linea_accion,
                 i.nombre as institucion_ejecutora_nombre,
-                e.nombre as actividad_ejecucion_estado
-            FROM actividades_ejecucion ae
-            LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
-            LEFT JOIN estados e ON ae.actividad_ejecucion_estado_id = e.id
-            WHERE ae.id = :id AND ae.activo = true
+                i.siglas as institucion_ejecutora_siglas,
+                pa.descripcion as porcentaje_avance,
+                aee.descripcion as actividad_ejecucion_estado
+            FROM 
+                actividades_ejecucion ae
+                LEFT JOIN actividad_ejecucion_funciones aef ON ae.actividad_ejecucion_funcion_id = aef.id
+                LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
+                LEFT JOIN porcentajes_avance pa ON ae.porcentaje_avance_id = pa.id
+                LEFT JOIN actividad_ejecucion_estados aee ON ae.actividad_ejecucion_estado_id = aee.id
+            WHERE 
+                ae.id = %s
         """
-        result = db.session.execute(db.text(query), {'id': id}).fetchone()
+        
+        result = db.session.execute(query, (id,)).fetchone()
         
         if not result:
-            return jsonify({'error': 'Actividad de ejecución no encontrada'}), 404
-        
+            return jsonify({'message': 'Actividad de ejecución no encontrada'}), 404
+            
         return jsonify(_row_to_dict(result))
+        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'message': f'Error al obtener la actividad de ejecución: {str(e)}'}), 500
+
 
 @actividades_ejecucion_bp.route('/api/actividades_ejecucion/<int:id>', methods=['PUT'])
 def update_actividad_ejecucion(id):
@@ -316,20 +397,21 @@ def update_actividad_ejecucion(id):
               description: Fecha de inicio de la actividad
             porcentaje_avance_id: 
               type: integer
-              description: ID del porcentaje de avance
+              description: ID del porcentaje de avance (opcional, por defecto 0)
+              default: 0
             fecha_final: 
               type: string
               format: date-time
-              description: Fecha de finalización de la actividad
+              description: Fecha de finalización de la actividad (opcional)
             actividad_ejecucion_estado_id: 
               type: integer
               description: ID del estado de la actividad
             detalle: 
               type: string
-              description: Detalle descriptivo de la actividad
+              description: Detalle descriptivo de la actividad (opcional)
             activo: 
               type: boolean
-              description: Indica si la actividad está activa
+              description: Indica si la actividad está activa (opcional)
             modificador: 
               type: string
               description: Usuario que realiza la modificación
@@ -353,46 +435,59 @@ def update_actividad_ejecucion(id):
         description: Error interno del servidor
     """
     data = request.get_json()
-    
-    # Verificar si la actividad existe
-    actividad = ActividadEjecucion.query.filter_by(id=id, activo=True).first()
-    if not actividad:
-        return jsonify({'error': 'Actividad de ejecución no encontrada'}), 404
-    
     try:
-        # Actualizar campos permitidos
-        field_mapping = {
-            'accion_respuesta_id': 'accion_respuesta_id',
-            'actividad_ejecucion_funcion_id': 'actividad_ejecucion_funcion_id',
-            'institucion_ejecutora_id': 'institucion_ejecutora_id',
-            'porcentaje_avance_id': 'porcentaje_avance_id',
-            'actividad_ejecucion_estado_id': 'actividad_ejecucion_estado_id',
-            'detalle': 'detalle',
-            'activo': 'activo',
-            'modificador': 'modificador'
-        }
-        
-        for json_field, model_field in field_mapping.items():
-            if json_field in data:
-                setattr(actividad, model_field, data[json_field])
-        
-        # Manejo especial para fechas
+        query = """
+            SELECT * FROM actividades_ejecucion 
+            WHERE id = :id AND activo = true
+        """
+        result = db.session.execute(db.text(query), {'id': id}).fetchone()
+        if not result:
+            return jsonify({'error': 'Actividad de ejecución no encontrada'}), 404
+        update_fields = []
+        params = {'id': id}
+        allowed_fields = [
+            'accion_respuesta_id',
+            'actividad_ejecucion_funcion_id',
+            'institucion_ejecutora_id',
+            'porcentaje_avance_id',
+            'actividad_ejecucion_estado_id',
+            'detalle',
+            'activo',
+            'modificador'
+        ]
+        for field in allowed_fields:
+            if field in data:
+                update_fields.append(f"{field} = :{field}")
+                params[field] = data[field]
         if 'fecha_inicio' in data:
-            actividad.fecha_inicio = datetime.fromisoformat(data['fecha_inicio'])
-            
+            update_fields.append("fecha_inicio = :fecha_inicio")
+            params['fecha_inicio'] = datetime.fromisoformat(data['fecha_inicio'])
         if 'fecha_final' in data:
-            actividad.fecha_final = datetime.fromisoformat(data['fecha_final']) if data['fecha_final'] else None
-        
-        # Actualizar la fecha de modificación
-        actividad.modificacion = datetime.now(timezone.utc)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'id': actividad.id,
-            'message': 'Actividad de ejecución actualizada exitosamente'
-        })
-        
+            if data['fecha_final']:
+                update_fields.append("fecha_final = :fecha_final")
+                params['fecha_final'] = datetime.fromisoformat(data['fecha_final'])
+            else:
+                update_fields.append("fecha_final = NULL")
+        update_fields.append("modificacion = :modificacion")
+        params['modificacion'] = datetime.now(timezone.utc)
+        if update_fields:
+            update_query = f"""
+                UPDATE actividades_ejecucion 
+                SET {', '.join(update_fields)}
+                WHERE id = :id
+                RETURNING id
+            """
+            result = db.session.execute(db.text(update_query), params).fetchone()
+            db.session.commit()
+            return jsonify({
+                'id': result.id,
+                'message': 'Actividad de ejecución actualizada exitosamente'
+            })
+        else:
+            return jsonify({
+                'id': id,
+                'message': 'No se especificaron campos para actualizar'
+            })
     except Exception as e:
         db.session.rollback()
         return jsonify({
@@ -402,7 +497,7 @@ def update_actividad_ejecucion(id):
 
 @actividades_ejecucion_bp.route('/api/actividades_ejecucion/<int:id>', methods=['DELETE'])
 def delete_actividad_ejecucion(id):
-    """Eliminar actividad de ejecución
+    """Eliminar una actividad de ejecución
     ---
     tags:
       - Actividades Ejecucion
@@ -411,14 +506,43 @@ def delete_actividad_ejecucion(id):
         in: path
         type: integer
         required: true
+        description: ID de la actividad de ejecución a eliminar
     responses:
       200:
-        description: Eliminado
+        description: Actividad de ejecución eliminada exitosamente
       404:
-        description: No encontrado
+        description: La actividad de ejecución no fue encontrada
+      500:
+        description: Error interno del servidor
     """
-    result = db.session.execute(db.text("DELETE FROM actividades_ejecucion WHERE id = :id"), {'id': id})
-    if getattr(result, 'rowcount', 0) == 0:
-        return jsonify({'error': 'No encontrado'}), 404
-    db.session.commit()
-    return jsonify({'mensaje': 'Eliminado correctamente'})
+    try:
+        # Verificar si la actividad existe
+        check_query = "SELECT id FROM actividades_ejecucion WHERE id = :id AND activo = true"
+        result = db.session.execute(db.text(check_query), {'id': id}).fetchone()
+        
+        if not result:
+            return jsonify({'error': 'Actividad de ejecución no encontrada'}), 404
+        
+        # Realizar eliminación lógica (marcar como inactivo)
+        delete_query = """
+            UPDATE actividades_ejecucion 
+            SET activo = false, 
+                modificacion = :modificacion
+            WHERE id = :id
+            RETURNING id
+        """
+        
+        db.session.execute(
+            db.text(delete_query),
+            {'id': id, 'modificacion': datetime.now(timezone.utc)}
+        )
+        db.session.commit()
+        
+        return jsonify({'message': 'Actividad de ejecución eliminada exitosamente'})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'error': 'Error al eliminar la actividad de ejecución',
+            'details': str(e)
+        }), 500
