@@ -2,6 +2,7 @@ from flask import request, jsonify
 from acta_coe_resolucion_mesas import acta_coe_resolucion_mesas_bp
 from models import db
 from datetime import datetime, timezone
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 
 @acta_coe_resolucion_mesas_bp.route('/api/acta_coe_resolucion_mesas', methods=['GET'])
@@ -342,3 +343,80 @@ def delete_acta_coe_resolucion_mesa(id):
 
     db.session.commit()
     return jsonify({'mensaje': 'Acta COE resolucion mesa eliminada correctamente'})
+
+@acta_coe_resolucion_mesas_bp.route('/api/acta_coe_resolucion_mesas/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/mesa/<int:mesa_id>', methods=['GET'])
+@jwt_required()
+def get_usuario_by_resolucion_mesa(coe_id, provincia_id, canton_id, mesa_id):
+    """Obtener usuario por COE, provincia, cantón y mesa
+    ---
+    tags:
+      - Acta Coe Resolucion Mesas
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+        description: ID del COE
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la provincia
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+        description: ID del cantón
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la mesa seleccionada en la resolución
+    security:
+      - Bearer: []
+    responses:
+      200:
+        description: ID del usuario encontrado
+        schema:
+          type: object
+          properties:
+            usuario_id: {type: integer, description: 'ID del usuario encontrado'}
+      400:
+        description: Datos de usuario inválidos
+      404:
+        description: No se encontró un usuario con los parámetros dados
+      500:
+        description: Error interno del servidor
+    """
+    try:
+        # Buscar el usuario para los parámetros dados
+        query = """
+            SELECT usuario_id
+            FROM public.usuario_perfil_coe_dpa_mesa
+            WHERE coe_id = :coe_id 
+            AND provincia_id = :provincia_id 
+            AND canton_id = :canton_id 
+            AND mesa_id = :mesa_id
+            LIMIT 1
+        """
+        
+        result = db.session.execute(
+            db.text(query),
+            {
+                'coe_id': coe_id,
+                'provincia_id': provincia_id,
+                'canton_id': canton_id,
+                'mesa_id': mesa_id
+            }
+        ).fetchone()
+        
+        if not result:
+            return jsonify({'error': 'No se encontró un usuario para los parámetros dados'}), 404
+            
+        return jsonify({'usuario_id': result[0]})
+        
+    except Exception as e:
+        return jsonify({
+            'error': 'Error al buscar el usuario',
+            'details': str(e)
+        }), 500
