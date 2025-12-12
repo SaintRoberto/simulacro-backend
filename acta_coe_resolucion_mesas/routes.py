@@ -2,8 +2,6 @@ from flask import request, jsonify
 from acta_coe_resolucion_mesas import acta_coe_resolucion_mesas_bp
 from models import db
 from datetime import datetime, timezone
-from flask_jwt_extended import jwt_required, get_jwt_identity
-
 
 @acta_coe_resolucion_mesas_bp.route('/api/acta_coe_resolucion_mesas', methods=['GET'])
 def get_acta_coe_resolucion_mesas():
