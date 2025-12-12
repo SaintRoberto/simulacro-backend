@@ -345,8 +345,7 @@ def delete_acta_coe_resolucion_mesa(id):
     return jsonify({'mensaje': 'Acta COE resolucion mesa eliminada correctamente'})
 
 @acta_coe_resolucion_mesas_bp.route('/api/acta_coe_resolucion_mesas/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/mesa/<int:mesa_id>', methods=['GET'])
-@jwt_required()
-def get_usuario_by_resolucion_mesa(coe_id, provincia_id, canton_id, mesa_id):
+def get_usuario_by_acta_coe_resolucion_mesa(coe_id, provincia_id, canton_id, mesa_id):
     """Obtener usuario por COE, provincia, cantón y mesa
     ---
     tags:
