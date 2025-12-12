@@ -506,7 +506,7 @@ class ResolucionEstado(db.Model):
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
 
-class CoeActaResolucion(db.Model):
+class ActaCoeResolucion(db.Model):
     __tablename__ = 'acta_coe_resoluciones'
     id = db.Column(db.Integer, primary_key=True)
     acta_coe_id = db.Column(db.Integer, db.ForeignKey('actas_coe.id'), nullable=False)
