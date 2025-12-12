@@ -135,8 +135,9 @@ def get_actividad_ejecucion_funcion_by_coe_by_mesa(coe_id, mesa_id):
         query = """
             SELECT f.id, f.linea_accion || ' - ' || f.descripcion as descripcion 
             FROM public.actividad_ejecucion_funciones f
+			      INNER JOIN public.mesas m ON f.mesa_grupo_id = m.mesa_grupo_id
             WHERE f.coe_id = :coe_id 
-            AND f.mesa_id = :mesa_id
+            AND m.id = :mesa_id
             AND f.activo = true
             ORDER BY f.id ASC
         """
