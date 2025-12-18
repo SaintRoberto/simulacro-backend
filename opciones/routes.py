@@ -53,6 +53,7 @@ def get_opciones_by_usuario_by_menu(perfil_id, coe_id, mesa_id, menu_id):
           AND pcmmo.mesa_id = :mesa_id
           AND pcmmo.menu_id = :menu_id
           AND o.activo = true
+          AND pcmmo.activo = true
         ORDER BY o.id;
     """)
     
