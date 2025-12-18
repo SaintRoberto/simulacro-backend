@@ -538,7 +538,6 @@ class ActaCoeResolucion(db.Model):
             'modificacion': self.modificacion.isoformat() if self.modificacion else None
         }
 
-
 class ActaCoeResolucionMesa(db.Model):
     __tablename__ = 'acta_coe_resolucion_mesas'
     id = db.Column(db.Integer, primary_key=True)

@@ -2,6 +2,83 @@ from flask import request, jsonify
 from opciones import opciones_bp
 from models import db
 from datetime import datetime, timezone
+
+@opciones_bp.route('/api/opciones/usuario/<int:perfil_id>/coe/<int:coe_id>/mesa/<int:mesa_id>/menu/<int:menu_id>', methods=['GET'])
+def get_opciones_by_usuario_by_menu(perfil_id, coe_id, mesa_id, menu_id):
+    """Obtener opciones visibles para un usuario según perfil, COE, mesa y menú.
+    ---
+    tags:
+      - Opciones
+    parameters:
+      - name: perfil_id
+        in: path
+        type: integer
+        required: true
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+      - name: menu_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de opciones autorizadas para el usuario en el menú especificado
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+              abreviatura: {type: string}
+              ruta: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
+    query = db.text("""
+        SELECT DISTINCT o.* 
+        FROM opciones o
+        INNER JOIN perfil_coe_mesa_menu_opcion pcmmo ON o.id = pcmmo.opcion_id
+        WHERE pcmmo.perfil_id = :perfil_id 
+          AND pcmmo.coe_id = :coe_id 
+          AND pcmmo.mesa_id = :mesa_id
+          AND pcmmo.menu_id = :menu_id
+          AND o.activo = true
+        ORDER BY o.id;
+    """)
+    
+    result = db.session.execute(query, {
+        'perfil_id': perfil_id,
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'menu_id': menu_id
+    })
+    
+    opciones = []
+    for row in result:
+        opciones.append({
+            'id': row.id,
+            'nombre': row.nombre,
+            'abreviatura': row.abreviatura,
+            'ruta': row.ruta,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    
+    return jsonify(opciones)
+
 @opciones_bp.route('/api/opciones', methods=['GET'])
 def get_opciones():
     result = db.session.execute(db.text("SELECT * FROM opciones"))
