@@ -58,7 +58,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
                 activo: {type: boolean}
     """
     # Construir la consulta base
-    query = """SELECT r.emergencia_id, r.id requerimiento_id, 
+    query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id, 
             r.usuario_emisor_id, ue.usuario usuario_emisor,
             r.usuario_receptor_id, ur.usuario usuario_receptor,
             r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo
@@ -71,7 +71,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
               ex.canton_id = sx.canton_id
         WHERE r.usuario_emisor_id = :usuario_emisor_id OR 
               (sx.perfil_id = :perfil_id AND 
-              sx.coe_id = :coe_id AND sx.provincia_id = :provincia_id AND 
+              sx.coe_id = :coe_id AND sx.usuario_id = :usuario_emisor_id AND sx.provincia_id = :provincia_id AND 
               sx.canton_id = :canton_id
               )
     """
