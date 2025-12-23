@@ -3,7 +3,9 @@ from requerimientos import requerimientos_bp
 from models import db
 from datetime import datetime, timezone
 
-@requerimientos_bp.route('/api/requerimientos/enviados/<int:usuario_emisor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
+
+
+@requerimientos_bp.route('/api/requerimientos/enviados/usuario/<int:usuario_emisor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
 def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_id, canton_id):
     """Listar requerimientos
     ---
@@ -16,24 +18,24 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         required: true
         description: ID del usuario emisor
       - name: perfil_id
-        in: query
+        in: path
         type: integer
-        required: false
+        required: true
         description: ID del perfil para filtrar
       - name: coe_id
-        in: query
+        in: path
         type: integer
-        required: false
+        required: true
         description: ID del COE para filtrar
       - name: provincia_id
-        in: query
+        in: path
         type: integer
-        required: false
+        required: true
         description: ID de la provincia para filtrar
       - name: canton_id
-        in: query
+        in: path
         type: integer
-        required: false
+        required: true
         description: ID del cantón para filtrar
     responses:
         200:
@@ -55,14 +57,8 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
                 requerimiento_estado_id: {type: integer}
                 activo: {type: boolean}
     """
-    # Obtener parámetros de consulta
-    perfil_id = request.args.get('perfil_id', type=int)
-    coe_id = request.args.get('coe_id', type=int)
-    provincia_id = request.args.get('provincia_id', type=int)
-    canton_id = request.args.get('canton_id', type=int)
-
     # Construir la consulta base
-    query = """SELECT  r.emergencia_id, r.id requerimiento_id, 
+    query = """SELECT r.emergencia_id, r.id requerimiento_id, 
             r.usuario_emisor_id, ue.usuario usuario_emisor,
             r.usuario_receptor_id, ur.usuario usuario_receptor,
             r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo
@@ -70,34 +66,24 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
         INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
         INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND ex.provincia_id = sx.provincia_id AND ex.canton_id = sx.canton_id
-        WHERE r.usuario_emisor_id = :usuario_emisor_id OR (sx.perfil_id = :perfil_id AND sx.coe_id = :coe_id AND sx.provincia_id = :provincia_id AND sx.canton_id = :canton_id)
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND 
+              ex.provincia_id = sx.provincia_id AND 
+              ex.canton_id = sx.canton_id
+        WHERE r.usuario_emisor_id = :usuario_emisor_id OR 
+              (sx.perfil_id = :perfil_id AND 
+              sx.coe_id = :coe_id AND sx.provincia_id = :provincia_id AND 
+              sx.canton_id = :canton_id
+              )
     """
 
-    # Parámetros iniciales
-    params = {'usuario_emisor_id': usuario_emisor_id}   
-    conditions = []
-
-    # Agregar condiciones de filtrado según los parámetros proporcionados
-    if perfil_id is not None:
-        conditions.append("ur.perfil_id = :perfil_id")
-        params['perfil_id'] = perfil_id
-    
-    if coe_id is not None:
-        conditions.append("e.coe_id = :coe_id")
-        params['coe_id'] = coe_id
-    
-    if provincia_id is not None:
-        conditions.append("u.provincia_id = :provincia_id")
-        params['provincia_id'] = provincia_id
-    
-    if canton_id is not None:
-        conditions.append("u.canton_id = :canton_id")
-        params['canton_id'] = canton_id
-
-    # Agregar condiciones a la consulta si existen
-    if conditions:
-        query += " AND " + " AND ".join(conditions)
+    # Parámetros
+    params = {
+        'usuario_emisor_id': usuario_emisor_id,
+        'perfil_id': perfil_id,
+        'coe_id': coe_id,
+        'provincia_id': provincia_id,
+        'canton_id': canton_id
+    }
 
     # Ordenar por fecha de creación descendente
     query += " ORDER BY r.creacion DESC"
