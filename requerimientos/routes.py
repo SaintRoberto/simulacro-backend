@@ -240,11 +240,7 @@ def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
                 creador: {type: string}
                 creacion: {type: string}
       """
-    params = {'usuario_receptor_id': usuario_receptor_id,
-              'perfil_id': perfil_id,
-              'coe_id': coe_id,
-              'provincia_id': provincia_id,
-              'canton_id': canton_id}
+    params = {'usuario_receptor_id': usuario_receptor_id}
 
     query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id,
         r.usuario_emisor_id, ue.usuario usuario_emisor,

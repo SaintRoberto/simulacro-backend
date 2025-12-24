@@ -225,7 +225,7 @@ def get_acta_coe(id):
           description: No encontrada
     """
     result = db.session.execute(
-        db.text("SELECT * FROM actas_coe WHERE id = :id"),
+        db.text("SELECT actas_coe.*, acta_coe_estados.nombre FROM actas_coe INNER JOIN acta_coe_estados ON actas_coe.acta_coe_estado_id = acta_coe_estados.id WHERE actas_coe.id = :id"),
         {'id': id}
     )
     coe_acta = result.fetchone()
@@ -241,6 +241,7 @@ def get_acta_coe(id):
         'detalle': coe_acta.detalle,
         'fecha_finalizado': coe_acta.fecha_finalizado.isoformat() if getattr(coe_acta, 'fecha_finalizado', None) else None,
         'acta_coe_estado_id': getattr(coe_acta, 'acta_coe_estado_id', None),
+        'acta_coe_estado_nombre': coe_acta.nombre,
         'activo': coe_acta.activo,
         'creador': coe_acta.creador,
         'creacion': coe_acta.creacion.isoformat() if coe_acta.creacion else None,
