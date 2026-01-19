@@ -169,7 +169,7 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
         CROSS JOIN afectacion_variables v
         INNER JOIN parroquias p ON e.parroquia_id = p.id
         INNER JOIN evento_tipos t ON e.evento_tipo_id = t.id
-        INNER JOIN evento_subtipos s ON e.evento_subtipo_id = s.id
+        LEFT JOIN evento_subtipos s ON e.evento_subtipo_id = s.id
         LEFT JOIN afectacion_variable_registros r ON e.id = r.evento_id
         AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
         INNER JOIN emergencia_parroquias x ON p.id = x.parroquia_id
