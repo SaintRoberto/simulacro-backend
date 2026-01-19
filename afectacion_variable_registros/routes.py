@@ -162,7 +162,7 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
     """
     query = db.text("""
         SELECT DISTINCT p.id AS parroquia_id, p.nombre AS parroquia_nombre, 
-        e.id evento_id, t.nombre || '/' || s.nombre evento_nombre,
+        e.id evento_id, CASE WHEN s.nombre IS NULL OR s.nombre = '' THEN t.nombre ELSE t.nombre || '/' || s.nombre END evento_nombre,
         v.id AS afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
         COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
         FROM public.eventos e
