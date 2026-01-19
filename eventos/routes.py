@@ -147,7 +147,7 @@ def get_eventos_by_emergencia(emergencia_id):
             INNER JOIN public.cantones c ON e.canton_id = c.id
             INNER JOIN public.parroquias q ON e.parroquia_id = q.id
             INNER JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
-            INNER JOIN public.evento_subtipos s ON e.evento_subtipo_id = s.id
+            LEFT JOIN public.evento_subtipos s ON e.evento_subtipo_id = s.id
             INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
             INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
             INNER JOIN public.evento_atencion_estados z ON e.evento_atencion_estado_id = z.id
