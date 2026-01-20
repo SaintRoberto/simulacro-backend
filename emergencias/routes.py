@@ -86,6 +86,8 @@ def get_emergencias_by_usuario(usuario):
     JOIN public.emergencias e ON e.id = eq.emergencia_id
     JOIN public.evento_tipos t ON e.evento_tipo_id = t.id
     WHERE u.usuario = :usuario
+      AND e.activo = true
+      AND (e.fecha_fin IS NULL OR e.fecha_fin >= now())
       AND (
          (x.provincia_id = 0 AND x.canton_id = 0)
       OR (x.provincia_id = q.provincia_id AND x.canton_id = 0)
