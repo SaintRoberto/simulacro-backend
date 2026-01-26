@@ -566,6 +566,12 @@ class ActaCoeResolucionMesa(db.Model):
         }
 
 class ActividadEjecucion(db.Model):
+    """Modelo de actividades de ejecución asociadas a una acción de respuesta.
+
+    Registra la institución ejecutora, la función de ejecución, el estado,
+    los porcentajes de avance y el rango de fechas de la actividad, además
+    de metadatos de auditoría (creador, fechas de creación y modificación).
+    """
     __tablename__ = 'actividades_ejecucion'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -576,6 +582,8 @@ class ActividadEjecucion(db.Model):
     porcentaje_avance_id = db.Column(db.Integer, nullable=False, default=0)
     actividad_ejecucion_estado_id = db.Column(db.Integer, nullable=False)
     fecha_inicio = db.Column(db.DateTime(timezone=True), nullable=False)
+    instituciones_apoyo = db.Column(db.Text)
+    ubicaciones_atendidas = db.Column(db.Text)
     fecha_final = db.Column(db.DateTime(timezone=True))
     activo = db.Column(db.Boolean, default=True)
     creador = db.Column(db.Text)
@@ -596,6 +604,8 @@ class ActividadEjecucion(db.Model):
             'detalle': self.detalle,
             'porcentaje_avance_id': self.porcentaje_avance_id,
             'actividad_ejecucion_estado_id': self.actividad_ejecucion_estado_id,
+            'instituciones_apoyo': self.instituciones_apoyo,
+            'ubicaciones_atendidas': self.ubicaciones_atendidas,
             'fecha_inicio': self.fecha_inicio.isoformat() if self.fecha_inicio else None,
             'fecha_final': self.fecha_final.isoformat() if self.fecha_final else None,
             'activo': self.activo,

@@ -38,6 +38,8 @@ def get_actividades_ejecucion():
               fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
               porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
               porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
+              instituciones_apoyo: {type: string, description: 'Instituciones de apoyo para la actividad', nullable: true}
+              ubicaciones_atendidas: {type: string, description: 'Ubicaciones atendidas por la actividad', nullable: true}
               fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
               actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
               actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
@@ -55,15 +57,17 @@ def get_actividades_ejecucion():
               i.siglas as institucion_ejecutora_siglas,
               ae.fecha_inicio, 
               ae.porcentaje_avance_id, p.nombre as porcentaje_avance,
+              ae.instituciones_apoyo,
+              ae.ubicaciones_atendidas,
               ae.fecha_final,
               ae.actividad_ejecucion_estado_id,
               e.nombre as actividad_ejecucion_estado,
-      			  ae.detalle
+              ae.detalle
           FROM actividades_ejecucion ae
           LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
           LEFT JOIN actividad_ejecucion_estados e ON ae.actividad_ejecucion_estado_id = e.id
           LEFT JOIN respuesta_avances p ON ae.porcentaje_avance_id = p.id
-		      LEFT JOIN actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
+          LEFT JOIN actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
           WHERE ae.activo = true
           ORDER BY ae.fecha_inicio DESC
     """
@@ -71,7 +75,6 @@ def get_actividades_ejecucion():
     items = []
     for row in result:
         item = _row_to_dict(row)
-        # Format the response to match the expected schema
         response_item = {
             'id': item.get('id'),
             'accion_respuesta_id': item.get('accion_respuesta_id'),
@@ -84,6 +87,8 @@ def get_actividades_ejecucion():
             'fecha_inicio': item.get('fecha_inicio'),
             'porcentaje_avance_id': item.get('porcentaje_avance_id'),
             'porcentaje_avance': item.get('porcentaje_avance'),
+            'instituciones_apoyo': item.get('instituciones_apoyo'),
+            'ubicaciones_atendidas': item.get('ubicaciones_atendidas'),
             'fecha_final': item.get('fecha_final'),
             'actividad_ejecucion_estado_id': item.get('actividad_ejecucion_estado_id'),
             'actividad_ejecucion_estado': item.get('actividad_ejecucion_estado'),
@@ -123,6 +128,8 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
               fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
               porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
               porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
+              instituciones_apoyo: {type: string, nullable: true, description: 'Instituciones de apoyo para la actividad'}
+              ubicaciones_atendidas: {type: string, nullable: true, description: 'Ubicaciones atendidas por la actividad'}
               fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
               actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
               actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
@@ -140,6 +147,8 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
             i.siglas as institucion_ejecutora_siglas,
             ae.fecha_inicio, 
             ae.porcentaje_avance_id, p.nombre as porcentaje_avance,
+            ae.instituciones_apoyo,
+            ae.ubicaciones_atendidas,
             ae.fecha_final,
             ae.actividad_ejecucion_estado_id,
             e.nombre as actividad_ejecucion_estado,
@@ -169,6 +178,8 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
             'fecha_inicio': item.get('fecha_inicio'),
             'porcentaje_avance_id': item.get('porcentaje_avance_id'),
             'porcentaje_avance': item.get('porcentaje_avance'),
+            'instituciones_apoyo': item.get('instituciones_apoyo'),
+            'ubicaciones_atendidas': item.get('ubicaciones_atendidas'),
             'fecha_final': item.get('fecha_final'),
             'actividad_ejecucion_estado_id': item.get('actividad_ejecucion_estado_id'),
             'actividad_ejecucion_estado': item.get('actividad_ejecucion_estado'),
@@ -177,7 +188,82 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
         items.append(response_item)
     return jsonify(items)
 
-@actividades_ejecucion_bp.route('/api/actividades_ejecucion', methods=['POST'])
+@actividades_ejecucion_bp.route('/api/actividades_ejecucion/coe/<int:coe_id>/mesa_grupo/<int:mesa_grupo_id>/accion_respuesta/<int:accion_respuesta_id>', methods=['GET'])
+def get_actividades_ejecucion_by_coe_mesa_grupo_accion_respuesta(coe_id, mesa_grupo_id, accion_respuesta_id):
+    """Listar actividades de ejecución por COE, mesa/grupo y acción de respuesta
+    ---
+    tags:
+      - Actividades Ejecucion
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+        description: ID del COE
+      - name: mesa_grupo_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la mesa o grupo de trabajo
+      - name: accion_respuesta_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la acción de respuesta
+    responses:
+      200:
+        description: Lista de funciones y actividades de ejecución para la combinación especificada
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              funcion_id: {type: integer, description: 'ID de la función de ejecución'}
+              descripcion: {type: string, description: 'Descripción de la función de ejecución'}
+              ejecucion_id: {type: integer, nullable: true, description: 'ID de la actividad de ejecución (si existe)'}
+              institucion_ejecutora_nombre: {type: string, nullable: true, description: 'Nombre de la institución ejecutora'}
+              fecha_inicio: {type: string, format: date-time, nullable: true, description: 'Fecha de inicio de la actividad'}
+              porcentaje_avance: {type: string, nullable: true, description: 'Nombre del porcentaje de avance'}
+              fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
+              estado_actividad: {type: string, nullable: true, description: 'Estado de la actividad de ejecución'}
+              instituciones_apoyo: {type: string, nullable: true, description: 'Instituciones de apoyo para la actividad'}
+              ubicaciones_atendidas: {type: string, nullable: true, description: 'Ubicaciones atendidas por la actividad'}
+    """
+    query = db.text("""
+        SELECT f.id funcion_id, f.descripcion, e.id ejecucion_id, i.nombre institucion_ejecutora_nombre, e.fecha_inicio,
+               a.nombre porcentaje_avance, e.fecha_final, s.nombre estado_actividad, e.instituciones_apoyo, e.ubicaciones_atendidas
+        FROM public.actividad_ejecucion_funciones f
+        LEFT JOIN public.actividades_ejecucion e ON f.id = e.actividad_ejecucion_funcion_id AND e.accion_respuesta_id = :accion_respuesta_id
+        LEFT JOIN public.instituciones i ON e.institucion_ejecutora_id = i.id
+        LEFT JOIN public.respuesta_avances a ON e.porcentaje_avance_id = a.id
+        LEFT JOIN public.actividad_ejecucion_estados s ON e.actividad_ejecucion_estado_id = s.id
+        WHERE f.coe_id = :coe_id AND  f.mesa_grupo_id = :mesa_grupo_id
+        ORDER BY f.id ASC
+    """)
+    result = db.session.execute(query, {
+        'coe_id': coe_id,
+        'mesa_grupo_id': mesa_grupo_id,
+        'accion_respuesta_id': accion_respuesta_id,
+    })
+
+    items = []
+    for row in result:
+        item = _row_to_dict(row)
+        items.append({
+            'funcion_id': item.get('funcion_id'),
+            'descripcion': item.get('descripcion'),
+            'ejecucion_id': item.get('ejecucion_id'),
+            'institucion_ejecutora_nombre': item.get('institucion_ejecutora_nombre'),
+            'fecha_inicio': item.get('fecha_inicio'),
+            'porcentaje_avance': item.get('porcentaje_avance'),
+            'fecha_final': item.get('fecha_final'),
+            'estado_actividad': item.get('estado_actividad'),
+            'instituciones_apoyo': item.get('instituciones_apoyo'),
+            'ubicaciones_atendidas': item.get('ubicaciones_atendidas'),
+        })
+
+    return jsonify(items)
+
 def create_actividad_ejecucion():
     """Crear una nueva actividad de ejecución
     ---
@@ -216,6 +302,12 @@ def create_actividad_ejecucion():
               type: integer
               description: ID del porcentaje de avance (opcional, por defecto 0)
               default: 0
+            instituciones_apoyo:
+              type: string
+              description: Instituciones de apoyo para la actividad (opcional)
+            ubicaciones_atendidas:
+              type: string
+              description: Ubicaciones atendidas por la actividad (opcional)
             fecha_final: 
               type: string
               format: date-time
@@ -273,6 +365,8 @@ def create_actividad_ejecucion():
           institucion_ejecutora_id=data['institucion_ejecutora_id'],
           fecha_inicio=datetime.fromisoformat(data['fecha_inicio']),
           porcentaje_avance_id=data.get('porcentaje_avance_id', 0),
+          instituciones_apoyo=data.get('instituciones_apoyo'),
+          ubicaciones_atendidas=data.get('ubicaciones_atendidas'),
           fecha_final=datetime.fromisoformat(data['fecha_final']) if data.get('fecha_final') else None,
           actividad_ejecucion_estado_id=data['actividad_ejecucion_estado_id'],
           detalle=data.get('detalle'),
@@ -324,6 +418,8 @@ def get_actividad_ejecucion(id):
               fecha_inicio: {type: string, format: date-time, description: 'Fecha de inicio de la actividad'}
               porcentaje_avance_id: {type: integer, description: 'ID del porcentaje de avance'}
               porcentaje_avance: {type: string, description: 'Nombre del porcentaje de avance'}
+              instituciones_apoyo: {type: string, nullable: true, description: 'Instituciones de apoyo para la actividad'}
+              ubicaciones_atendidas: {type: string, nullable: true, description: 'Ubicaciones atendidas por la actividad'}
               fecha_final: {type: string, format: date-time, nullable: true, description: 'Fecha de finalización de la actividad'}
               actividad_ejecucion_estado_id: {type: integer, description: 'ID del estado de la actividad'}
               actividad_ejecucion_estado: {type: string, description: 'Nombre del estado de la actividad'}
@@ -339,7 +435,9 @@ def get_actividad_ejecucion(id):
                 i.nombre as institucion_ejecutora_nombre,
                 i.siglas as institucion_ejecutora_siglas,
                 pa.descripcion as porcentaje_avance,
-                aee.descripcion as actividad_ejecucion_estado
+                aee.descripcion as actividad_ejecucion_estado,
+                ae.instituciones_apoyo,
+                ae.ubicaciones_atendidas
             FROM 
                 actividades_ejecucion ae
                 LEFT JOIN actividad_ejecucion_funciones aef ON ae.actividad_ejecucion_funcion_id = aef.id
@@ -399,6 +497,12 @@ def update_actividad_ejecucion(id):
               type: integer
               description: ID del porcentaje de avance (opcional, por defecto 0)
               default: 0
+            instituciones_apoyo:
+              type: string
+              description: Instituciones de apoyo para la actividad (opcional)
+            ubicaciones_atendidas:
+              type: string
+              description: Ubicaciones atendidas por la actividad (opcional)
             fecha_final: 
               type: string
               format: date-time
@@ -450,6 +554,8 @@ def update_actividad_ejecucion(id):
             'actividad_ejecucion_funcion_id',
             'institucion_ejecutora_id',
             'porcentaje_avance_id',
+            'instituciones_apoyo',
+            'ubicaciones_atendidas',
             'actividad_ejecucion_estado_id',
             'detalle',
             'activo',
