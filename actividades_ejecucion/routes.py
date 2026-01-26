@@ -264,6 +264,7 @@ def get_actividades_ejecucion_by_coe_mesa_grupo_accion_respuesta(coe_id, mesa_gr
 
     return jsonify(items)
 
+@actividades_ejecucion_bp.route('/api/actividades_ejecucion', methods=['POST'])
 def create_actividad_ejecucion():
     """Crear una nueva actividad de ejecución
     ---
