@@ -146,7 +146,7 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
             i.nombre as institucion_ejecutora_nombre,
             i.siglas as institucion_ejecutora_siglas,
             ae.fecha_inicio, 
-            ae.porcentaje_avance_id, p.nombre as porcentaje_avance,
+            ae.porcentaje_avance_id as porcentaje_avance,
             ae.instituciones_apoyo,
             ae.ubicaciones_atendidas,
             ae.fecha_final,
@@ -156,7 +156,7 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
         FROM actividades_ejecucion ae
         LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
         LEFT JOIN actividad_ejecucion_estados e ON ae.actividad_ejecucion_estado_id = e.id
-        LEFT JOIN respuesta_avances p ON ae.porcentaje_avance_id = p.id
+        
         LEFT JOIN actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
         WHERE ae.accion_respuesta_id = :accion_respuesta_id
         AND ae.activo = true
@@ -176,7 +176,6 @@ def get_actividades_ejecucion_by_accion_respuesta(accion_respuesta_id):
             'institucion_ejecutora_nombre': item.get('institucion_ejecutora_nombre'),
             'institucion_ejecutora_siglas': item.get('institucion_ejecutora_siglas'),
             'fecha_inicio': item.get('fecha_inicio'),
-            'porcentaje_avance_id': item.get('porcentaje_avance_id'),
             'porcentaje_avance': item.get('porcentaje_avance'),
             'instituciones_apoyo': item.get('instituciones_apoyo'),
             'ubicaciones_atendidas': item.get('ubicaciones_atendidas'),
@@ -231,11 +230,10 @@ def get_actividades_ejecucion_by_coe_mesa_grupo_accion_respuesta(coe_id, mesa_gr
     """
     query = db.text("""
         SELECT f.id funcion_id, f.descripcion, e.id ejecucion_id, i.nombre institucion_ejecutora_nombre, e.fecha_inicio,
-               a.nombre porcentaje_avance, e.fecha_final, s.nombre estado_actividad, e.instituciones_apoyo, e.ubicaciones_atendidas
+               e.porcentaje_avance_id porcentaje_avance, e.fecha_final, s.nombre estado_actividad, e.instituciones_apoyo, e.ubicaciones_atendidas
         FROM public.actividad_ejecucion_funciones f
         LEFT JOIN public.actividades_ejecucion e ON f.id = e.actividad_ejecucion_funcion_id AND e.accion_respuesta_id = :accion_respuesta_id
         LEFT JOIN public.instituciones i ON e.institucion_ejecutora_id = i.id
-        LEFT JOIN public.respuesta_avances a ON e.porcentaje_avance_id = a.id
         LEFT JOIN public.actividad_ejecucion_estados s ON e.actividad_ejecucion_estado_id = s.id
         WHERE f.coe_id = :coe_id AND  f.mesa_grupo_id = :mesa_grupo_id
         ORDER BY f.id ASC
@@ -340,55 +338,97 @@ def create_actividad_ejecucion():
         description: Error interno del servidor
     """
     data = request.get_json()
-    
-    # Validar campos requeridos
+
+    # Validar campos requeridos (mantener compatibilidad con la validación previa)
     required_fields = [
-        'accion_respuesta_id', 
-        'actividad_ejecucion_funcion_id', 
-        'institucion_ejecutora_id', 
-        'fecha_inicio',
-        'actividad_ejecucion_estado_id',
-        'detalle'
+      'accion_respuesta_id',
+      'actividad_ejecucion_funcion_id',
+      'institucion_ejecutora_id',
+      'fecha_inicio',
+      'actividad_ejecucion_estado_id'
     ]
-    
+
     missing_fields = [field for field in required_fields if field not in data]
     if missing_fields:
-        return jsonify({
-            'error': 'Campos requeridos faltantes',
-            'missing': missing_fields
-        }), 400
-    
+      return jsonify({'error': 'Campos requeridos faltantes', 'missing': missing_fields}), 400
+
     try:
-        # Crear nueva actividad de ejecución
-        actividad = ActividadEjecucion(
-          accion_respuesta_id=data['accion_respuesta_id'],
-          actividad_ejecucion_funcion_id=data['actividad_ejecucion_funcion_id'],
-          institucion_ejecutora_id=data['institucion_ejecutora_id'],
-          fecha_inicio=datetime.fromisoformat(data['fecha_inicio']),
-          porcentaje_avance_id=data.get('porcentaje_avance_id', 0),
-          instituciones_apoyo=data.get('instituciones_apoyo'),
-          ubicaciones_atendidas=data.get('ubicaciones_atendidas'),
-          fecha_final=datetime.fromisoformat(data['fecha_final']) if data.get('fecha_final') else None,
-          actividad_ejecucion_estado_id=data['actividad_ejecucion_estado_id'],
-          detalle=data.get('detalle'),
-          creador=data.get('creador', 'Sistema'),
-          activo=True
+      now = datetime.now(timezone.utc)
+
+      fecha_inicio = datetime.fromisoformat(data['fecha_inicio'])
+      fecha_final = None
+      if data.get('fecha_final'):
+        fecha_final = datetime.fromisoformat(data['fecha_final'])
+
+      query = db.text("""
+        INSERT INTO actividades_ejecucion (
+          accion_respuesta_id,
+          actividad_ejecucion_funcion_id,
+          institucion_ejecutora_id,
+          fecha_inicio,
+          porcentaje_avance_id,
+          instituciones_apoyo,
+          ubicaciones_atendidas,
+          fecha_final,
+          actividad_ejecucion_estado_id,
+          detalle,
+          activo,
+          creador,
+          creacion,
+          modificador,
+          modificacion
         )
-        
-        db.session.add(actividad)
-        db.session.commit()
-        
-        return jsonify({
-            'id': actividad.id,
-            'message': 'Actividad de ejecución creada exitosamente'
-        }), 201
-        
-    except Exception as e:
+        VALUES (
+          :accion_respuesta_id,
+          :actividad_ejecucion_funcion_id,
+          :institucion_ejecutora_id,
+          :fecha_inicio,
+          :porcentaje_avance_id,
+          :instituciones_apoyo,
+          :ubicaciones_atendidas,
+          :fecha_final,
+          :actividad_ejecucion_estado_id,
+          :detalle,
+          :activo,
+          :creador,
+          :creacion,
+          :modificador,
+          :modificacion
+        )
+        RETURNING id
+      """)
+
+      params = {
+        'accion_respuesta_id': data['accion_respuesta_id'],
+        'actividad_ejecucion_funcion_id': data['actividad_ejecucion_funcion_id'],
+        'institucion_ejecutora_id': data['institucion_ejecutora_id'],
+        'fecha_inicio': fecha_inicio,
+        'porcentaje_avance_id': data.get('porcentaje_avance_id', 0),
+        'instituciones_apoyo': data.get('instituciones_apoyo'),
+        'ubicaciones_atendidas': data.get('ubicaciones_atendidas'),
+        'fecha_final': fecha_final,
+        'actividad_ejecucion_estado_id': data['actividad_ejecucion_estado_id'],
+        'detalle': data.get('detalle'),
+        'activo': data.get('activo', True),
+        'creador': data.get('creador', 'Sistema'),
+        'creacion': now,
+        'modificador': data.get('creador', 'Sistema'),
+        'modificacion': now
+      }
+
+      result = db.session.execute(query, params)
+      row = result.fetchone()
+      if row is None:
         db.session.rollback()
-        return jsonify({
-            'error': 'Error al crear la actividad de ejecución',
-            'details': str(e)
-        }), 500
+        return jsonify({'error': 'No se pudo crear la actividad de ejecución'}), 500
+      nuevo_id = row[0]
+      db.session.commit()
+
+      return jsonify({'id': nuevo_id, 'message': 'Actividad de ejecución creada exitosamente'}), 201
+
+    except Exception as e:
+      db.session.rollback()
+      return jsonify({'error': 'Error al crear la actividad de ejecución', 'details': str(e)}), 500
 
 @actividades_ejecucion_bp.route('/api/actividades_ejecucion/<int:id>', methods=['GET'])
 def get_actividad_ejecucion(id):
