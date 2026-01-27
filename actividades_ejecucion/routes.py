@@ -3,6 +3,22 @@ from actividades_ejecucion import actividades_ejecucion_bp
 from models import db, ActividadEjecucion
 from datetime import datetime, timezone
 
+
+def parse_iso_datetime(value):
+  """Parse ISO datetime strings robustly, accepting trailing 'Z' as UTC."""
+  if value is None:
+    return None
+  if isinstance(value, datetime):
+    return value
+  if not isinstance(value, str):
+    raise ValueError('Unsupported datetime value type')
+  s = value
+  # Accept trailing Z as UTC
+  if s.endswith('Z'):
+    s = s[:-1] + '+00:00'
+  # Python 3.11+ fromisoformat supports offsets; older versions accept this too
+  return datetime.fromisoformat(s)
+
 def _row_to_dict(row):
     try:
         mapping = dict(row._mapping)  # SQLAlchemy Row
@@ -355,10 +371,10 @@ def create_actividad_ejecucion():
     try:
       now = datetime.now(timezone.utc)
 
-      fecha_inicio = datetime.fromisoformat(data['fecha_inicio'])
+      fecha_inicio = parse_iso_datetime(data['fecha_inicio'])
       fecha_final = None
       if data.get('fecha_final'):
-        fecha_final = datetime.fromisoformat(data['fecha_final'])
+        fecha_final = parse_iso_datetime(data['fecha_final'])
 
       query = db.text("""
         INSERT INTO actividades_ejecucion (
@@ -606,14 +622,14 @@ def update_actividad_ejecucion(id):
                 update_fields.append(f"{field} = :{field}")
                 params[field] = data[field]
         if 'fecha_inicio' in data:
-            update_fields.append("fecha_inicio = :fecha_inicio")
-            params['fecha_inicio'] = datetime.fromisoformat(data['fecha_inicio'])
+          update_fields.append("fecha_inicio = :fecha_inicio")
+          params['fecha_inicio'] = parse_iso_datetime(data['fecha_inicio'])
         if 'fecha_final' in data:
-            if data['fecha_final']:
-                update_fields.append("fecha_final = :fecha_final")
-                params['fecha_final'] = datetime.fromisoformat(data['fecha_final'])
-            else:
-                update_fields.append("fecha_final = NULL")
+          if data['fecha_final']:
+            update_fields.append("fecha_final = :fecha_final")
+            params['fecha_final'] = parse_iso_datetime(data['fecha_final'])
+          else:
+            update_fields.append("fecha_final = NULL")
         update_fields.append("modificacion = :modificacion")
         params['modificacion'] = datetime.now(timezone.utc)
         if update_fields:
