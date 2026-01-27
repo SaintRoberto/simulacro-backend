@@ -107,6 +107,7 @@ from actividad_ejecucion_dpa import actividad_ejecucion_dpa_bp
 from actas_coe import actas_coe_bp
 from actividad_ejecucion_funciones import actividad_ejecucion_funciones_bp      
 from evento_atencion_estados import evento_atencion_estados_bp
+from reportes.afectaciones_public import afectaciones_public_bp
 
 
 
@@ -170,6 +171,7 @@ app.register_blueprint(actividad_ejecucion_apoyo_bp)
 app.register_blueprint(actividad_ejecucion_dpa_bp)
 app.register_blueprint(actividad_ejecucion_funciones_bp)
 app.register_blueprint(evento_atencion_estados_bp)
+app.register_blueprint(afectaciones_public_bp)
 
 
 
@@ -199,6 +201,7 @@ def require_jwt_for_all():
         or path.startswith("/apidocs")
         or path.startswith("/flasgger_static")
         or path.startswith("/apispec")
+        or path.startswith("/api/public")
     ):
         return None
     # Extract token
