@@ -467,34 +467,33 @@ def get_actividad_ejecucion(id):
               detalle: {type: string, description: 'Detalle descriptivo de la actividad', nullable: true}
     """
     try:
-        # Query to get the actividad_ejecucion with related data
-        query = """
-            SELECT 
-                ae.*,
-                aef.descripcion as funcion_descripcion,
-                aef.linea_accion as funcion_linea_accion,
-                i.nombre as institucion_ejecutora_nombre,
-                i.siglas as institucion_ejecutora_siglas,
-                pa.descripcion as porcentaje_avance,
-                aee.descripcion as actividad_ejecucion_estado,
-                ae.instituciones_apoyo,
-                ae.ubicaciones_atendidas
-            FROM 
-                actividades_ejecucion ae
-                LEFT JOIN actividad_ejecucion_funciones aef ON ae.actividad_ejecucion_funcion_id = aef.id
-                LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
-                LEFT JOIN porcentajes_avance pa ON ae.porcentaje_avance_id = pa.id
-                LEFT JOIN actividad_ejecucion_estados aee ON ae.actividad_ejecucion_estado_id = aee.id
-            WHERE 
-                ae.id = %s
-        """
+      # Query to get the actividad_ejecucion with related data
+      query = db.text("""
+        SELECT 
+          ae.*,
+          aef.descripcion as funcion_descripcion,
+          aef.linea_accion as funcion_linea_accion,
+          i.nombre as institucion_ejecutora_nombre,
+          i.siglas as institucion_ejecutora_siglas,
+          ae.porcentaje_avance_id as porcentaje_avance,
+          aee.descripcion as actividad_ejecucion_estado,
+          ae.instituciones_apoyo,
+          ae.ubicaciones_atendidas
+        FROM 
+          actividades_ejecucion ae
+          LEFT JOIN actividad_ejecucion_funciones aef ON ae.actividad_ejecucion_funcion_id = aef.id
+          LEFT JOIN instituciones i ON ae.institucion_ejecutora_id = i.id
+          LEFT JOIN actividad_ejecucion_estados aee ON ae.actividad_ejecucion_estado_id = aee.id
+        WHERE 
+          ae.id = :id
+      """)
+
+      result = db.session.execute(query, {'id': id}).fetchone()
         
-        result = db.session.execute(query, (id,)).fetchone()
-        
-        if not result:
-            return jsonify({'message': 'Actividad de ejecución no encontrada'}), 404
-            
-        return jsonify(_row_to_dict(result))
+      if not result:
+          return jsonify({'message': 'Actividad de ejecución no encontrada'}), 404
+          
+      return jsonify(_row_to_dict(result))
         
     except Exception as e:
         return jsonify({'message': f'Error al obtener la actividad de ejecución: {str(e)}'}), 500
