@@ -46,6 +46,70 @@ def get_afectaciones_version1():
     return jsonify(registros)
 
 
+@afectaciones_public_bp.route('/api/public/alojamientos/<int:emergencia_id>', methods=['GET'])
+def get_alojamientos_by_emergencia(emergencia_id):
+    """Public endpoint (secured by API key): devuelve los registros de la vista
+    vw_alojamientos asociados a una emergencia dada por su ID.
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    query = db.text("SELECT * FROM vw_alojamientos WHERE emergencia_id = :emergencia_id")
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+
+    registros = []
+    for row in result:
+        try:
+            mapping = row._mapping
+        except Exception:
+            mapping = dict(row)
+        record = {}
+        for k, v in mapping.items():
+            if hasattr(v, 'isoformat'):
+                try:
+                    record[k] = v.isoformat()
+                except Exception:
+                    record[k] = v
+            else:
+                record[k] = v
+        registros.append(record)
+
+    return jsonify(registros)
+
+
+@afectaciones_public_bp.route('/api/public/requerimientos/<int:emergencia_id>', methods=['GET'])
+def get__requerimietnos_by_emergencia(emergencia_id):
+    """Public endpoint (secured by API key): devuelve los registros de la vista
+    vw_requerimientos asociados a una emergencia dada por su ID.
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    query = db.text("SELECT * FROM vw_requerimientos WHERE emergencia_id = :emergencia_id")
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+
+    registros = []
+    for row in result:
+        try:
+            mapping = row._mapping
+        except Exception:
+            mapping = dict(row)
+        record = {}
+        for k, v in mapping.items():
+            if hasattr(v, 'isoformat'):
+                try:
+                    record[k] = v.isoformat()
+                except Exception:
+                    record[k] = v
+            else:
+                record[k] = v
+        registros.append(record)
+
+    return jsonify(registros)
+
+
 @afectaciones_public_bp.route('/api/public/afectaciones_version1/<int:registro_id>', methods=['GET'])
 def get_afectacion_version1_by_id(registro_id):
     """Public endpoint (secured by API key): devuelve un registro por id de la vista afectaciones_version1"""
@@ -71,3 +135,35 @@ def get_afectacion_version1_by_id(registro_id):
         else:
             record[k] = v
     return jsonify(record)
+
+
+@afectaciones_public_bp.route('/api/public/afectacion_infraestructura/<int:emergencia_id>', methods=['GET'])
+def get_afectacion_infraestructura_by_emergencia(emergencia_id):
+    """Public endpoint (secured by API key): devuelve los registros de la vista
+    vw_afectacion_infraestructura asociados a una emergencia dada por su ID.
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    query = db.text("SELECT * FROM vw_afectacion_infraestructura WHERE emergencia_id = :emergencia_id")
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+
+    registros = []
+    for row in result:
+        try:
+            mapping = row._mapping
+        except Exception:
+            mapping = dict(row)
+        record = {}
+        for k, v in mapping.items():
+            if hasattr(v, 'isoformat'):
+                try:
+                    record[k] = v.isoformat()
+                except Exception:
+                    record[k] = v
+            else:
+                record[k] = v
+        registros.append(record)
+
+    return jsonify(registros)
