@@ -46,6 +46,38 @@ def get_afectaciones_version1():
     return jsonify(registros)
 
 
+@afectaciones_public_bp.route('/api/public/localidad_eventos/<int:emergencia_id>', methods=['GET'])
+def get_localidad_eventos_by_emergencia(emergencia_id):
+    """Public endpoint (secured by API key): devuelve los registros de la vista
+    vw_localidad_eventos asociados a una emergencia dada por su ID.
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    query = db.text("SELECT * FROM vw_localidad_eventos WHERE emergencia_id = :emergencia_id")
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+
+    registros = []
+    for row in result:
+        try:
+            mapping = row._mapping
+        except Exception:
+            mapping = dict(row)
+        record = {}
+        for k, v in mapping.items():
+            if hasattr(v, 'isoformat'):
+                try:
+                    record[k] = v.isoformat()
+                except Exception:
+                    record[k] = v
+            else:
+                record[k] = v
+        registros.append(record)
+
+    return jsonify(registros)
+
+
 @afectaciones_public_bp.route('/api/public/alojamientos/<int:emergencia_id>', methods=['GET'])
 def get_alojamientos_by_emergencia(emergencia_id):
     """Public endpoint (secured by API key): devuelve los registros de la vista
