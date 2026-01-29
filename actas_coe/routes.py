@@ -49,6 +49,87 @@ def get_actas_coe():
         })
     return jsonify(coe_actas)
 
+@actas_coe_bp.route('/api/actas_coe/emergencia/<int:emergencia_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
+def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id, canton_id):
+    """Listar actas COE por emergencia, provincia y canton (según perfil COE del usuario)
+    ---
+    tags:
+      - Actas Coe
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de actas COE filtradas por emergencia, provincia y cantón
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              acta_id: {type: integer}
+              coe_origen: {type: string}
+              usuario_id: {type: integer}
+              emergencia_id: {type: integer}
+              fecha_sesion: {type: string}
+              detalle: {type: string}
+              fecha_finalizado: {type: string}
+              acta_coe_estado_id: {type: integer}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+    """
+    query = db.text("""
+        SELECT a.id AS acta_id,
+               CASE x.coe_id
+                   WHEN 1 THEN c.nombre
+                   WHEN 2 THEN c.nombre || ' ' || p.nombre
+                   WHEN 3 THEN c.nombre || ' ' || p.nombre || '\' || k.nombre
+               END AS coe_origen,
+               a.usuario_id, a.emergencia_id, a.fecha_sesion, a.detalle, a.fecha_finalizado,
+               a.acta_coe_estado_id, x.provincia_id, x.canton_id
+        FROM public.actas_coe a
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.usuario_id = x.usuario_id
+            AND (x.provincia_id = :provincia_id OR :provincia_id = 0)
+            AND (x.canton_id = :canton_id OR :canton_id = 0)
+        INNER JOIN public.coes c ON x.coe_id = c.id
+        INNER JOIN public.provincias p ON x.provincia_id = p.id
+        INNER JOIN public.cantones k ON x.canton_id = k.id
+        WHERE a.emergencia_id = :emergencia_id
+        ORDER BY a.id ASC
+    """)
+
+    result = db.session.execute(query, {
+        'emergencia_id': emergencia_id,
+        'provincia_id': provincia_id,
+        'canton_id': canton_id,
+    })
+
+    items = []
+    for row in result:
+        items.append({
+            'acta_id': row.acta_id,
+            'coe_origen': row.coe_origen,
+            'usuario_id': row.usuario_id,
+            'emergencia_id': row.emergencia_id,
+            'fecha_sesion': row.fecha_sesion.isoformat() if getattr(row, 'fecha_sesion', None) else None,
+            'detalle': row.detalle,
+            'fecha_finalizado': row.fecha_finalizado.isoformat() if getattr(row, 'fecha_finalizado', None) else None,
+            'acta_coe_estado_id': row.acta_coe_estado_id,
+            'provincia_id': row.provincia_id,
+            'canton_id': row.canton_id,
+        })
+
+    return jsonify(items)
+
 @actas_coe_bp.route('/api/actas_coe/usuario/<int:usuario_id>/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_actas_coe_by_usuario_by_emergencia(usuario_id, emergencia_id):
     """Obtener actas_coe por usuario y emergencia
