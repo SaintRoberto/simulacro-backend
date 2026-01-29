@@ -265,7 +265,7 @@ def get_eventos_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_id
         INNER JOIN public.evento_causas y ON e.evento_causa_id = y.id
         INNER JOIN public.evento_origenes o ON e.evento_origen_id = o.id
         INNER JOIN public.evento_atencion_estados z ON e.evento_atencion_estado_id = z.id
-        WHERE e.emergencia_id = :emergencia_id AND e.provincia_id = :provincia_id AND e.canton_id = :canton_id
+        WHERE e.emergencia_id = :emergencia_id AND e.provincia_id = :provincia_id AND (e.canton_id = :canton_id OR :canton_id = 0)
         ORDER BY e.id
     """)
     result = db.session.execute(query, {
