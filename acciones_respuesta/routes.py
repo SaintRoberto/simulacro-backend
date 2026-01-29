@@ -98,6 +98,38 @@ def get_acciones_respuesta_by_usuario(usuario_id):
         })
     return jsonify(items)
 
+@acciones_respuesta_bp.route('/api/acciones_respuesta/usuario/<int:usuario_id>/propia_gestion', methods=['GET'])
+def get_accion_respuesta_by_usuario_by_propia_gestion(usuario_id):
+    """Verificar existencia de acciones de respuesta de propia gestión para un usuario
+    ---
+    tags:
+      - Acciones Respuesta
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Cantidad de acciones de respuesta con origen propia gestión (accion_respuesta_origen_id = 0)
+        schema:
+          type: object
+          properties:
+            existe: {type: integer}
+    """
+    query = db.text("""
+        SELECT COUNT(id) AS existe
+        FROM public.acciones_respuesta
+        WHERE accion_respuesta_origen_id = 0
+          AND usuario_id = :usuario_id
+    """)
+
+    result = db.session.execute(query, {'usuario_id': usuario_id})
+    row = result.fetchone()
+    count = row.existe if row is not None else 0
+
+    return jsonify({'existe': count})
+
 @acciones_respuesta_bp.route('/api/acciones_respuesta', methods=['POST'])
 def create_accion_respuesta():
     """Crear acción de respuesta
