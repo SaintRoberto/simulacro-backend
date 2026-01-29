@@ -103,7 +103,7 @@ def get_alojamientos_activados_by_emergencia_by_usuario(emergencia_id, usuario_i
         aa.personas_salieron, aa.familias_salieron
         FROM public.alojamientos_activados aa
         INNER JOIN public.alojamientos a ON aa.alojamiento_id = a.id
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.provincia_id = x.provincia_id AND a.canton_id = x.canton_id
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.provincia_id = x.provincia_id AND (a.canton_id = x.canton_id OR x.canton_id = 0)
         INNER JOIN parroquias q ON a.provincia_id = q.provincia_id AND a.canton_id = q.canton_id AND a.parroquia_id = q.id
         INNER JOIN alojamiento_estados e ON aa.estado_id = e.id
         INNER JOIN alojamiento_tipos t ON a.tipo_id = t.id
