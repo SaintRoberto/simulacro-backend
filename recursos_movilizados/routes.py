@@ -110,7 +110,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
         i.nombre institucion, r.fecha_inicio, r.fecha_fin, r.cantidad, r.disponible, r.latitud, r.longitud
         FROM recursos_movilizados r
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x
-          ON r.provincia_id = x.provincia_id AND r.canton_id = x.canton_id
+          ON r.provincia_id = x.provincia_id AND (r.canton_id = x.canton_id OR x.canton_id = 0)
         INNER JOIN parroquias q
           ON r.provincia_id = q.provincia_id AND r.canton_id = q.canton_id AND r.parroquia_id = q.id
         INNER JOIN recurso_grupos g
