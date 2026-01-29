@@ -91,11 +91,11 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
         SELECT a.id AS acta_id,
                CASE x.coe_id
                    WHEN 1 THEN c.nombre
-                   WHEN 2 THEN c.nombre || ' ' || p.nombre
-                   WHEN 3 THEN c.nombre || ' ' || p.nombre || '\' || k.nombre
+                   WHEN 2 THEN c.nombre || ' de ' || p.nombre
+                   WHEN 3 THEN c.nombre || ' de ' || k.nombre
                END AS coe_origen,
                a.usuario_id, a.emergencia_id, a.fecha_sesion, a.detalle, a.fecha_finalizado,
-               a.acta_coe_estado_id, x.provincia_id, x.canton_id
+               a.acta_coe_estado_id, x.provincia_id, x.canton_id, a.creador
         FROM public.actas_coe a
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.usuario_id = x.usuario_id
             AND (x.provincia_id = :provincia_id OR :provincia_id = 0)
@@ -126,6 +126,7 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
             'acta_coe_estado_id': row.acta_coe_estado_id,
             'provincia_id': row.provincia_id,
             'canton_id': row.canton_id,
+            'creador': row.creador,
         })
 
     return jsonify(items)
