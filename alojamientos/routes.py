@@ -120,7 +120,7 @@ def get_alojamientos_by_provincia_by_canton(provincia_id, canton_id):
         SELECT *
         FROM alojamientos
         WHERE provincia_id = :provincia_id
-          AND canton_id = :canton_id
+          AND (canton_id = :canton_id or :canton_id = 0)
           AND activo = true
         ORDER BY id ASC;
     """)
