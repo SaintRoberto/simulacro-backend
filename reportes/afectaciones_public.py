@@ -78,6 +78,103 @@ def get_localidad_eventos_by_emergencia(emergencia_id):
     return jsonify(registros)
 
 
+@afectaciones_public_bp.route('/api/public/acciones_respuesta/<int:emergencia_id>', methods=['GET'])
+def get_acciones_respuesta_by_emergencia(emergencia_id):
+    """Public endpoint (secured by API key): devuelve las acciones de respuesta y
+    sus actividades asociadas para una emergencia dada.
+
+    La información proviene de las tablas acciones_respuesta, actividades_ejecucion
+    y tablas relacionadas, filtrando por emergencia_id.
+
+    ---
+    tags:
+      - Reportes Publicos
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de acciones de respuesta y sus actividades asociadas
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              emergencia_id: {type: integer}
+              resolucion_origen: {type: integer, description: "ID de la resolución origen (coe_acta_resolucion_mesa_id)"}
+              usuario_id: {type: integer}
+              origen: {type: string, description: "Gestión Propia o Por Resolución"}
+              detalle_accion: {type: string}
+              accion_respuesta_estado_id: {type: integer}
+              estado: {type: string}
+              fecha_final: {type: string, format: date-time}
+              nombre: {type: string, description: "Nombre de la institución ejecutora"}
+              fecha_inicio: {type: string, format: date-time}
+              porcentaje_avance_id: {type: integer}
+              instituciones_apoyo: {type: string}
+              ubicaciones_atendidas: {type: string}
+              actividad_fecha_final: {type: string, format: date-time}
+              actividad_ejecucion_estado_id: {type: integer}
+              detalle_actividad: {type: string}
+      401:
+        description: API key inválida o ausente
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    query = db.text("""
+        SELECT a.emergencia_id,
+               a.coe_acta_resolucion_mesa_id AS resolucion_origen,
+               a.usuario_id,
+               CASE a.accion_respuesta_origen_id
+                   WHEN 0 THEN 'Gestión Propia'
+                   ELSE 'Por Resolución'
+               END AS origen,
+               a.detalle AS detalle_accion,
+               a.accion_respuesta_estado_id,
+               e.nombre AS estado,
+               a.fecha_final,
+               i.nombre,
+               ae.fecha_inicio,
+               ae.porcentaje_avance_id,
+               ae.instituciones_apoyo,
+               ae.ubicaciones_atendidas,
+               ae.fecha_final,
+               ae.actividad_ejecucion_estado_id,
+               ae.detalle AS detalle_actividad
+        FROM public.acciones_respuesta a
+        INNER JOIN public.accion_respuesta_estados e ON a.accion_respuesta_estado_id = e.id
+        LEFT JOIN public.actividades_ejecucion ae ON a.id = ae.accion_respuesta_id
+        LEFT JOIN public.actividad_ejecucion_funciones f ON ae.actividad_ejecucion_funcion_id = f.id
+        LEFT JOIN public.instituciones i ON ae.institucion_ejecutora_id = i.id
+        WHERE a.emergencia_id = :emergencia_id
+    """)
+
+    result = db.session.execute(query, {'emergencia_id': emergencia_id})
+
+    registros = []
+    for row in result:
+        try:
+            mapping = row._mapping
+        except Exception:
+            mapping = dict(row)
+        record = {}
+        for k, v in mapping.items():
+            if hasattr(v, 'isoformat'):
+                try:
+                    record[k] = v.isoformat()
+                except Exception:
+                    record[k] = v
+            else:
+                record[k] = v
+        registros.append(record)
+
+    return jsonify(registros)
+
+
 @afectaciones_public_bp.route('/api/public/alojamientos/<int:emergencia_id>', methods=['GET'])
 def get_alojamientos_by_emergencia(emergencia_id):
     """Public endpoint (secured by API key): devuelve los registros de la vista
