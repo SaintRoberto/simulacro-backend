@@ -76,7 +76,7 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
           items:
             type: object
             properties:
-              acta_id: {type: integer}
+              id: {type: integer}
               coe_origen: {type: string}
               usuario_id: {type: integer}
               emergencia_id: {type: integer}
@@ -88,7 +88,7 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
               canton_id: {type: integer}
     """
     query = db.text("""
-        SELECT a.id AS acta_id,
+        SELECT a.id,
                CASE x.coe_id
                    WHEN 1 THEN c.nombre
                    WHEN 2 THEN c.nombre || ' de ' || p.nombre
@@ -116,7 +116,7 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
     items = []
     for row in result:
         items.append({
-            'acta_id': row.acta_id,
+            'id': row.id,
             'coe_origen': row.coe_origen,
             'usuario_id': row.usuario_id,
             'emergencia_id': row.emergencia_id,
