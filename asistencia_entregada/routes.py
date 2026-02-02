@@ -106,7 +106,7 @@ def get_asistencia_entregada_by_emergencia_by_usuario(emergencia_id, usuario_id)
               personas: {type: integer}
     """
     query = db.text("""
-        SELECT DISTINCT a.id, q.nombre parroquia_nombre, a.sector, g.nombre asistencia_grupo, t.nombre asistencia_item,
+        SELECT DISTINCT a.id, q.nombre parroquia_nombre, a.parroquia_id, a.sector, g.nombre asistencia_grupo, t.nombre asistencia_item,
         i.nombre institucion_donante, a.fecha_entrega, a.cantidad, a.latitud, a.longitud, a.familias, a.personas
         FROM asistencia_entregada a
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x ON a.provincia_id = x.provincia_id AND (a.canton_id = x.canton_id or x.canton_id = 0)
