@@ -55,7 +55,8 @@ def get_afectacion_variable_registros():
         })
     return jsonify(registros)
 
-@afectacion_variable_registros_bp.route('/api/afectaciones_registros/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', methods=['GET'])
+@afectacion_variable_registros_bp.route('/api/afectaciones_registros/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', 
+methods=['GET'])
 def get_data_afectaciones_registro_by_canton(emergencia_id, canton_id, mesa_grupo_id):
     """Obtener data afectaciones registro por canton y mesa_grupo
     ---
@@ -123,7 +124,8 @@ def get_data_afectaciones_registro_by_canton(emergencia_id, canton_id, mesa_grup
         })
     return jsonify(registros)
 
-@afectacion_variable_registros_bp.route('/api/afectaciones_registros/eventos/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', methods=['GET'])
+@afectacion_variable_registros_bp.route('/api/afectaciones_registros/eventos/emergencia/<int:emergencia_id>/canton/<int:canton_id>/mesa_grupo/<int:mesa_grupo_id>/', 
+methods=['GET'])
 def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id, mesa_grupo_id):
     """Obtener data de afectaciones de registros por evento y cantón
     ---
@@ -313,6 +315,7 @@ def create_afectacion_variable_registro():
         if field not in data:
             return jsonify({'error': f'{field} is required'}), 400
     now = datetime.now(timezone.utc)
+    modificador = data.get('modificador', 'Sistema')
 
     query = db.text("""
         INSERT INTO afectacion_variable_registros (
@@ -467,7 +470,9 @@ def update_afectacion_variable_registro(id):
     query = db.text("""
         UPDATE afectacion_variable_registros
         SET cantidad = :cantidad,
-            costo = :costo
+            costo = :costo,
+            modificador = :modificador,
+            modificacion = :modificacion
         WHERE id = :id
     """)
 
@@ -476,6 +481,8 @@ def update_afectacion_variable_registro(id):
         params['cantidad'] = data['cantidad']
     if 'costo' in data:
         params['costo'] = data['costo']
+    params['modificador'] = data.get('modificador', 'Sistema')
+    params['modificacion'] = now
     params['id'] = id
     result = db.session.execute(query, params)
     
@@ -536,3 +543,84 @@ def delete_afectacion_variable_registro(id):
     
     db.session.commit()
     return jsonify({'mensaje': 'Registro eliminado correctamente'})
+
+@afectacion_variable_registros_bp.route('/api/afectacion_variable_registros/recientes', methods=['GET'])
+def get_afectacion_variable_registros_recientes():
+    """Obtener afectacion_variable_registros recientes para notificaciones
+    ---
+    tags:
+      - Afectacion Variable Registros
+    parameters:
+      - name: since
+        in: query
+        type: string
+        required: true
+        description: ISO 8601 timestamp (UTC)
+      - name: coe_id
+        in: query
+        type: integer
+        required: false
+        description: Filtra usuarios destino por coe_id (default 2)
+    responses:
+      200:
+        description: Lista de registros recientes
+    """
+    since_raw = request.args.get('since')
+    if not since_raw:
+        return jsonify({'error': 'since is required (ISO 8601)'}), 400
+
+    try:
+        since_dt = datetime.fromisoformat(since_raw.replace('Z', '+00:00'))
+    except ValueError:
+        return jsonify({'error': 'since must be ISO 8601'}), 400
+
+    coe_id = request.args.get('coe_id', default=2, type=int)
+
+    query = db.text("""
+        SELECT
+            r.id AS afectacion_variable_registro_id,
+            r.afectacion_variable_id,
+            v.nombre AS afectacion_variable_nombre,
+            r.creador,
+            r.creacion,
+            r.modificador,
+            r.modificacion
+        FROM afectacion_variable_registros r
+        INNER JOIN afectacion_variables v ON v.id = r.afectacion_variable_id
+        WHERE COALESCE(r.modificacion, r.creacion) > :since
+        ORDER BY COALESCE(r.modificacion, r.creacion) ASC
+    """)
+
+    result = db.session.execute(query, {'since': since_dt})
+    registros = []
+    for row in result:
+        registros.append({  # type: ignore
+            'afectacion_variable_registro_id': row.afectacion_variable_registro_id,
+            'afectacion_variable_id': row.afectacion_variable_id,
+            'afectacion_variable_nombre': row.afectacion_variable_nombre,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    usuarios_query = db.text("""
+        SELECT u.id, u.usuario, u.descripcion
+        FROM usuarios u
+        INNER JOIN usuario_perfil_coe_dpa_mesa ux ON u.id = ux.usuario_id
+        WHERE ux.coe_id = :coe_id AND u.activo = TRUE AND ux.activo = TRUE
+    """)
+    usuarios = []
+    for row in db.session.execute(usuarios_query, {'coe_id': coe_id}):
+        usuarios.append({  # type: ignore
+            'id': row.id,
+            'usuario': row.usuario,
+            'descripcion': row.descripcion,
+        })
+
+    return jsonify({
+        'since': since_dt.isoformat(),
+        'coe_id': coe_id,
+        'registros': registros,
+        'usuarios_destino': usuarios
+    })

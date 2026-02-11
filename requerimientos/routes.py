@@ -272,7 +272,6 @@ def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
         })
     return jsonify(requerimientos)
 
-
 @requerimientos_bp.route('/api/requerimientos', methods=['POST'])
 def create_requerimiento():
     """Crear requerimiento
