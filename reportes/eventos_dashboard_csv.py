@@ -69,6 +69,11 @@ def _csv_line(row):
     return buffer.getvalue()
 
 
+def _get_columns(cursor, view_name):
+    cursor.execute(f"SHOW COLUMNS FROM `{view_name}`")
+    return [row[0] for row in cursor.fetchall()]
+
+
 def _validate_token():
     configured = os.environ.get("EVENTOS_DASHBOARD_TOKEN")
     if configured is None:
@@ -103,11 +108,10 @@ def export_eventos_dashboard_csv():
         try:
             conn = _open_mysql_connection(mysql_impl)
             cursor = _open_mysql_cursor(conn, mysql_impl)
-            cursor.execute("SELECT * FROM `2. RED-M Eventos Dashboard 2024+`")
-
-            columns = [desc[0] for desc in cursor.description]
+            columns = _get_columns(cursor, "2. RED-M Eventos Dashboard 2024+")
             yield _csv_line(columns)
 
+            cursor.execute("SELECT * FROM `2. RED-M Eventos Dashboard 2024+`")
             while True:
                 rows = cursor.fetchmany(1000)
                 if not rows:
