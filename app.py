@@ -109,6 +109,7 @@ from actividad_ejecucion_funciones import actividad_ejecucion_funciones_bp
 from evento_atencion_estados import evento_atencion_estados_bp
 from reportes.afectaciones_public import afectaciones_public_bp
 from reportes.eventos_historico_csv import eventos_historico_csv_bp
+from reportes.eventos_dashboard_csv import eventos_dashboard_csv_bp
 
 
 
@@ -174,6 +175,7 @@ app.register_blueprint(actividad_ejecucion_funciones_bp)
 app.register_blueprint(evento_atencion_estados_bp)
 app.register_blueprint(afectaciones_public_bp)
 app.register_blueprint(eventos_historico_csv_bp)
+app.register_blueprint(eventos_dashboard_csv_bp)
 
 
 
@@ -186,6 +188,7 @@ WHITELIST_PATHS = [
     '/api/usuarios/login',
     '/api/usuarios',  # allow user creation (POST) - if you want it public
     '/eventos_historico',
+    '/eventos_dashboard',
     '/apidocs',             # UI Swagger
     '/apidocs/',            # por si acaso
     '/flasgger_static',     # archivos estáticos de Swagger UI
