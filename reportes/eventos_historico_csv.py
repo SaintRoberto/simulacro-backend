@@ -83,6 +83,40 @@ def _validate_token():
     return True, None
 
 
+from flask import jsonify, request
+
+@eventos_historico_csv_bp.route("/api/public/eventos_historico_json", methods=["GET"])
+def eventos_historico_json():
+    ok, msg = _validate_token()
+    if not ok:
+        return jsonify({"error": msg}), 401
+
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 5000))
+    offset = (page - 1) * limit
+
+    mysql_impl = _get_mysql_impl()
+    conn = _open_mysql_connection(mysql_impl)
+    cur = _open_mysql_cursor(conn, mysql_impl)
+
+    try:
+        # IMPORTANTE: usa un ORDER BY estable (id/fecha) para que la paginación no “salte”
+        cur.execute(f"SELECT * FROM `1. RED-M Eventos Historico 2024+` ORDER BY 1 LIMIT %s OFFSET %s", (limit, offset))
+        rows = cur.fetchall()
+        cols = [d[0] for d in cur.description]
+
+        data = [dict(zip(cols, [ _format_value(v) for v in r])) for r in rows]
+        return jsonify({
+            "page": page,
+            "limit": limit,
+            "count": len(data),
+            "rows": data
+        })
+    finally:
+        cur.close()
+        conn.close()
+
+
 @eventos_historico_csv_bp.route("/api/public/eventos_historico", methods=["GET"])
 def export_eventos_historico_csv():
     ok, msg = _validate_token()
