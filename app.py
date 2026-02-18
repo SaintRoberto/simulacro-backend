@@ -190,6 +190,7 @@ WHITELIST_PATHS = [
     '/eventos_historico',
     '/eventos_historico_json',
     '/eventos_dashboard_json',
+    '/eventos_dashboard_json_stream',
     '/eventos_dashboard',
     '/apidocs',             # UI Swagger
     '/apidocs/',            # por si acaso
