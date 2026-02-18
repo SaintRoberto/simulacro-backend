@@ -189,6 +189,7 @@ WHITELIST_PATHS = [
     '/api/usuarios',  # allow user creation (POST) - if you want it public
     '/eventos_historico',
     '/eventos_historico_json',
+    '/eventos_dashboard_json',
     '/eventos_dashboard',
     '/apidocs',             # UI Swagger
     '/apidocs/',            # por si acaso

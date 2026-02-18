@@ -69,11 +69,6 @@ def _csv_line(row):
     return buffer.getvalue()
 
 
-def _get_columns(cursor, view_name):
-    cursor.execute(f"SHOW COLUMNS FROM `{view_name}`")
-    return [row[0] for row in cursor.fetchall()]
-
-
 def _validate_token():
     configured = os.environ.get("EVENTOS_DASHBOARD_TOKEN")
     if configured is None:
@@ -88,42 +83,43 @@ def _validate_token():
     return True, None
 
 
+from flask import jsonify, request
 
-
-
-@eventos_dashboard_csv_bp.route("/api/public/eventos_dashboard", methods=["GET"])
-def export_eventos_dashboard_csv():
+@eventos_dashboard_csv_bp.route("/api/public/eventos_dashboard_json", methods=["GET"])
+def eventos_dashboard_json():
     ok, msg = _validate_token()
     if not ok:
         return jsonify({"error": msg}), 401
 
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 5000))
+    offset = (page - 1) * limit
+
+    mysql_impl = _get_mysql_impl()
+    conn = _open_mysql_connection(mysql_impl)
+    cur = _open_mysql_cursor(conn, mysql_impl)
+
     try:
-        mysql_impl = _get_mysql_impl()
-    except ImportError:
-        return jsonify({"error": "No MySQL client library installed"}), 500
+        # Mantener el orden natural del SELECT * (no inventar orden alfabético)
+        sql = "SELECT * FROM `2. RED-M Eventos Dashboard 2024+` LIMIT %s OFFSET %s"
+        cur.execute(sql, (limit, offset))
 
-    def generate():
-        conn = None
-        cursor = None
-        try:
-            conn = _open_mysql_connection(mysql_impl)
-            cursor = _open_mysql_cursor(conn, mysql_impl)
-            columns = _get_columns(cursor, "2. RED-M Eventos Dashboard 2024+")
-            yield _csv_line(columns)
+        columns = [d[0] for d in cur.description]  # <-- ESTE orden es el que manda
+        rows = cur.fetchall()
 
-            cursor.execute("SELECT * FROM `2. RED-M Eventos Dashboard 2024+`")
-            while True:
-                rows = cursor.fetchmany(1000)
-                if not rows:
-                    break
-                for row in rows:
-                    yield _csv_line([_format_value(v) for v in row])
-        finally:
-            try:
-                if cursor is not None:
-                    cursor.close()
-            finally:
-                if conn is not None:
-                    conn.close()
+        # rows como arrays en el mismo orden que columns
+        data_rows = [
+            [_format_value(v) for v in r]
+            for r in rows
+        ]
 
-    return Response(stream_with_context(generate()), mimetype="text/csv")
+        return jsonify({
+            "page": page,
+            "limit": limit,
+            "count": len(data_rows),
+            "columns": columns,
+            "rows": data_rows
+        })
+    finally:
+        cur.close()
+        conn.close()
