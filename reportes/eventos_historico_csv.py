@@ -100,17 +100,25 @@ def eventos_historico_json():
     cur = _open_mysql_cursor(conn, mysql_impl)
 
     try:
-        # IMPORTANTE: usa un ORDER BY estable (id/fecha) para que la paginación no “salte”
-        cur.execute(f"SELECT * FROM `1. RED-M Eventos Historico 2024+` ORDER BY 1 LIMIT %s OFFSET %s", (limit, offset))
-        rows = cur.fetchall()
-        cols = [d[0] for d in cur.description]
+        # Mantener el orden natural del SELECT * (no inventar orden alfabético)
+        sql = "SELECT * FROM `1. RED-M Eventos Historico 2024+` LIMIT %s OFFSET %s"
+        cur.execute(sql, (limit, offset))
 
-        data = [dict(zip(cols, [ _format_value(v) for v in r])) for r in rows]
+        columns = [d[0] for d in cur.description]  # <-- ESTE orden es el que manda
+        rows = cur.fetchall()
+
+        # rows como arrays en el mismo orden que columns
+        data_rows = [
+            [_format_value(v) for v in r]
+            for r in rows
+        ]
+
         return jsonify({
             "page": page,
             "limit": limit,
-            "count": len(data),
-            "rows": data
+            "count": len(data_rows),
+            "columns": columns,
+            "rows": data_rows
         })
     finally:
         cur.close()
