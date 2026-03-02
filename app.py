@@ -113,7 +113,7 @@ from reportes.eventos_dashboard_csv import eventos_dashboard_csv_bp
 from reportes.asistencia_humanitaria import asistencia_humanitaria_bp
 from reportes.alojamientos_temporales import alojamientos_temporales_bp
 from reportes.movilizaciones_aereas import movilizaciones_aereas_bp
-from reportes.eventos_dashboard_csv import eventos_dashboard_csv_bp
+from reportes.recursos_movilizados import recursos_movilizados_script_bp
 
 
 
@@ -182,7 +182,7 @@ app.register_blueprint(eventos_dashboard_csv_bp)
 app.register_blueprint(asistencia_humanitaria_bp)
 app.register_blueprint(alojamientos_temporales_bp)
 app.register_blueprint(movilizaciones_aereas_bp)
-app.register_blueprint(eventos_dashboard_csv_bp
+app.register_blueprint(recursos_movilizados_script_bp) 
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
