@@ -110,6 +110,7 @@ from evento_atencion_estados import evento_atencion_estados_bp
 from reportes.afectaciones_public import afectaciones_public_bp
 from reportes.eventos_historico_csv import eventos_historico_csv_bp
 from reportes.eventos_dashboard_csv import eventos_dashboard_csv_bp
+from reportes.asistencia_humanitaria import asistencia_humanitaria_bp
 
 
 
@@ -176,7 +177,7 @@ app.register_blueprint(evento_atencion_estados_bp)
 app.register_blueprint(afectaciones_public_bp)
 app.register_blueprint(eventos_historico_csv_bp)
 app.register_blueprint(eventos_dashboard_csv_bp)
-
+app.register_blueprint(asistencia_humanitaria_bp)
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
@@ -196,6 +197,7 @@ WHITELIST_PATHS = [
     '/apidocs/',            # por si acaso
     '/flasgger_static',     # archivos estáticos de Swagger UI
     '/apispec_1.json'       # especificación de la API que consume Swagger
+    '/api/public/asistencia_humanitaria_json',
 ]
 
 @app.before_request
