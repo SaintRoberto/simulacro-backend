@@ -8,7 +8,7 @@ from flask import Blueprint, Response, jsonify, request, stream_with_context
 import config as app_config
 from config import MYSQL_DB, MYSQL_HOST, MYSQL_PASS, MYSQL_PORT, MYSQL_USER
 
-recursos_movilizados_bp = Blueprint("recursos_movilizados_json", __name__)
+recursos_movilizados_script_bp = Blueprint("recursos_movilizados_json", __name__)
 
 
 def _get_mysql_impl():
@@ -85,7 +85,7 @@ def _validate_token():
 
 from flask import jsonify, request
 
-@recursos_movilizados_bp.route("/api/public/recursos_movilizados_json", methods=["GET"])
+@recursos_movilizados_script_bp.route("/api/public/recursos_movilizados_json", methods=["GET"])
 def recursos_movilizados_json():
     ok, msg = _validate_token()
     if not ok:
