@@ -101,7 +101,7 @@ def recursos_movilizados_json():
 
     try:
         # Mantener el orden natural del SELECT * (no inventar orden alfabético)
-        sql = "SELECT * FROM dmeva.`6. RED-M Recursos Movilizados 2022+` LIMIT %s OFFSET %s"
+        sql = "SELECT * FROM dmeva.`6. RED-M Recursos Movilizados 2025+` LIMIT %s OFFSET %s"
         cur.execute(sql, (limit, offset))
 
         columns = [d[0] for d in cur.description]  # <-- ESTE orden es el que manda
