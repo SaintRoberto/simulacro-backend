@@ -136,7 +136,36 @@ def get_geoJson_afectaciones():
 
         features = []
         for r in rows:
-            props = {col: _format_value(r[i]) for i, col in enumerate(columns)}
+            # Convertir campos numéricos específicos a números
+            props = {}
+            numeric_fields = {
+                "AnimalesAfetados", "AnimalesMuertos", "BienesPrivadosAfectados", "BienesPrivadosDestruidos",
+                "BienesPublicosAfectados", "BienesPublicosDestruidos", "CentrosDeSaludAfectados", "CentrosDeSaludDestruidos",
+                "EstablecimientosEducativosAfectacionFuncional", "EstablecimientosEducativosAfectados", "EstablecimientosEducativosDestruidos",
+                "FamiliasAfectadas", "FamiliasDamnificadas", "HaCultivoAfectados", "HaCultivoPerdidos",
+                "HaDeCoberturaVegetalQuemada", "KilometrosLinealesDeViasAfectadas", "MetrosLinealesDeViasAfectadas",
+                "PersonasAfectadasDirectamente", "PersonasAfectadasIndirectamente", "PersonasDamnificadas",
+                "PersonasEvacuadas", "PersonasExtraviadas", "PersonasFallecidas", "PersonasHeridas", "PersonasImpactadas",
+                "PuentesAfectados", "PuentesDestruidos", "ViviendasAfectadas", "ViviendasDestruidas"
+            }
+            
+            for i, col in enumerate(columns):
+                val = r[i]
+                if col in numeric_fields:
+                    if val is None or val == "":
+                        props[col] = 0
+                    elif isinstance(val, (int, float)):
+                        props[col] = val
+                    else:
+                        try:
+                            props[col] = int(str(val).strip())
+                        except ValueError:
+                            try:
+                                props[col] = float(str(val).strip().replace(',', '.'))
+                            except ValueError:
+                                props[col] = _format_value(val)
+                else:
+                    props[col] = _format_value(val)
 
             lat = _to_float(props.get(lat_col))
             lon = _to_float(props.get(lon_col))
