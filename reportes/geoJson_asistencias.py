@@ -140,7 +140,7 @@ def get_geoJson_asistencias():
             props = {}
             numeric_fields = {
                 "Familias Beneficiadas", "KCA (15 días - 4 personas)", "KCAT", "KMCC AT", "KPRH (para 3 días)",
-                "Kit Colación Escolar", "Kit Escolar", "Kit Medicamentos", "Kit Purificadores de Agua", "Kit Volcán",
+                "Kit Colación Escolar", "Kit Escolar", "Kit Medicamentos", "Kit Purificadores\u00a0de\u00a0Agua", "Kit Volcán",
                 "Kit de Alojamiento o herramientas familiar", "Kit de Aseo Personal", "Kit de Bebé)",
                 "Kit de Cocina", "Kit de Dormir", "Kit de Limpieza (albergue)", "Kit de Limpieza)",
                 "Kit de Mujer Embarazada)", "Kit de Uniforme", "Kit de Vajilla", "Kit de Vestir",
