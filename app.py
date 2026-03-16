@@ -116,6 +116,7 @@ from reportes.movilizaciones_aereas import movilizaciones_aereas_bp
 from reportes.recursos_movilizados import recursos_movilizados_script_bp
 from reportes.geoJson_afectaciones import geoJson_afectaciones_script_bp
 from reportes.geoJson_asistencias import geoJson_asistencias_script_bp
+from reportes.geoJson_afectaciones_vs_asistencias import geoJson_afectaciones_vs_asistencias_script_bp
 
 
 
@@ -186,6 +187,7 @@ app.register_blueprint(movilizaciones_aereas_bp)
 app.register_blueprint(recursos_movilizados_script_bp) 
 app.register_blueprint(geoJson_afectaciones_script_bp)
 app.register_blueprint(geoJson_asistencias_script_bp)
+app.register_blueprint(geoJson_afectaciones_vs_asistencias_script_bp)  # <-- corregido para evitar conflicto de rutas
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
@@ -211,6 +213,7 @@ WHITELIST_PATHS = [
     '/api/public/recursos_movilizados_json',
     '/api/public/get_geoJson_asistencias',
     '/api/public/get_geoJson_afectaciones'
+    '/api/public/get_geoJson_afectaciones_vs_asistencias'
 
 ]
 
