@@ -109,7 +109,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         return jsonify({'error': 'Error al obtener los requerimientos', 'details': str(e)}), 500
 
 @requerimientos_bp.route('/api/requerimientos/recibidos/usuario/<int:usuario_receptor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
-def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provincia_id, canton_id):
+def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
     """Listar requerimientos recibidos
     ---
     tags:
@@ -186,7 +186,8 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
               (sx.perfil_id = 3 AND 
               sx.coe_id = :coe_id AND sx.usuario_id = :usuario_receptor_id AND sx.provincia_id = :provincia_id AND 
               sx.canton_id = :canton_id
-              )
+              ) AND
+			        r.emergencia_id = :emergencia_id
         ORDER BY r.creacion DESC"""
 
     try:
