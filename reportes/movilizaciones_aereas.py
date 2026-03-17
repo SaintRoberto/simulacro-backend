@@ -1,6 +1,7 @@
 import csv
 import io
 import os
+import re
 from datetime import date, datetime
 
 from flask import Blueprint, Response, jsonify, request, stream_with_context
@@ -68,6 +69,13 @@ def _csv_line(row):
     writer.writerow(row)
     return buffer.getvalue()
 
+def _sanitize_key(name):
+    name = str(name).strip().lower()
+    name = re.sub(r"[^\w\s]", "", name)   # quita puntos, comas, etc.
+    name = re.sub(r"\s+", "_", name)      # espacios a _
+    return name
+
+
 
 def _validate_token():
     configured = os.environ.get("movilizaciones_aereas_TOKEN")
@@ -124,3 +132,37 @@ def movilizaciones_aereas_json():
         cur.close()
         conn.close()
 
+@movilizaciones_aereas_bp.route("/api/public/movilizaciones_aereas_looker_json", methods=["GET"])
+def movilizaciones_aereas_looker_json():
+    ok, msg = _validate_token()
+    if not ok:
+        return jsonify({"error": msg}), 401
+
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 5000))
+    offset = (page - 1) * limit
+
+    mysql_impl = _get_mysql_impl()
+    conn = _open_mysql_connection(mysql_impl)
+    cur = _open_mysql_cursor(conn, mysql_impl)
+
+    try:
+        sql = "SELECT * FROM dmeva.`5. RED-M Movilizaciones Aereas 2022+` LIMIT %s OFFSET %s"
+        cur.execute(sql, (limit, offset))
+
+        raw_columns = [d[0] for d in cur.description]
+        clean_columns = [_sanitize_key(col) for col in raw_columns]
+
+        rows = cur.fetchall()
+
+        data = []
+        for row in rows:
+            item = {}
+            for i, value in enumerate(row):
+                item[clean_columns[i]] = _format_value(value)
+            data.append(item)
+
+        return jsonify(data)
+    finally:
+        cur.close()
+        conn.close()
