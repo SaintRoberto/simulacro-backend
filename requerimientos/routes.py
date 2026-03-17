@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 
 
 
-@requerimientos_bp.route('/api/requerimientos/enviados/usuario/<int:usuario_emisor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
-def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_id, canton_id):
+@requerimientos_bp.route('/api/requerimientos/enviados/usuario/<int:usuario_emisor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
     """Listar requerimientos
     ---
     tags:
@@ -37,6 +37,11 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         type: integer
         required: true
         description: ID del cantón para filtrar
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la emergencia para filtrar
 
     responses:
         200:
@@ -65,7 +70,8 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         'perfil_id': perfil_id,
         'coe_id': coe_id,
         'provincia_id': provincia_id,
-        'canton_id': canton_id
+        'canton_id': canton_id,
+        'emergencia_id': emergencia_id
     }
 
     # Construir la consulta base
@@ -80,11 +86,11 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND 
               ex.provincia_id = sx.provincia_id AND 
               ex.canton_id = sx.canton_id
-        WHERE r.usuario_emisor_id = :usuario_emisor_id OR 
+        WHERE r.emergencia_id = :emergencia_id AND (r.usuario_emisor_id = :usuario_emisor_id OR 
               (sx.perfil_id = :perfil_id AND 
               sx.coe_id = :coe_id AND sx.usuario_id = :usuario_emisor_id AND sx.provincia_id = :provincia_id AND 
               sx.canton_id = :canton_id
-              )
+              ))
         ORDER BY r.creacion DESC
     """
     try:
@@ -217,7 +223,6 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Error al obtener los requerimientos', 'details': str(e)}), 500
-
 
 @requerimientos_bp.route('/api/requerimientos/recibidos/notificacion/<int:usuario_receptor_id>', methods=['GET'])
 def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
