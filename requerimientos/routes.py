@@ -37,6 +37,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         type: integer
         required: true
         description: ID del cantón para filtrar
+
     responses:
         200:
           description: Lista de requerimientos enviados
@@ -108,7 +109,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         db.session.rollback()
         return jsonify({'error': 'Error al obtener los requerimientos', 'details': str(e)}), 500
 
-@requerimientos_bp.route('/api/requerimientos/recibidos/usuario/<int:usuario_receptor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
+@requerimientos_bp.route('/api/requerimientos/recibidos/usuario/<int:usuario_receptor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
     """Listar requerimientos recibidos
     ---
@@ -139,6 +140,11 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
         type: integer
         required: true
         description: ID del cantón para filtrar
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: false
+        description: ID de la emergencia para filtrar (opcional)
 
     responses:
         200:
@@ -168,7 +174,8 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
         'perfil_id': perfil_id,
         'coe_id': coe_id,
         'provincia_id': provincia_id,
-        'canton_id': canton_id
+        'canton_id': canton_id,
+        'emergencia_id': emergencia_id
     }
 
     query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id, 
@@ -182,12 +189,12 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
         INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON rx.coe_id = sx.coe_id AND 
               rx.provincia_id = sx.provincia_id AND 
               rx.canton_id = sx.canton_id
-        WHERE r.usuario_receptor_id = :usuario_receptor_id OR 
+        WHERE r.emergencia_id = :emergencia_id AND (r.usuario_receptor_id = :usuario_receptor_id OR 
               (sx.perfil_id = 3 AND 
               sx.coe_id = :coe_id AND sx.usuario_id = :usuario_receptor_id AND sx.provincia_id = :provincia_id AND 
               sx.canton_id = :canton_id
-              ) AND
-			        r.emergencia_id = :emergencia_id
+              ))
+			        
         ORDER BY r.creacion DESC"""
 
     try:
