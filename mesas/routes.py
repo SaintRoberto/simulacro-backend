@@ -56,7 +56,7 @@ def get_mesas_by_coe(coe_id):
         SELECT m.id, m.nombre mesa_nombre, m.siglas mesa_siglas, g.nombre grupo_mesa_nombre, g.abreviatura grupo_mesa_abreviatura
         FROM mesas m
         INNER JOIN public.mesa_grupos g ON m.mesa_grupo_id = g.id
-        WHERE m.coe_id = :coe_id
+        WHERE m.coe_id = :coe_id AND m.activo = true
     """)
     result = db.session.execute(query, {'coe_id': coe_id})
     mesas = []
@@ -145,7 +145,7 @@ def get_mesa(id):
         'modificacion': mesa.modificacion.isoformat() if mesa.modificacion else None
     })
 
-@mesas_bp.route('/api/mesas/<int:coe_id>/<int:mesa_id>/<int:mesa_grupo_id>/<int:provincia_id>/<int:canton_id>', methods=['GET'])
+@mesas_bp.route('/api/coe/<int:coe_id>/mesa/<int:mesa_id>/mesa_grupo/<int:mesa_grupo_id>/provincia/<int:provincia_id>/canton/<int:canton_id>', methods=['GET'])
 def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
     """
     Obtener lista de mesas receptoras en función de la mesa actual
@@ -252,7 +252,9 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
       INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON m.coe_id = ux.coe_id AND m.id = ux.mesa_id
       AND ux.provincia_id = :provincia_id AND ux.canton_id = :canton_id
       WHERE m.coe_id = :coe_id
-      AND m.id <> :mesa_id""")
+      AND m.id <> :mesa_id
+      AND m.activo = true
+      """)
     
     result1 = db.session.execute(query1, params)
     for row in result1:
@@ -272,7 +274,8 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
       INNER JOIN public.usuario_perfil_coe_dpa_mesa ux1 ON m1.coe_id = ux1.coe_id AND m1.id = ux1.mesa_id
       AND (ux1.provincia_id = :provincia_id2 OR :provincia_id2 = 0) AND (ux1.canton_id = :canton_id2 OR :canton_id2 = 0)
       WHERE m1.coe_id = (:coe_id - 1)
-      AND m1.mesa_grupo_id = :mesa_grupo_id""")
+      AND m1.mesa_grupo_id = :mesa_grupo_id
+      AND m1.activo = true""")
 
     result2 = db.session.execute(query2, params)
     for row in result2:
@@ -293,7 +296,8 @@ def get_mesa_lista(coe_id, mesa_id, mesa_grupo_id, provincia_id, canton_id):
           INNER JOIN public.usuario_perfil_coe_dpa_mesa ux2 ON m2.coe_id = ux2.coe_id AND m2.id = ux2.mesa_id
           AND (ux2.provincia_id = :provincia_id3 OR :provincia_id3 = 0) AND (ux2.canton_id = :canton_id3 OR :canton_id3 = 0)
           WHERE m2.coe_id = (:coe_id - 2)
-          AND m2.mesa_grupo_id = :mesa_grupo_id""")
+          AND m2.mesa_grupo_id = :mesa_grupo_id
+          AND m2.activo = true""")
 
         result3 = db.session.execute(query3, params)
 
