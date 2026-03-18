@@ -175,7 +175,9 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
         LEFT JOIN afectacion_variable_registros r ON e.id = r.evento_id
         AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
         INNER JOIN emergencia_parroquias x ON p.id = x.parroquia_id
-        WHERE p.canton_id = :canton_id AND v.mesa_grupo_id = :mesa_grupo_id
+        WHERE p.canton_id = :canton_id AND 
+              (v.mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0) AND
+              (r.cantidad IS NOT NULL OR r.costo IS NOT NULL)
         ORDER BY p.nombre,e.id, v.id;
     """)
     result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
