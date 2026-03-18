@@ -70,6 +70,7 @@ def create_requerimiento_recurso():
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
             cantidad: {type: integer}
+            costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
             activo: {type: boolean}
@@ -84,11 +85,11 @@ def create_requerimiento_recurso():
     query = db.text("""
         INSERT INTO requerimiento_recursos (
             requerimiento_id, recurso_grupo_id, recurso_tipo_id, cantidad,
-            especificaciones, destino, activo, creador, creacion, modificador, modificacion
+            especificaciones, destino, activo, creador, creacion, modificador, modificacion, costo
         )
         VALUES (
             :requerimiento_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad,
-            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion
+            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion, :costo
         )
         RETURNING id
     """)
@@ -98,6 +99,7 @@ def create_requerimiento_recurso():
         'recurso_grupo_id': data['recurso_grupo_id'],
         'recurso_tipo_id': data['recurso_tipo_id'],
         'cantidad': data.get('cantidad', 1),
+        'costo': data.get('costo', 0),
         'especificaciones': data.get('especificaciones'),
         'destino': data.get('destino'),
         'activo': data.get('activo', True),
@@ -124,6 +126,7 @@ def create_requerimiento_recurso():
         'recurso_grupo_id': relacion.recurso_grupo_id,
         'recurso_tipo_id': relacion.recurso_tipo_id,
         'cantidad': relacion.cantidad,
+        'costo': relacion.costo,
         'especificaciones': relacion.especificaciones,
         'destino': relacion.destino,
         'activo': relacion.activo,
@@ -164,6 +167,7 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
             'recurso_grupo_id': row.recurso_grupo_id,
             'recurso_tipo_id': row.recurso_tipo_id,
             'cantidad': row.cantidad,
+            'costo': float(row.costo) if row.costo is not None else None,
             'especificaciones': row.especificaciones,
             'destino': row.destino,
             'activo': row.activo,
@@ -172,6 +176,7 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
             'modificador': row.modificador,
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
+       
     return jsonify(requerimiento_recursos)
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/id/<int:id>', methods=['GET'])
@@ -206,6 +211,7 @@ def get_requerimiento_recurso(id):
         'recurso_grupo_id': relacion.recurso_grupo_id,
         'recurso_tipo_id': relacion.recurso_tipo_id,
         'cantidad': relacion.cantidad,
+        'costo': float(relacion.costo) if relacion.costo is not None else None,
         'especificaciones': relacion.especificaciones,
         'destino': relacion.destino,
         'activo': relacion.activo,
