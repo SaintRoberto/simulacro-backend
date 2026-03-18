@@ -101,8 +101,8 @@ def get_actas_coe_by_emergencia_by_provincia_by_canton(emergencia_id, provincia_
             AND (x.provincia_id = :provincia_id OR :provincia_id = 0)
             AND (x.canton_id = :canton_id OR :canton_id = 0)
         INNER JOIN public.coes c ON x.coe_id = c.id
-        INNER JOIN public.provincias p ON x.provincia_id = p.id
-        INNER JOIN public.cantones k ON x.canton_id = k.id
+        LEFT JOIN public.provincias p ON x.provincia_id = p.id
+        LEFT JOIN public.cantones k ON x.canton_id = k.id
         WHERE a.emergencia_id = :emergencia_id
         ORDER BY a.id ASC
     """)

@@ -214,6 +214,7 @@ WHITELIST_PATHS = [
     '/api/public/get_geoJson_asistencias',
     '/api/public/get_geoJson_afectaciones'
     '/api/public/get_geoJson_afectaciones_vs_asistencias'
+    '/api/public/movilizaciones_aereas_looker_json'
 
 ]
 
