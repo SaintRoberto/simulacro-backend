@@ -146,7 +146,7 @@ def get_geoJson_afectaciones():
                 "HaDeCoberturaVegetalQuemada", "KilometrosLinealesDeViasAfectadas", "MetrosLinealesDeViasAfectadas",
                 "PersonasAfectadasDirectamente", "PersonasAfectadasIndirectamente", "PersonasDamnificadas",
                 "PersonasEvacuadas", "PersonasExtraviadas", "PersonasFallecidas", "PersonasHeridas", "PersonasImpactadas",
-                "PuentesAfectados", "PuentesDestruidos", "ViviendasAfectadas", "ViviendasDestruidas"
+                "PuentesAfectados", "PuentesDestruidos", "ViviendasAfectadas", "ViviendasDestruidas", "Zona"
             }
             
             for i, col in enumerate(columns):

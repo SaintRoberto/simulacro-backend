@@ -145,7 +145,7 @@ def get_geoJson_asistencias():
                 "Kit de Cocina", "Kit de Dormir", "Kit de Limpieza (albergue)", "Kit de Limpieza)",
                 "Kit de Mujer Embarazada)", "Kit de Uniforme", "Kit de Vajilla", "Kit de Vestir",
                 "MES DE ENTREGA DE AH", "RA (24 horas)", "Total Bienes", "Personas Beneficiadas",
-                "Kit Purificadores de Agua"
+                "Kit Purificadores de Agua", "Zona"
             }
             
             for i, col in enumerate(columns):
