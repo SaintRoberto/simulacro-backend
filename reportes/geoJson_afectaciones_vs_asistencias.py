@@ -110,7 +110,7 @@ def get_geoJson_afectaciones():
     cur = _open_mysql_cursor(conn, mysql_impl)
 
     try:
-        sql = "SELECT * FROM dmeva.`RED-M-2026-Afectaciones-vs-Asistencias` LIMIT %s OFFSET %s"
+        sql = "SELECT * FROM dmeva.`RED-M-2026-Afectaciones-vs-Asistencias.v2` LIMIT %s OFFSET %s"
         cur.execute(sql, (limit, offset))
 
         columns = [d[0] for d in cur.description]
@@ -153,7 +153,8 @@ def get_geoJson_afectaciones():
                 "Kit de Cocina", "Kit de Dormir", "Kit de Limpieza (albergue)", "Kit de Limpieza)",
                 "Kit de Mujer Embarazada)", "Kit de Uniforme", "Kit de Vajilla", "Kit de Vestir",
                 "MES DE ENTREGA DE AH", "RA (24 horas)", "Total Bienes", "Personas Beneficiadas",
-                "Kit Purificadores de Agua", "Zona"
+                "Kit Purificadores de Agua", "Zona", "SecuenciaNacional", "SecuenciaProvincial",
+                "Kit Colacion Escolar", "Kit Volcan", "Kit de Bebe", "Kit de Limpieza", "Kit de Mujer Embarazada",
             }
             
             for i, col in enumerate(columns):
