@@ -155,6 +155,7 @@ def get_geoJson_afectaciones():
                 "MES DE ENTREGA DE AH", "RA (24 horas)", "Total Bienes", "Personas Beneficiadas",
                 "Kit Purificadores de Agua", "Zona", "SecuenciaNacional", "SecuenciaProvincial",
                 "Kit Colacion Escolar", "Kit Volcan", "Kit de Bebe", "Kit de Limpieza", "Kit de Mujer Embarazada",
+                "HectareasAfectadas", "HectareasDestruidas"
             }
             
             for i, col in enumerate(columns):
