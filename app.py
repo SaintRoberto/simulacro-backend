@@ -95,6 +95,7 @@ from afectacion_variable_registros import afectacion_variable_registros_bp
 from afectacion_variables import afectacion_variables_bp
 from acta_coe_resoluciones import acta_coe_resoluciones_bp
 from acta_coe_resolucion_mesas import acta_coe_resolucion_mesas_bp
+from instituciones_coe_mesa import instituciones_coe_mesa_bp
 from acta_coe_resolucion_estados import acta_coe_resolucion_estados_bp
 from acta_coe_estados import acta_coe_estados_bp
 from afectacion_variable_registro_detalles import afectacion_variable_registro_detalles_bp
@@ -117,7 +118,6 @@ from reportes.recursos_movilizados import recursos_movilizados_script_bp
 from reportes.geoJson_afectaciones import geoJson_afectaciones_script_bp
 from reportes.geoJson_asistencias import geoJson_asistencias_script_bp
 from reportes.geoJson_afectaciones_vs_asistencias import geoJson_afectaciones_vs_asistencias_script_bp
-
 
 
 
@@ -167,6 +167,7 @@ app.register_blueprint(afectacion_variables_bp)
 app.register_blueprint(actas_coe_bp)
 app.register_blueprint(acta_coe_resoluciones_bp)
 app.register_blueprint(acta_coe_resolucion_mesas_bp)
+app.register_blueprint(instituciones_coe_mesa_bp)
 app.register_blueprint(acta_coe_resolucion_estados_bp)
 app.register_blueprint(acta_coe_estados_bp)
 app.register_blueprint(afectacion_variable_registro_detalles_bp)
