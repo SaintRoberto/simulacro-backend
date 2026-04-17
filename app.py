@@ -77,6 +77,7 @@ from recurso_tipos import recurso_tipos_bp
 from recurso_categorias import recurso_categorias_bp
 from recurso_grupos import recurso_grupos_bp
 from recursos_movilizados import recursos_movilizados_bp
+from recursos_inventario import recursos_inventario_bp
 from asistencia_entregada import asistencia_entregada_bp
 from alojamientos import alojamientos_bp
 from alojamiento_estados import alojamiento_estados_bp
@@ -148,6 +149,7 @@ app.register_blueprint(recurso_tipos_bp)
 app.register_blueprint(recurso_categorias_bp)
 app.register_blueprint(recurso_grupos_bp)
 app.register_blueprint(recursos_movilizados_bp)
+app.register_blueprint(recursos_inventario_bp)
 app.register_blueprint(asistencia_entregada_bp)
 app.register_blueprint(alojamientos_bp)
 app.register_blueprint(alojamiento_estados_bp)
