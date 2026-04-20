@@ -349,21 +349,15 @@ def update_recurso_inventario(id):
         in: path
         type: integer
         required: true
+        description: ID del recurso inventario (`recursos_inventario.id`)
       - in: body
         name: body
         required: true
         schema:
           type: object
           properties:
-            institucion_duena_id: {type: integer}
-            recurso_tipo_id: {type: integer}
-            coe_id: {type: integer}
-            mesa_id: {type: integer}
-            provincia_id: {type: integer}
-            canton_id: {type: integer}
-            parroquia_id: {type: integer}
+            recurso_inventario_id: {type: integer}
             existencias: {type: integer}
-            activo: {type: boolean}
             modificador: {type: string}
     responses:
       200:
@@ -371,30 +365,37 @@ def update_recurso_inventario(id):
       404:
         description: No encontrado
     """
-    data = request.get_json() or {}
-    now = datetime.now(timezone.utc)
+    raw_data = request.get_json(silent=True)
+    if isinstance(raw_data, dict):
+        data = raw_data
+    elif isinstance(raw_data, list) and len(raw_data) == 1 and isinstance(raw_data[0], dict):
+        data = raw_data[0]
+    elif raw_data is None:
+        data = {}
+    else:
+        return jsonify({'error': 'Payload invalido: se esperaba un objeto JSON'}), 400
 
-    update_fields = []
+    now = datetime.now(timezone.utc)
+    recurso_inventario_id = data.get('recurso_inventario_id')
+
+    if recurso_inventario_id is not None and recurso_inventario_id != id:
+        return jsonify({'error': 'recurso_inventario_id del body no coincide con el id de la URL'}), 400
+
+    if 'existencias' not in data:
+        return jsonify({'error': 'El campo existencias es requerido'}), 400
+
     params = {
         'id': id,
+        'existencias': data['existencias'],
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': now
     }
 
-    for field in [
-        'institucion_duena_id', 'recurso_tipo_id', 'coe_id', 'mesa_id',
-        'provincia_id', 'canton_id', 'parroquia_id', 'existencias', 'activo'
-    ]:
-        if field in data:
-            update_fields.append(f"{field} = :{field}")
-            params[field] = data[field]
-
-    update_fields.append('modificador = :modificador')
-    update_fields.append('modificacion = :modificacion')
-
-    query = db.text(f"""
+    query = db.text("""
         UPDATE recursos_inventario
-        SET {', '.join(update_fields)}
+        SET existencias = :existencias,
+            modificador = :modificador,
+            modificacion = :modificacion
         WHERE id = :id
     """)
 
