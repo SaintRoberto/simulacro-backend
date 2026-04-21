@@ -101,7 +101,7 @@ def asistencia_humanitaria_json():
 
     try:
         # Mantener el orden natural del SELECT * (no inventar orden alfabético)
-        sql = "SELECT * FROM dmeva.`3. RED-M Asistencia Humanitaria 2026+` LIMIT %s OFFSET %s"
+        sql = "SELECT * FROM dmeva.`3. RED-M-2026-Asistencia Humanitaria 2026+` LIMIT %s OFFSET %s"
         cur.execute(sql, (limit, offset))
 
         columns = [d[0] for d in cur.description]  # <-- ESTE orden es el que manda
