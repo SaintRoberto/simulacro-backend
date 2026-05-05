@@ -540,3 +540,113 @@ def delete_recurso_inventario(id):
 
     db.session.commit()
     return jsonify({'mensaje': 'Recurso inventario eliminado correctamente'})
+
+
+@recursos_inventario_bp.route('/api/recursos_inventario/count', methods=['GET'])
+def count_recursos_inventario():
+    """Contar recursos inventario
+    ---
+    tags:
+      - Recursos Inventario
+    responses:
+      200:
+        description: Conteo de recursos inventario
+        schema:
+          type: object
+          properties:
+            count: {type: integer}
+    """
+    result = db.session.execute(db.text("SELECT COUNT(*) FROM recursos_inventario"))
+    count = result.scalar()
+    return jsonify({'count': count})
+
+@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/provincia_id/<int:provincia_id>/canton_id/<int:canton_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>', methods=['GET'])
+def get_recursos_inventario_by_location(coe_id, mesa_id, provincia_id, canton_id, recurso_tipo_id, institucion_duena_id):
+    """Obtener recursos inventario por ubicación
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+        - name: coe_id
+          in: path
+          type: integer
+          required: true
+        - name: mesa_id 
+          in: path
+          type: integer
+          required: true
+        - name: provincia_id
+          in: path
+          type: integer
+          required: true
+        - name: canton_id
+          in: path
+          type: integer
+          required: true
+        - name: recurso_tipo_id
+          in: path
+          type: integer
+          required: true
+        - name: institucion_duena_id
+          in: path
+          type: integer
+          required: true
+    responses:
+      200:
+        description: Lista de recursos inventario por ubicación
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              institucion_duena_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+              existencias: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+              parroquia_id: {type: integer}
+    """
+    query = db.text("""
+        SELECT * FROM recursos_inventario
+        WHERE coe_id = :coe_id
+          AND mesa_id = :mesa_id
+          AND provincia_id = :provincia_id
+          AND canton_id = :canton_id
+          AND recurso_tipo_id = :recurso_tipo_id
+          AND institucion_duena_id = :institucion_duena_id
+    """)
+    result = db.session.execute(query, {
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'provincia_id': provincia_id,
+        'canton_id': canton_id,
+        'recurso_tipo_id': recurso_tipo_id,
+        'institucion_duena_id': institucion_duena_id
+    })
+    items = []
+    for row in result:
+        items.append({
+            'id': row.id,
+            'institucion_duena_id': row.institucion_duena_id,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'provincia_id': row.provincia_id,
+            'parroquia_id': row.parroquia_id,
+            'canton_id': row.canton_id,
+            'existencias': row.existencias,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(items)
