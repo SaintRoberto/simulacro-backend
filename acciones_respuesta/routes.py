@@ -31,6 +31,7 @@ def get_acciones_respuesta():
               id: {type: integer}
               coe_acta_resolucion_mesa_id: {type: integer}
               usuario_id: {type: integer}
+              emergencia_id: {type: integer}
               accion_respuesta_origen_id: {type: integer}
               detalle: {type: string}
               accion_respuesta_estado_id: {type: integer}
@@ -66,6 +67,7 @@ def get_acciones_respuesta_by_usuario(usuario_id):
             properties:
               accion_respuesta_id: {type: integer}
               coe_acta_resolucion_mesa_id: {type: integer}
+              emergencia_id: {type: integer}
               detalle: {type: string}
               origen_id: {type: integer}
               origen_nombre: {type: string}
@@ -74,9 +76,15 @@ def get_acciones_respuesta_by_usuario(usuario_id):
               fecha_final: {type: string}
     """
     query = db.text("""
-        SELECT ar.id accion_respuesta_id, ar.coe_acta_resolucion_mesa_id, ar.detalle,
-               ar.accion_respuesta_origen_id origen_id, o.nombre origen_nombre,
-               ar.accion_respuesta_estado_id estado_id, e.nombre estado_nombre, ar.fecha_final
+        SELECT ar.id accion_respuesta_id,
+               ar.coe_acta_resolucion_mesa_id,
+               ar.emergencia_id,
+               ar.detalle,
+               ar.accion_respuesta_origen_id origen_id,
+               o.nombre origen_nombre,
+               ar.accion_respuesta_estado_id estado_id,
+               e.nombre estado_nombre,
+               ar.fecha_final
         FROM public.acciones_respuesta ar
         LEFT JOIN public.accion_respuesta_origenes o ON ar.accion_respuesta_origen_id = o.id
         LEFT JOIN public.accion_respuesta_estados e ON ar.accion_respuesta_estado_id = e.id
@@ -89,6 +97,7 @@ def get_acciones_respuesta_by_usuario(usuario_id):
         items.append({
             'accion_respuesta_id': row.accion_respuesta_id,
             'coe_acta_resolucion_mesa_id': row.coe_acta_resolucion_mesa_id,
+            'emergencia_id': row.emergencia_id,
             'detalle': row.detalle,
             'origen_id': row.origen_id,
             'origen_nombre': row.origen_nombre,
@@ -148,6 +157,7 @@ def create_accion_respuesta():
           properties:
             coe_acta_resolucion_mesa_id: {type: integer}
             usuario_id: {type: integer}
+            emergencia_id: {type: integer}
             accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
             accion_respuesta_estado_id: {type: integer}
@@ -173,6 +183,7 @@ def create_accion_respuesta():
     # Prepare insert with explicit columns to match DB schema
     coe_acta_resolucion_mesa_id = data.get('coe_acta_resolucion_mesa_id', 0)
     usuario_id = data['usuario_id']
+    emergencia_id = data.get('emergencia_id')
     accion_respuesta_origen_id = data['accion_respuesta_origen_id']
     detalle = data.get('detalle')
     accion_respuesta_estado_id = data['accion_respuesta_estado_id']
@@ -183,14 +194,32 @@ def create_accion_respuesta():
 
     query = db.text("""
         INSERT INTO acciones_respuesta (
-            coe_acta_resolucion_mesa_id, usuario_id, accion_respuesta_origen_id,
-            detalle, accion_respuesta_estado_id, fecha_final,
-            activo, creador, creacion, modificador, modificacion
+            coe_acta_resolucion_mesa_id,
+            usuario_id,
+            emergencia_id,
+            accion_respuesta_origen_id,
+            detalle,
+            accion_respuesta_estado_id,
+            fecha_final,
+            activo,
+            creador,
+            creacion,
+            modificador,
+            modificacion
         )
         VALUES (
-            :coe_acta_resolucion_mesa_id, :usuario_id, :accion_respuesta_origen_id,
-            :detalle, :accion_respuesta_estado_id, :fecha_final,
-            :activo, :creador, :creacion, :modificador, :modificacion
+            :coe_acta_resolucion_mesa_id,
+            :usuario_id,
+            :emergencia_id,
+            :accion_respuesta_origen_id,
+            :detalle,
+            :accion_respuesta_estado_id,
+            :fecha_final,
+            :activo,
+            :creador,
+            :creacion,
+            :modificador,
+            :modificacion
         )
         RETURNING id
     """)
@@ -198,6 +227,7 @@ def create_accion_respuesta():
     params = {
         'coe_acta_resolucion_mesa_id': coe_acta_resolucion_mesa_id,
         'usuario_id': usuario_id,
+        'emergencia_id': emergencia_id,
         'accion_respuesta_origen_id': accion_respuesta_origen_id,
         'detalle': detalle,
         'accion_respuesta_estado_id': accion_respuesta_estado_id,
@@ -267,6 +297,7 @@ def update_accion_respuesta(id):
           properties:
             coe_acta_resolucion_mesa_id: {type: integer}
             usuario_id: {type: integer}
+            emergencia_id: {type: integer}
             accion_respuesta_origen_id: {type: integer}
             detalle: {type: string}
             accion_respuesta_estado_id: {type: integer}
@@ -291,6 +322,7 @@ def update_accion_respuesta(id):
     allowed = {
         'coe_acta_resolucion_id',
         'usuario_id',
+        'emergencia_id',
         'accion_respuesta_origen_id',
         'detalle',
         'accion_respuesta_estado_id',

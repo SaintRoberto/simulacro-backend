@@ -169,6 +169,87 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
     return jsonify(items)
 
 
+@recursos_inventario_bp.route(
+    '/api/recursos_inventario/coe/<int:coe_id>/mesa/<int:mesa_id>/recurso_tipo/<int:recurso_tipo_id>/',
+    methods=['GET']
+)
+def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recurso_tipo_id):
+    """Obtener existencias por COE, mesa y tipo de recurso
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+      - name: recurso_tipo_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Existencias agrupadas por COE y mesa para el tipo de recurso solicitado
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              mesa_nombre: {type: string}
+              recurso_tipo_id: {type: integer}
+              existencias: {type: integer}
+    """
+    query = db.text("""
+        SELECT
+            m.coe_id,
+            m.id AS mesa_id,
+            c.siglas || ' - ' || m.nombre AS mesa_nombre,
+            :recurso_tipo_id AS recurso_tipo_id,
+            COALESCE(SUM(ri.existencias), 0) AS existencias
+        FROM public.mesas m
+        INNER JOIN public.coes c ON m.coe_id = c.id
+        LEFT JOIN public.recursos_inventario ri
+               ON ri.coe_id = m.coe_id
+              AND ri.mesa_id = m.id
+              AND ri.recurso_tipo_id = :recurso_tipo_id
+              AND ri.activo = true
+        WHERE m.activo = true
+          AND (
+                m.coe_id = :coe_id_usuario
+                OR
+                (
+                    :coe_id_usuario > 1
+                    AND m.coe_id = :coe_id_usuario - 1
+                    AND m.id = :mesa_id_usuario
+                )
+              )
+        GROUP BY m.coe_id, m.id, m.nombre, c.siglas
+        ORDER BY m.coe_id, m.id;
+    """)
+    result = db.session.execute(query, {
+        'coe_id_usuario': coe_id,
+        'mesa_id_usuario': mesa_id,
+        'recurso_tipo_id': recurso_tipo_id
+    })
+
+    items = []
+    for row in result:
+        items.append({
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'mesa_nombre': row.mesa_nombre,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'existencias': row.existencias
+        })
+    return jsonify(items)
+
+
 @recursos_inventario_bp.route('/api/recursos_inventario', methods=['POST'])
 def create_recurso_inventario():
     """Crear recurso inventario
