@@ -202,7 +202,6 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recu
               coe_id: {type: integer}
               mesa_id: {type: integer}
               mesa_nombre: {type: string}
-              recurso_tipo_id: {type: integer}
               existencias: {type: integer}
     """
     query = db.text("""
@@ -210,27 +209,38 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recu
             m.coe_id,
             m.id AS mesa_id,
             c.siglas || ' - ' || m.nombre AS mesa_nombre,
-            :recurso_tipo_id AS recurso_tipo_id,
             COALESCE(SUM(ri.existencias), 0) AS existencias
         FROM public.mesas m
-        INNER JOIN public.coes c ON m.coe_id = c.id
+        INNER JOIN public.coes c 
+                ON m.coe_id = c.id
         LEFT JOIN public.recursos_inventario ri
-               ON ri.coe_id = m.coe_id
-              AND ri.mesa_id = m.id
-              AND ri.recurso_tipo_id = :recurso_tipo_id
-              AND ri.activo = true
+            ON ri.coe_id = m.coe_id
+            AND ri.mesa_id = m.id
+            AND ri.recurso_tipo_id = :recurso_tipo_id
+            AND ri.activo = true
         WHERE m.activo = true
-          AND (
+        AND (
+                -- Todas las mesas del COE actual
                 m.coe_id = :coe_id_usuario
+
                 OR
+
+                -- Solo la mesa propia en el COE inmediato superior
                 (
                     :coe_id_usuario > 1
                     AND m.coe_id = :coe_id_usuario - 1
                     AND m.id = :mesa_id_usuario
                 )
-              )
-        GROUP BY m.coe_id, m.id, m.nombre, c.siglas
-        ORDER BY m.coe_id, m.id;
+            )
+        GROUP BY
+            m.coe_id,
+            m.id,
+            c.siglas,
+            m.nombre
+        HAVING COALESCE(SUM(ri.existencias), 0) > 0
+        ORDER BY
+            m.coe_id,
+            m.id;
     """)
     result = db.session.execute(query, {
         'coe_id_usuario': coe_id,
@@ -244,7 +254,6 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recu
             'coe_id': row.coe_id,
             'mesa_id': row.mesa_id,
             'mesa_nombre': row.mesa_nombre,
-            'recurso_tipo_id': row.recurso_tipo_id,
             'existencias': row.existencias
         })
     return jsonify(items)
