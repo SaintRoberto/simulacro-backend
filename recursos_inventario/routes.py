@@ -659,3 +659,92 @@ def get_recursos_inventario_by_location(coe_id, mesa_id, provincia_id, canton_id
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
     return jsonify(items)
+
+
+@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>', methods=['GET'])
+def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id):
+    """Obtener recursos inventario por recuros x intitución, COE y mesa
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+        - name: coe_id
+          in: path
+          type: integer
+          required: true
+        - name: mesa_id 
+          in: path
+          type: integer
+          required: true
+        - name: recurso_tipo_id
+          in: path
+          type: integer
+          required: true
+        - name: institucion_duena_id
+          in: path
+          type: integer
+          required: true
+    responses:
+      200:
+        description: Lista de recursos inventario por ubicación
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              institucion_duena_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+              existencias: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+              parroquia_id: {type: integer}
+    """
+    query = db.text("""
+        SELECT
+        RI.ID AS ID,
+        RI.INSTITUCION_DUENA_ID AS INSTITUCION_DUENA_ID,
+        RI.RECURSO_TIPO_ID AS RECURSO_TIPO_ID,
+        RI.COE_ID AS COE_ID,
+        RI.MESA_ID AS MESA_ID,
+        P.NOMBRE AS PROVINCIA,
+        C.NOMBRE AS CANTON,
+        PR.NOMBRE AS PARROQUIA,
+        RI.EXISTENCIAS AS EXISTENCIAS
+      FROM
+        PUBLIC.RECURSOS_INVENTARIO RI INNER JOIN	
+        PUBLIC.PROVINCIAS P ON RI.PROVINCIA_ID = P.ID INNER JOIN
+        PUBLIC.CANTONES C ON RI.CANTON_ID = C.ID INNER JOIN
+        PUBLIC.PARROQUIAS PR ON RI.PARROQUIA_ID = PR.ID
+        WHERE RI.COE_ID = :coe_id
+          AND RI.MESA_ID = :mesa_id
+          AND RI.RECURSO_TIPO_ID = :recurso_tipo_id
+          AND RI.INSTITUCION_DUENA_ID = :institucion_duena_id
+    """)
+    result = db.session.execute(query, {
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'recurso_tipo_id': recurso_tipo_id,
+        'institucion_duena_id': institucion_duena_id
+    })
+    items = []
+    for row in result:
+        items.append({
+            'id': row.id,
+            'institucion_duena_id': row.institucion_duena_id,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'provincia': row.provincia,
+            'parroquia': row.parroquia,
+            'canton': row.canton,
+            'existencias': row.existencias
+        })
+    return jsonify(items)
