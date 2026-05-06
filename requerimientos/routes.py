@@ -4,10 +4,9 @@ from models import db
 from datetime import datetime, timezone
 
 
-
 @requerimientos_bp.route('/api/requerimientos/enviados/usuario/<int:usuario_emisor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
 def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
-    """Listar requerimientos
+    """Listar requerimientos enviados
     ---
     tags:
       - Requerimientos
@@ -36,35 +35,30 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         in: path
         type: integer
         required: true
-        description: ID del cantón para filtrar
+        description: ID del canton para filtrar
       - name: emergencia_id
         in: path
         type: integer
         required: true
         description: ID de la emergencia para filtrar
-
     responses:
-        200:
-          description: Lista de requerimientos enviados
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                emergencia_id: {type: integer}
-                requerimiento_id: {type: integer}
-                usuario_emisor_id: {type: integer}
-                usuario_emisor: {type: string}
-                usuario_receptor_id: {type: integer}
-                usuario_receptor: {type: string}
-                fecha_inicio: {type: string, format: date-time, nullable: true}
-                fecha_fin: {type: string, format: date-time, nullable: true}
-                porcentaje_avance: {type: integer}
-                requerimiento_estado_id: {type: integer}
-                activo: {type: boolean}
+      200:
+        description: Lista de requerimientos enviados
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              emergencia_id: {type: integer}
+              requerimiento_id: {type: integer}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              fecha_inicio: {type: string, format: date-time, nullable: true}
+              fecha_fin: {type: string, format: date-time, nullable: true}
+              porcentaje_avance: {type: integer}
+              requerimiento_estado_id: {type: integer}
+              activo: {type: boolean}
     """
-
-    # Parámetros
     params = {
         'usuario_emisor_id': usuario_emisor_id,
         'perfil_id': perfil_id,
@@ -74,21 +68,18 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         'emergencia_id': emergencia_id
     }
 
-    # Construir la consulta base
-    query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id, 
+    query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
             r.usuario_emisor_id, ue.usuario usuario_emisor,
-            r.usuario_receptor_id, ur.usuario usuario_receptor,
             r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
-        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
         INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND 
-              ex.provincia_id = sx.provincia_id AND 
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND
+              ex.provincia_id = sx.provincia_id AND
               ex.canton_id = sx.canton_id
-        WHERE r.emergencia_id = :emergencia_id AND (r.usuario_emisor_id = :usuario_emisor_id OR 
-              (sx.perfil_id = :perfil_id AND 
-              sx.coe_id = :coe_id AND sx.usuario_id = :usuario_emisor_id AND sx.provincia_id = :provincia_id AND 
+        WHERE r.emergencia_id = :emergencia_id AND (r.usuario_emisor_id = :usuario_emisor_id OR
+              (sx.perfil_id = :perfil_id AND
+              sx.coe_id = :coe_id AND sx.usuario_id = :usuario_emisor_id AND sx.provincia_id = :provincia_id AND
               sx.canton_id = :canton_id
               ))
         ORDER BY r.creacion DESC
@@ -100,8 +91,6 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
-            'usuario_receptor_id': row.usuario_receptor_id,
-            'usuario_receptor': row.usuario_receptor,
             'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
             'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
             'porcentaje_avance': row.porcentaje_avance,
@@ -110,19 +99,19 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
         } for row in result]
 
         return jsonify(requerimientos)
-
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Error al obtener los requerimientos', 'details': str(e)}), 500
 
-@requerimientos_bp.route('/api/requerimientos/recibidos/usuario/<int:usuario_receptor_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
-def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
+
+@requerimientos_bp.route('/api/requerimientos/recibidos/usuario/<int:usuario_id>/perfil/<int:perfil_id>/coe/<int:coe_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/emergencia/<int:emergencia_id>', methods=['GET'])
+def get_requerimientos_recibidos(usuario_id, perfil_id, coe_id, provincia_id, canton_id, emergencia_id):
     """Listar requerimientos recibidos
     ---
     tags:
       - Requerimientos
     parameters:
-      - name: usuario_receptor_id
+      - name: usuario_id
         in: path
         type: integer
         required: true
@@ -145,38 +134,35 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
         in: path
         type: integer
         required: true
-        description: ID del cantón para filtrar
+        description: ID del canton para filtrar
       - name: emergencia_id
         in: path
         type: integer
         required: false
         description: ID de la emergencia para filtrar (opcional)
-
     responses:
-        200:
-          description: Lista de requerimientos recibidos
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                id: {type: integer}
-                emergencia_id: {type: integer}
-                usuario_emisor_id: {type: integer}
-                usuario_receptor_id: {type: integer}
-                fecha_inicio: {type: string}
-                fecha_fin: {type: string}
-                porcentaje_avance: {type: integer}
-                requerimiento_estado_id: {type: integer}
-                activo: {type: boolean}
-                creador: {type: string}
-                creacion: {type: string}
-                modificador: {type: string}
-                modificacion: {type: string}
-      """
-    # Parámetros
+      200:
+        description: Lista de requerimientos recibidos
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              emergencia_id: {type: integer}
+              usuario_emisor_id: {type: integer}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
+              porcentaje_avance: {type: integer}
+              requerimiento_estado_id: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
     params = {
-        'usuario_receptor_id': usuario_receptor_id,
+        'usuario_id': usuario_id,
         'perfil_id': perfil_id,
         'coe_id': coe_id,
         'provincia_id': provincia_id,
@@ -184,23 +170,22 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
         'emergencia_id': emergencia_id
     }
 
-    query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id, 
+    query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
             r.usuario_emisor_id, ue.usuario usuario_emisor,
-            r.usuario_receptor_id, ur.usuario usuario_receptor,
             r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
-        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa rx ON ur.id = rx.usuario_id
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON rx.coe_id = sx.coe_id AND 
-              rx.provincia_id = sx.provincia_id AND 
-              rx.canton_id = sx.canton_id
-        WHERE r.emergencia_id = :emergencia_id AND (r.usuario_receptor_id = :usuario_receptor_id OR 
-              (sx.perfil_id = 3 AND 
-              sx.coe_id = :coe_id AND sx.usuario_id = :usuario_receptor_id AND sx.provincia_id = :provincia_id AND 
-              sx.canton_id = :canton_id
-              ))
-			        
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND
+              ex.provincia_id = sx.provincia_id AND
+              ex.canton_id = sx.canton_id
+        WHERE r.emergencia_id = :emergencia_id
+          AND r.usuario_emisor_id <> :usuario_id
+          AND sx.perfil_id = :perfil_id
+          AND sx.coe_id = :coe_id
+          AND sx.usuario_id = :usuario_id
+          AND sx.provincia_id = :provincia_id
+          AND sx.canton_id = :canton_id
         ORDER BY r.creacion DESC"""
 
     try:
@@ -210,60 +195,60 @@ def get_requerimientos_recibidos(usuario_receptor_id, perfil_id, coe_id, provinc
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
-            'usuario_receptor_id': row.usuario_receptor_id,
-            'usuario_receptor': row.usuario_receptor,
             'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
             'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
             'porcentaje_avance': row.porcentaje_avance,
             'requerimiento_estado_id': row.requerimiento_estado_id,
             'activo': row.activo
         } for row in result]
-        
         return jsonify(requerimientos)
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Error al obtener los requerimientos', 'details': str(e)}), 500
 
-@requerimientos_bp.route('/api/requerimientos/recibidos/notificacion/<int:usuario_receptor_id>', methods=['GET'])
-def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
-    """Listar requerimientos recibidos para mostrar como notificación (estado 1 o 2)
+
+@requerimientos_bp.route('/api/requerimientos/recibidos/notificacion/<int:usuario_id>', methods=['GET'])
+def get_requerimientos_recibidos_notificacion(usuario_id):
+    """Listar requerimientos recibidos para mostrar como notificacion (estado 1 o 2)
     ---
     tags:
       - Requerimientos
     parameters:
-      - name: usuario_receptor_id
+      - name: usuario_id
         in: path
         type: integer
         required: true
     responses:
-        200:
-          description: Lista de requerimientos recibidos para notificación
-          schema:
-            type: array
-            items:
-              type: object
-              properties:
-                id: {type: integer}
-                emergencia_id: {type: integer}
-                usuario_emisor_id: {type: integer}
-                usuario_receptor_id: {type: integer}
-                porcentaje_avance: {type: integer}
-                requerimiento_estado_id: {type: integer}
-                activo: {type: boolean}
-                creador: {type: string}
-                creacion: {type: string}
-      """
-    params = {'usuario_receptor_id': usuario_receptor_id}
+      200:
+        description: Lista de requerimientos recibidos para notificacion
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              emergencia_id: {type: integer}
+              usuario_emisor_id: {type: integer}
+              porcentaje_avance: {type: integer}
+              requerimiento_estado_id: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+    """
+    params = {'usuario_id': usuario_id}
 
-    query = db.text("""SELECT r.emergencia_id, r.id requerimiento_id,
+    query = db.text("""SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
         r.usuario_emisor_id, ue.usuario usuario_emisor,
-        r.usuario_receptor_id, ur.usuario usuario_receptor,
-        r.porcentaje_avance, r.requerimiento_estado_id, 
+        r.porcentaje_avance, r.requerimiento_estado_id,
         r.activo, r.creador, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
-        INNER JOIN public.usuarios ur ON r.usuario_receptor_id = ur.id
-        WHERE r.usuario_receptor_id = :usuario_receptor_id 
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa sx ON ex.coe_id = sx.coe_id AND
+              ex.provincia_id = sx.provincia_id AND
+              ex.canton_id = sx.canton_id
+        WHERE sx.usuario_id = :usuario_id
+        AND r.usuario_emisor_id <> :usuario_id
         AND r.requerimiento_estado_id IN (1,2) AND r.activo = true""")
     result = db.session.execute(query, params)
     requerimientos = []
@@ -275,8 +260,6 @@ def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
-            'usuario_receptor_id': row.usuario_receptor_id,
-            'usuario_receptor': row.usuario_receptor,
             'porcentaje_avance': row.porcentaje_avance,
             'requerimiento_estado_id': row.requerimiento_estado_id,
             'activo': row.activo,
@@ -284,6 +267,7 @@ def get_requerimientos_recibidos_notificacion(usuario_receptor_id):
             'creacion': row.creacion.isoformat() if row.creacion else None
         })
     return jsonify(requerimientos)
+
 
 @requerimientos_bp.route('/api/requerimientos', methods=['POST'])
 def create_requerimiento():
@@ -299,11 +283,10 @@ def create_requerimiento():
         required: true
         schema:
           type: object
-          required: [emergencia_id, usuario_emisor_id, usuario_receptor_id]
+          required: [emergencia_id, usuario_emisor_id]
           properties:
             emergencia_id: {type: integer}
             usuario_emisor_id: {type: integer}
-            usuario_receptor_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
             porcentaje_avance: {type: integer}
@@ -319,7 +302,6 @@ def create_requerimiento():
             id: {type: integer}
             emergencia_id: {type: integer}
             usuario_emisor_id: {type: integer}
-            usuario_receptor_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
             porcentaje_avance: {type: integer}
@@ -330,17 +312,22 @@ def create_requerimiento():
             modificador: {type: string}
             modificacion: {type: string}
     """
-    data = request.get_json()
+    data = request.get_json() or {}
+    required_fields = ['emergencia_id', 'usuario_emisor_id']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         INSERT INTO requerimientos (
-            emergencia_id, usuario_emisor_id, usuario_receptor_id, fecha_inicio,
+            emergencia_id, usuario_emisor_id, fecha_inicio,
             fecha_fin, activo, creador, creacion, modificador, modificacion,
             porcentaje_avance, requerimiento_estado_id
         )
         VALUES (
-            :emergencia_id, :usuario_emisor_id, :usuario_receptor_id, :fecha_inicio,
+            :emergencia_id, :usuario_emisor_id, :fecha_inicio,
             :fecha_fin, :activo, :creador, :creacion, :modificador, :modificacion,
             :porcentaje_avance, :requerimiento_estado_id
         )
@@ -350,7 +337,6 @@ def create_requerimiento():
     result = db.session.execute(query, {
         'emergencia_id': data['emergencia_id'],
         'usuario_emisor_id': data['usuario_emisor_id'],
-        'usuario_receptor_id': data['usuario_receptor_id'],
         'fecha_inicio': data.get('fecha_inicio', now),
         'fecha_fin': data.get('fecha_fin'),
         'activo': data.get('activo', True),
@@ -368,17 +354,16 @@ def create_requerimiento():
         return jsonify({'error': 'Failed to create requerimiento'}), 500
     requerimiento_id = row[0]
     db.session.commit()
-    
+
     requerimiento = db.session.execute(
-        db.text("SELECT * FROM requerimientos WHERE id = :id"), 
+        db.text("SELECT * FROM requerimientos WHERE id = :id"),
         {'id': requerimiento_id}
     ).fetchone()
-    
+
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
-        'usuario_receptor_id': requerimiento.usuario_receptor_id,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
@@ -389,6 +374,7 @@ def create_requerimiento():
         'modificador': requerimiento.modificador,
         'modificacion': requerimiento.modificacion.isoformat() if requerimiento.modificacion else None
     }), 201
+
 
 @requerimientos_bp.route('/api/requerimientos/id/<int:id>', methods=['GET'])
 def get_requerimiento(id):
@@ -408,19 +394,18 @@ def get_requerimiento(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("SELECT * FROM requerimientos WHERE id = :id"), 
+        db.text("SELECT * FROM requerimientos WHERE id = :id"),
         {'id': id}
     )
     requerimiento = result.fetchone()
-    
+
     if not requerimiento:
         return jsonify({'error': 'Requerimiento no encontrado'}), 404
-    
+
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
-        'usuario_receptor_id': requerimiento.usuario_receptor_id,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
@@ -431,6 +416,7 @@ def get_requerimiento(id):
         'modificador': requerimiento.modificador,
         'modificacion': requerimiento.modificacion.isoformat() if requerimiento.modificacion else None
     })
+
 
 @requerimientos_bp.route('/api/requerimientos/<int:id>', methods=['PUT'])
 def update_requerimiento(id):
@@ -460,8 +446,7 @@ def update_requerimiento(id):
         description: No encontrado
     """
     data = request.get_json()
-    now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         UPDATE requerimientos
         SET porcentaje_avance = :porcentaje_avance,
@@ -474,22 +459,21 @@ def update_requerimiento(id):
         'requerimiento_estado_id': data.get('requerimiento_estado_id'),
         'id': id
     })
-    
+
     if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Requerimiento no encontrado'}), 404
-    
+
     db.session.commit()
-    
+
     requerimiento = db.session.execute(
-        db.text("SELECT * FROM requerimientos WHERE id = :id"), 
+        db.text("SELECT * FROM requerimientos WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
     return jsonify({
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
-        'usuario_receptor_id': requerimiento.usuario_receptor_id,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
@@ -500,6 +484,7 @@ def update_requerimiento(id):
         'modificador': requerimiento.modificador,
         'modificacion': requerimiento.modificacion.isoformat() if requerimiento.modificacion else None
     })
+
 
 @requerimientos_bp.route('/api/requerimientos/<int:id>', methods=['DELETE'])
 def delete_requerimiento(id):
@@ -519,13 +504,12 @@ def delete_requerimiento(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("DELETE FROM requerimientos WHERE id = :id"), 
+        db.text("DELETE FROM requerimientos WHERE id = :id"),
         {'id': id}
     )
-    
+
     if getattr(result, 'rowcount', 0) == 0:
         return jsonify({'error': 'Requerimiento no encontrado'}), 404
-    
+
     db.session.commit()
     return jsonify({'mensaje': 'Requerimiento eliminado correctamente'})
-

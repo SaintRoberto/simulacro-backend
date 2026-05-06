@@ -3,7 +3,26 @@ from requerimiento_recursos import requerimiento_recursos_bp
 from models import db
 from datetime import datetime, timezone
 
-from utils.db_helpers import check_row_or_abort
+
+def _serialize_requerimiento_recurso(row):
+    return {
+        'id': row.id,
+        'requerimiento_id': row.requerimiento_id,
+        'usuario_receptor_id': row.usuario_receptor_id,
+        'recurso_grupo_id': row.recurso_grupo_id,
+        'recurso_tipo_id': row.recurso_tipo_id,
+        'cantidad': row.cantidad,
+        'costo': float(row.costo) if row.costo is not None else None,
+        'especificaciones': row.especificaciones,
+        'destino': row.destino,
+        'activo': row.activo,
+        'creador': row.creador,
+        'creacion': row.creacion.isoformat() if row.creacion else None,
+        'modificador': row.modificador,
+        'modificacion': row.modificacion.isoformat() if row.modificacion else None
+    }
+
+
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['GET'])
 def get_requerimiento_recursos():
     """Listar requerimiento recursos
@@ -20,9 +39,11 @@ def get_requerimiento_recursos():
             properties:
               id: {type: integer}
               requerimiento_id: {type: integer}
+              usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
               recurso_tipo_id: {type: integer}
               cantidad: {type: integer}
+              costo: {type: number}
               especificaciones: {type: string}
               destino: {type: string}
               activo: {type: boolean}
@@ -31,24 +52,9 @@ def get_requerimiento_recursos():
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM requerimiento_recursos"))
-    relaciones = []
-    for row in result:
-        relaciones.append({
-            'id': row.id,
-            'requerimiento_id': row.requerimiento_id,
-            'recurso_grupo_id': row.recurso_grupo_id,
-            'recurso_tipo_id': row.recurso_tipo_id,
-            'cantidad': row.cantidad,
-            'especificaciones': row.especificaciones,
-            'destino': row.destino,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
-        })
-    return jsonify(relaciones)
+    result = db.session.execute(db.text("SELECT * FROM requerimiento_recursos ORDER BY id DESC"))
+    return jsonify([_serialize_requerimiento_recurso(row) for row in result])
+
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['POST'])
 def create_requerimiento_recurso():
@@ -64,9 +70,10 @@ def create_requerimiento_recurso():
         required: true
         schema:
           type: object
-          required: [requerimiento_id, recurso_grupo_id, recurso_tipo_id]
+          required: [requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id]
           properties:
             requerimiento_id: {type: integer}
+            usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
             cantidad: {type: integer}
@@ -79,23 +86,29 @@ def create_requerimiento_recurso():
       201:
         description: Requerimiento recurso creado
     """
-    data = request.get_json()
+    data = request.get_json() or {}
+    required_fields = ['requerimiento_id', 'usuario_receptor_id', 'recurso_grupo_id', 'recurso_tipo_id']
+    missing_fields = [field for field in required_fields if field not in data]
+    if missing_fields:
+        return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
     now = datetime.now(timezone.utc)
-    
+
     query = db.text("""
         INSERT INTO requerimiento_recursos (
-            requerimiento_id, recurso_grupo_id, recurso_tipo_id, cantidad,
-            especificaciones, destino, activo, creador, creacion, modificador, modificacion, costo
+            requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, cantidad, costo,
+            especificaciones, destino, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :requerimiento_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad,
-            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion, :costo
+            :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad, :costo,
+            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
-    
+
     result = db.session.execute(query, {
         'requerimiento_id': data['requerimiento_id'],
+        'usuario_receptor_id': data['usuario_receptor_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'recurso_tipo_id': data['recurso_tipo_id'],
         'cantidad': data.get('cantidad', 1),
@@ -105,40 +118,31 @@ def create_requerimiento_recurso():
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
-        'modificador': data.get('creador', 'Sistema'),
-        'modificacion': now
+        'modificador': data.get('modificador', data.get('creador', 'Sistema')),
+        'modificacion': data.get('modificacion')
     })
-    
+
     row = result.fetchone()
     if row is None:
-        return jsonify({'error': 'Not found'}), 404
+        db.session.rollback()
+        return jsonify({'error': 'No se pudo crear el registro'}), 500
+
     relacion_id = row[0]
     db.session.commit()
-    
+
     relacion = db.session.execute(
-        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"),
         {'id': relacion_id}
     ).fetchone()
-    
-    return jsonify({
-        'id': relacion.id,
-        'requerimiento_id': relacion.requerimiento_id,
-        'recurso_grupo_id': relacion.recurso_grupo_id,
-        'recurso_tipo_id': relacion.recurso_tipo_id,
-        'cantidad': relacion.cantidad,
-        'costo': relacion.costo,
-        'especificaciones': relacion.especificaciones,
-        'destino': relacion.destino,
-        'activo': relacion.activo,
-        'creador': relacion.creador,
-        'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
-        'modificador': relacion.modificador,
-        'modificacion': relacion.modificacion.isoformat() if relacion.modificacion else None
-    }), 201
+    if relacion is None:
+        return jsonify({'error': 'Registro no encontrado despues de crear'}), 500
+
+    return jsonify(_serialize_requerimiento_recurso(relacion)), 201
+
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:requerimiento_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
-    """Obtener requerimiento recurso por ID
+    """Obtener requerimiento recurso por requerimiento_id
     ---
     tags:
       - Requerimiento Recursos
@@ -150,34 +154,17 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
     responses:
       200:
         description: Requerimiento recurso
-      404:
-        description: No encontrado
     """
     result = db.session.execute(
-        db.text("SELECT * FROM requerimiento_recursos WHERE requerimiento_id = :requerimiento_id"), 
+        db.text("""
+            SELECT * FROM requerimiento_recursos
+            WHERE requerimiento_id = :requerimiento_id
+            ORDER BY id DESC
+        """),
         {'requerimiento_id': requerimiento_id}
     )
-    requerimiento_recursos = []
-    if not result:
-        return jsonify({'error': 'Relación no encontrada'}), 404
-    for row in result:
-        requerimiento_recursos.append({
-            'id': row.id,
-            'requerimiento_id': row.requerimiento_id,
-            'recurso_grupo_id': row.recurso_grupo_id,
-            'recurso_tipo_id': row.recurso_tipo_id,
-            'cantidad': row.cantidad,
-            'costo': float(row.costo) if row.costo is not None else None,
-            'especificaciones': row.especificaciones,
-            'destino': row.destino,
-            'activo': row.activo,
-            'creador': row.creador,
-            'creacion': row.creacion.isoformat() if row.creacion else None,
-            'modificador': row.modificador,
-            'modificacion': row.modificacion.isoformat() if row.modificacion else None
-        })
-       
-    return jsonify(requerimiento_recursos)
+    return jsonify([_serialize_requerimiento_recurso(row) for row in result])
+
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/id/<int:id>', methods=['GET'])
 def get_requerimiento_recurso(id):
@@ -196,30 +183,16 @@ def get_requerimiento_recurso(id):
       404:
         description: No encontrado
     """
-    result = db.session.execute(
-        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"), 
+    relacion = db.session.execute(
+        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"),
         {'id': id}
-    )
-    relacion = result.fetchone()
-    
+    ).fetchone()
+
     if not relacion:
-        return jsonify({'error': 'Relación no encontrada'}), 404
-    
-    return jsonify({
-        'id': relacion.id,
-        'requerimiento_id': relacion.requerimiento_id,
-        'recurso_grupo_id': relacion.recurso_grupo_id,
-        'recurso_tipo_id': relacion.recurso_tipo_id,
-        'cantidad': relacion.cantidad,
-        'costo': float(relacion.costo) if relacion.costo is not None else None,
-        'especificaciones': relacion.especificaciones,
-        'destino': relacion.destino,
-        'activo': relacion.activo,
-        'creador': relacion.creador,
-        'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
-        'modificador': relacion.modificador,
-        'modificacion': relacion.modificacion.isoformat() if relacion.modificacion else None
-    })
+        return jsonify({'error': 'Relacion no encontrada'}), 404
+
+    return jsonify(_serialize_requerimiento_recurso(relacion))
+
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['PUT'])
 def update_requerimiento_recurso(id):
@@ -241,73 +214,75 @@ def update_requerimiento_recurso(id):
           type: object
           properties:
             requerimiento_id: {type: integer}
+            usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
             cantidad: {type: integer}
+            costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
             activo: {type: boolean}
             modificador: {type: string}
+            modificacion: {type: string}
     responses:
       200:
         description: Requerimiento recurso actualizado
       404:
         description: No encontrado
     """
-    data = request.get_json()
+    data = request.get_json() or {}
     now = datetime.now(timezone.utc)
-    
+
+    actual = db.session.execute(
+        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"),
+        {'id': id}
+    ).fetchone()
+    if actual is None:
+        return jsonify({'error': 'Relacion no encontrada'}), 404
+
+    params = {
+        'id': id,
+        'requerimiento_id': data.get('requerimiento_id', actual.requerimiento_id),
+        'usuario_receptor_id': data.get('usuario_receptor_id', actual.usuario_receptor_id),
+        'recurso_grupo_id': data.get('recurso_grupo_id', actual.recurso_grupo_id),
+        'recurso_tipo_id': data.get('recurso_tipo_id', actual.recurso_tipo_id),
+        'cantidad': data.get('cantidad', actual.cantidad),
+        'costo': data.get('costo', actual.costo),
+        'especificaciones': data.get('especificaciones', actual.especificaciones),
+        'destino': data.get('destino', actual.destino),
+        'activo': data.get('activo', actual.activo),
+        'modificador': data.get('modificador', 'Sistema'),
+        'modificacion': data.get('modificacion', now)
+    }
+
     query = db.text("""
-        UPDATE requerimiento_recursos 
-        SET requerimiento_id = :requerimiento_id, 
-            recurso_grupo_id = :recurso_grupo_id, 
-            recurso_tipo_id = :recurso_tipo_id, 
-            cantidad = :cantidad, 
-            especificaciones = :especificaciones, 
-            destino = :destino, 
-            activo = :activo, 
-            modificador = :modificador, 
+        UPDATE requerimiento_recursos
+        SET requerimiento_id = :requerimiento_id,
+            usuario_receptor_id = :usuario_receptor_id,
+            recurso_grupo_id = :recurso_grupo_id,
+            recurso_tipo_id = :recurso_tipo_id,
+            cantidad = :cantidad,
+            costo = :costo,
+            especificaciones = :especificaciones,
+            destino = :destino,
+            activo = :activo,
+            modificador = :modificador,
             modificacion = :modificacion
         WHERE id = :id
     """)
-    
-    result = db.session.execute(query, {
-        'id': id,
-        'requerimiento_id': data.get('requerimiento_id'),
-        'recurso_grupo_id': data.get('recurso_grupo_id'),
-        'recurso_tipo_id': data.get('recurso_tipo_id'),
-        'cantidad': data.get('cantidad'),
-        'especificaciones': data.get('especificaciones'),
-        'destino': data.get('destino'),
-        'activo': data.get('activo'),
-        'modificador': data.get('modificador', 'Sistema'),
-        'modificacion': now
-    })
-    
-    if getattr(result, 'rowcount', 0) == 0:
-        return jsonify({'error': 'Relación no encontrada'}), 404
-    
+
+    db.session.execute(query, params)
     db.session.commit()
-    
+
     relacion = db.session.execute(
-        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"), 
+        db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
-    return jsonify({
-        'id': relacion.id,
-        'requerimiento_id': relacion.requerimiento_id,
-        'recurso_grupo_id': relacion.recurso_grupo_id,
-        'recurso_tipo_id': relacion.recurso_tipo_id,
-        'cantidad': relacion.cantidad,
-        'especificaciones': relacion.especificaciones,
-        'destino': relacion.destino,
-        'activo': relacion.activo,
-        'creador': relacion.creador,
-        'creacion': relacion.creacion.isoformat() if relacion.creacion else None,
-        'modificador': relacion.modificador,
-        'modificacion': relacion.modificacion.isoformat() if relacion.modificacion else None
-    })
+    if relacion is None:
+        return jsonify({'error': 'Relacion no encontrada despues de actualizar'}), 500
+
+    return jsonify(_serialize_requerimiento_recurso(relacion))
+
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['DELETE'])
 def delete_requerimiento_recurso(id):
@@ -327,12 +302,12 @@ def delete_requerimiento_recurso(id):
         description: No encontrado
     """
     result = db.session.execute(
-        db.text("DELETE FROM requerimiento_recursos WHERE id = :id"), 
+        db.text("DELETE FROM requerimiento_recursos WHERE id = :id"),
         {'id': id}
     )
-    
+
     if getattr(result, 'rowcount', 0) == 0:
-        return jsonify({'error': 'Relación no encontrada'}), 404
-    
+        return jsonify({'error': 'Relacion no encontrada'}), 404
+
     db.session.commit()
-    return jsonify({'mensaje': 'Relación eliminada correctamente'})
+    return jsonify({'mensaje': 'Relacion eliminada correctamente'})
