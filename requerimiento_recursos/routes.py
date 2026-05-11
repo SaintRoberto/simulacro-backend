@@ -15,6 +15,7 @@ def _serialize_requerimiento_recurso(row):
         'costo': float(row.costo) if row.costo is not None else None,
         'especificaciones': row.especificaciones,
         'destino': row.destino,
+        'detalle': row.detalle,
         'activo': row.activo,
         'creador': row.creador,
         'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -46,6 +47,7 @@ def get_requerimiento_recursos():
               costo: {type: number}
               especificaciones: {type: string}
               destino: {type: string}
+              detalle: {type: string}
               activo: {type: boolean}
               creador: {type: string}
               creacion: {type: string}
@@ -80,6 +82,7 @@ def create_requerimiento_recurso():
             costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
+            detalle: {type: string}
             activo: {type: boolean}
             creador: {type: string}
     responses:
@@ -97,11 +100,11 @@ def create_requerimiento_recurso():
     query = db.text("""
         INSERT INTO requerimiento_recursos (
             requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, cantidad, costo,
-            especificaciones, destino, activo, creador, creacion, modificador, modificacion
+            especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
             :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad, :costo,
-            :especificaciones, :destino, :activo, :creador, :creacion, :modificador, :modificacion
+            :especificaciones, :destino, :detalle, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
@@ -115,6 +118,7 @@ def create_requerimiento_recurso():
         'costo': data.get('costo', 0),
         'especificaciones': data.get('especificaciones'),
         'destino': data.get('destino'),
+        'detalle': data.get('detalle'),
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -221,6 +225,7 @@ def update_requerimiento_recurso(id):
             costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
+            detalle: {type: string}
             activo: {type: boolean}
             modificador: {type: string}
             modificacion: {type: string}
@@ -250,6 +255,7 @@ def update_requerimiento_recurso(id):
         'costo': data.get('costo', actual.costo),
         'especificaciones': data.get('especificaciones', actual.especificaciones),
         'destino': data.get('destino', actual.destino),
+        'detalle': data.get('detalle', actual.detalle),
         'activo': data.get('activo', actual.activo),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now)
@@ -265,6 +271,7 @@ def update_requerimiento_recurso(id):
             costo = :costo,
             especificaciones = :especificaciones,
             destino = :destino,
+            detalle = :detalle,
             activo = :activo,
             modificador = :modificador,
             modificacion = :modificacion

@@ -53,6 +53,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
               requerimiento_id: {type: integer}
               usuario_emisor_id: {type: integer}
               usuario_emisor: {type: string}
+              detalle: {type: string}
               fecha_inicio: {type: string, format: date-time, nullable: true}
               fecha_fin: {type: string, format: date-time, nullable: true}
               porcentaje_avance: {type: integer}
@@ -70,7 +71,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
 
     query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
             r.usuario_emisor_id, ue.usuario usuario_emisor,
-            r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
+            r.detalle, r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
         INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
@@ -91,6 +92,7 @@ def get_requerimientos_enviados(usuario_emisor_id, perfil_id, coe_id, provincia_
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
+            'detalle': row.detalle,
             'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
             'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
             'porcentaje_avance': row.porcentaje_avance,
@@ -151,6 +153,7 @@ def get_requerimientos_recibidos(usuario_id, perfil_id, coe_id, provincia_id, ca
               id: {type: integer}
               emergencia_id: {type: integer}
               usuario_emisor_id: {type: integer}
+              detalle: {type: string}
               fecha_inicio: {type: string}
               fecha_fin: {type: string}
               porcentaje_avance: {type: integer}
@@ -172,7 +175,7 @@ def get_requerimientos_recibidos(usuario_id, perfil_id, coe_id, provincia_id, ca
 
     query = """SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
             r.usuario_emisor_id, ue.usuario usuario_emisor,
-            r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
+            r.detalle, r.fecha_inicio, r.fecha_fin, r.porcentaje_avance, r.requerimiento_estado_id, r.activo, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
         INNER JOIN public.usuario_perfil_coe_dpa_mesa ex ON ue.id = ex.usuario_id
@@ -195,6 +198,7 @@ def get_requerimientos_recibidos(usuario_id, perfil_id, coe_id, provincia_id, ca
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
+            'detalle': row.detalle,
             'fecha_inicio': row.fecha_inicio.isoformat() if row.fecha_inicio else None,
             'fecha_fin': row.fecha_fin.isoformat() if row.fecha_fin else None,
             'porcentaje_avance': row.porcentaje_avance,
@@ -229,6 +233,7 @@ def get_requerimientos_recibidos_notificacion(usuario_id):
               id: {type: integer}
               emergencia_id: {type: integer}
               usuario_emisor_id: {type: integer}
+              detalle: {type: string}
               porcentaje_avance: {type: integer}
               requerimiento_estado_id: {type: integer}
               activo: {type: boolean}
@@ -239,7 +244,7 @@ def get_requerimientos_recibidos_notificacion(usuario_id):
 
     query = db.text("""SELECT DISTINCT r.emergencia_id, r.id requerimiento_id,
         r.usuario_emisor_id, ue.usuario usuario_emisor,
-        r.porcentaje_avance, r.requerimiento_estado_id,
+        r.detalle, r.porcentaje_avance, r.requerimiento_estado_id,
         r.activo, r.creador, r.creacion
         FROM public.requerimientos r
         INNER JOIN public.usuarios ue ON r.usuario_emisor_id = ue.id
@@ -260,6 +265,7 @@ def get_requerimientos_recibidos_notificacion(usuario_id):
             'requerimiento_id': row.requerimiento_id,
             'usuario_emisor_id': row.usuario_emisor_id,
             'usuario_emisor': row.usuario_emisor,
+            'detalle': row.detalle,
             'porcentaje_avance': row.porcentaje_avance,
             'requerimiento_estado_id': row.requerimiento_estado_id,
             'activo': row.activo,
@@ -287,6 +293,7 @@ def create_requerimiento():
           properties:
             emergencia_id: {type: integer}
             usuario_emisor_id: {type: integer}
+            detalle: {type: string}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
             porcentaje_avance: {type: integer}
@@ -302,6 +309,7 @@ def create_requerimiento():
             id: {type: integer}
             emergencia_id: {type: integer}
             usuario_emisor_id: {type: integer}
+            detalle: {type: string}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
             porcentaje_avance: {type: integer}
@@ -324,12 +332,12 @@ def create_requerimiento():
         INSERT INTO requerimientos (
             emergencia_id, usuario_emisor_id, fecha_inicio,
             fecha_fin, activo, creador, creacion, modificador, modificacion,
-            porcentaje_avance, requerimiento_estado_id
+            porcentaje_avance, requerimiento_estado_id, detalle
         )
         VALUES (
             :emergencia_id, :usuario_emisor_id, :fecha_inicio,
             :fecha_fin, :activo, :creador, :creacion, :modificador, :modificacion,
-            :porcentaje_avance, :requerimiento_estado_id
+            :porcentaje_avance, :requerimiento_estado_id, :detalle
         )
         RETURNING id
     """)
@@ -345,7 +353,8 @@ def create_requerimiento():
         'modificador': data.get('creador', 'Sistema'),
         'modificacion': now,
         'porcentaje_avance': data.get('porcentaje_avance', 0),
-        'requerimiento_estado_id': data.get('requerimiento_estado_id', 1)
+        'requerimiento_estado_id': data.get('requerimiento_estado_id', 1),
+        'detalle': data.get('detalle')
     })
 
     row = result.fetchone()
@@ -364,6 +373,7 @@ def create_requerimiento():
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'detalle': requerimiento.detalle,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
@@ -406,6 +416,7 @@ def get_requerimiento(id):
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'detalle': requerimiento.detalle,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
@@ -437,6 +448,7 @@ def update_requerimiento(id):
         schema:
           type: object
           properties:
+            detalle: {type: string}
             porcentaje_avance: {type: integer}
             requerimiento_estado_id: {type: integer}
     responses:
@@ -449,12 +461,14 @@ def update_requerimiento(id):
 
     query = db.text("""
         UPDATE requerimientos
-        SET porcentaje_avance = :porcentaje_avance,
+        SET detalle = :detalle,
+            porcentaje_avance = :porcentaje_avance,
             requerimiento_estado_id = :requerimiento_estado_id
         WHERE id = :id
     """)
 
     result = db.session.execute(query, {
+        'detalle': data.get('detalle'),
         'porcentaje_avance': data.get('porcentaje_avance'),
         'requerimiento_estado_id': data.get('requerimiento_estado_id'),
         'id': id
@@ -474,6 +488,7 @@ def update_requerimiento(id):
         'id': requerimiento.id,
         'emergencia_id': requerimiento.emergencia_id,
         'usuario_emisor_id': requerimiento.usuario_emisor_id,
+        'detalle': requerimiento.detalle,
         'fecha_inicio': requerimiento.fecha_inicio.isoformat() if requerimiento.fecha_inicio else None,
         'fecha_fin': requerimiento.fecha_fin.isoformat() if requerimiento.fecha_fin else None,
         'porcentaje_avance': requerimiento.porcentaje_avance,
