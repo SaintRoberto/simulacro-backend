@@ -11,7 +11,7 @@ def _serialize_requerimiento_recurso(row):
         'usuario_receptor_id': row.usuario_receptor_id,
         'recurso_grupo_id': row.recurso_grupo_id,
         'recurso_tipo_id': row.recurso_tipo_id,
-        'cantidad': row.cantidad,
+        'cantidad_solicitada': row.cantidad_solicitada,
         'costo': float(row.costo) if row.costo is not None else None,
         'especificaciones': row.especificaciones,
         'destino': row.destino,
@@ -43,7 +43,7 @@ def get_requerimiento_recursos():
               usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
               recurso_tipo_id: {type: integer}
-              cantidad: {type: integer}
+              cantidad_solicitada: {type: integer}
               costo: {type: number}
               especificaciones: {type: string}
               destino: {type: string}
@@ -78,7 +78,7 @@ def create_requerimiento_recurso():
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
-            cantidad: {type: integer}
+            cantidad_solicitada: {type: integer}
             costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
@@ -99,11 +99,11 @@ def create_requerimiento_recurso():
 
     query = db.text("""
         INSERT INTO requerimiento_recursos (
-            requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, cantidad, costo,
+            requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, cantidad_solicitada, costo,
             especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad, :costo,
+            :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad_solicitada, :costo,
             :especificaciones, :destino, :detalle, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
@@ -114,7 +114,7 @@ def create_requerimiento_recurso():
         'usuario_receptor_id': data['usuario_receptor_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'recurso_tipo_id': data['recurso_tipo_id'],
-        'cantidad': data.get('cantidad', 1),
+        'cantidad_solicitada': data.get('cantidad_solicitada', data.get('cantidad', 1)),
         'costo': data.get('costo', 0),
         'especificaciones': data.get('especificaciones'),
         'destino': data.get('destino'),
@@ -221,7 +221,7 @@ def update_requerimiento_recurso(id):
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
-            cantidad: {type: integer}
+            cantidad_solicitada: {type: integer}
             costo: {type: number}
             especificaciones: {type: string}
             destino: {type: string}
@@ -251,7 +251,7 @@ def update_requerimiento_recurso(id):
         'usuario_receptor_id': data.get('usuario_receptor_id', actual.usuario_receptor_id),
         'recurso_grupo_id': data.get('recurso_grupo_id', actual.recurso_grupo_id),
         'recurso_tipo_id': data.get('recurso_tipo_id', actual.recurso_tipo_id),
-        'cantidad': data.get('cantidad', actual.cantidad),
+        'cantidad_solicitada': data.get('cantidad_solicitada', data.get('cantidad', actual.cantidad_solicitada)),
         'costo': data.get('costo', actual.costo),
         'especificaciones': data.get('especificaciones', actual.especificaciones),
         'destino': data.get('destino', actual.destino),
@@ -267,7 +267,7 @@ def update_requerimiento_recurso(id):
             usuario_receptor_id = :usuario_receptor_id,
             recurso_grupo_id = :recurso_grupo_id,
             recurso_tipo_id = :recurso_tipo_id,
-            cantidad = :cantidad,
+            cantidad_solicitada = :cantidad_solicitada,
             costo = :costo,
             especificaciones = :especificaciones,
             destino = :destino,
