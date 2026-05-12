@@ -170,6 +170,57 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
     return jsonify([_serialize_requerimiento_recurso(row) for row in result])
 
 
+@requerimiento_recursos_bp.route(
+    '/api/requerimiento-recursos/usuario-receptor/<int:usuario_receptor_id>',
+    methods=['GET']
+)
+def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
+    """Obtener requerimientos recursos por usuario receptor
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+      - name: usuario_receptor_id
+        in: path
+        type: integer
+        required: true
+        description: ID del usuario que inicia sesion
+    responses:
+      200:
+        description: Lista de requerimientos recursos del usuario receptor
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_id: {type: integer}
+              usuario_receptor_id: {type: integer}
+              recurso_grupo_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              cantidad_solicitada: {type: integer}
+              costo: {type: number}
+              especificaciones: {type: string}
+              destino: {type: string}
+              detalle: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+    """
+    result = db.session.execute(
+        db.text("""
+            SELECT * FROM requerimiento_recursos
+            WHERE usuario_receptor_id = :usuario_receptor_id
+              AND COALESCE(activo, true) = true
+            ORDER BY id DESC
+        """),
+        {'usuario_receptor_id': usuario_receptor_id}
+    )
+    return jsonify([_serialize_requerimiento_recurso(row) for row in result])
+
+
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/id/<int:id>', methods=['GET'])
 def get_requerimiento_recurso(id):
     """Obtener requerimiento recurso por ID

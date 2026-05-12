@@ -4,6 +4,23 @@ from models import db
 from datetime import datetime, timezone
 
 
+def _is_estado_finalizado(respuesta_estado_id):
+    return respuesta_estado_id == 3
+
+
+def _is_recurso_retorna(requerimiento_recurso_id):
+    row = db.session.execute(
+        db.text("""
+            SELECT COALESCE(rt.retorna, false) AS retorna
+            FROM requerimiento_recursos rr
+            INNER JOIN recurso_tipos rt ON rr.recurso_tipo_id = rt.id
+            WHERE rr.id = :requerimiento_recurso_id
+        """),
+        {'requerimiento_recurso_id': requerimiento_recurso_id}
+    ).fetchone()
+    return bool(row.retorna) if row is not None else False
+
+
 def _serialize_requerimiento_respuesta(row):
     return {
         'id': row.id,
@@ -286,6 +303,11 @@ def update_requerimiento_respuesta(id):
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now)
     }
+
+    if _is_recurso_retorna(params['requerimiento_recurso_id']) and _is_estado_finalizado(
+        params['respuesta_estado_id']
+    ):
+        params['en_uso'] = 0
 
     query = db.text("""
         UPDATE requerimiento_respuestas

@@ -93,6 +93,8 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
               recurso_retorna: {type: boolean}
               existencias: {type: integer}
               movilizado: {type: integer}
+              comprometido: {type: integer}
+              total_asignado_en_uso: {type: integer}
               disponible: {type: integer}
     """
     query = db.text("""
@@ -113,16 +115,9 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
                 ),
                 0
             ) AS movilizado,
-            COALESCE(ri.existencias, 0) -
-            COALESCE(
-                SUM(
-                    CASE
-                        WHEN COALESCE(rm.factor, 0) = -1 THEN COALESCE(rm.cantidad, 0)
-                        ELSE 0
-                    END
-                ),
-                0
-            ) AS disponible
+            COALESCE(MAX(au.comprometido), 0) AS comprometido,
+            COALESCE(MAX(au.comprometido_en_uso), 0) AS total_asignado_en_uso,
+            COALESCE(ri.existencias, 0) - COALESCE(MAX(au.comprometido_en_uso), 0) AS disponible
         FROM public.instituciones_coe_mesa icm
         INNER JOIN public.instituciones i
             ON icm.institucion_id = i.id
@@ -136,6 +131,24 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
         LEFT JOIN public.recursos_movilizados rm
             ON rm.recurso_inventario_id = ri.id
            AND COALESCE(rm.activo, true) = true
+        LEFT JOIN (
+            SELECT
+                u.institucion_id,
+                rr.recurso_tipo_id,
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0)), 0) AS comprometido,
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.en_uso, 1)), 0) AS comprometido_en_uso
+            FROM public.requerimiento_respuestas rresp
+            INNER JOIN public.requerimiento_recursos rr
+                ON rresp.requerimiento_recurso_id = rr.id
+            INNER JOIN public.usuarios u
+                ON rr.usuario_receptor_id = u.id
+            WHERE COALESCE(rresp.activo, true) = true
+              AND COALESCE(rr.activo, true) = true
+              AND COALESCE(u.activo, true) = true
+            GROUP BY u.institucion_id, rr.recurso_tipo_id
+        ) au
+            ON au.institucion_id = i.id
+           AND au.recurso_tipo_id = rt.id
         WHERE icm.coe_id = :coe_id
           AND icm.mesa_id = :mesa_id
           AND rt.recurso_grupo_id = :recurso_grupo_id
@@ -164,6 +177,8 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
             'recurso_retorna': row.recurso_retorna,
             'existencias': row.existencias,
             'movilizado': row.movilizado,
+            'comprometido': row.comprometido,
+            'total_asignado_en_uso': row.total_asignado_en_uso,
             'disponible': row.disponible
         })
     return jsonify(items)
