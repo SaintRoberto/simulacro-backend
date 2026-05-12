@@ -133,22 +133,14 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
            AND COALESCE(rm.activo, true) = true
         LEFT JOIN (
             SELECT
-                u.institucion_id,
-                rr.recurso_tipo_id,
+                rresp.recurso_inventario_id,
                 COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0)), 0) AS comprometido,
                 COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.en_uso, 1)), 0) AS comprometido_en_uso
             FROM public.requerimiento_respuestas rresp
-            INNER JOIN public.requerimiento_recursos rr
-                ON rresp.requerimiento_recurso_id = rr.id
-            INNER JOIN public.usuarios u
-                ON rr.usuario_receptor_id = u.id
             WHERE COALESCE(rresp.activo, true) = true
-              AND COALESCE(rr.activo, true) = true
-              AND COALESCE(u.activo, true) = true
-            GROUP BY u.institucion_id, rr.recurso_tipo_id
+            GROUP BY rresp.recurso_inventario_id
         ) au
-            ON au.institucion_id = i.id
-           AND au.recurso_tipo_id = rt.id
+            ON au.recurso_inventario_id = ri.id
         WHERE icm.coe_id = :coe_id
           AND icm.mesa_id = :mesa_id
           AND rt.recurso_grupo_id = :recurso_grupo_id
@@ -182,6 +174,58 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
             'disponible': row.disponible
         })
     return jsonify(items)
+
+
+@recursos_inventario_bp.route('/api/recursos_inventario/<int:recurso_inventario_id>/disponible', methods=['GET'])
+def get_recurso_inventario_disponible(recurso_inventario_id):
+    """Obtener la cantidad disponible de un recurso de inventario
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+      - name: recurso_inventario_id
+        in: path
+        type: integer
+        required: true
+        description: ID del recurso inventario
+    responses:
+      200:
+        description: Cantidad disponible del recurso inventario
+        schema:
+          type: object
+          properties:
+            recurso_inventario_id: {type: integer}
+            existencias: {type: integer}
+            total_asignado_en_uso: {type: integer}
+            disponible: {type: integer}
+      404:
+        description: Recurso inventario no encontrado
+    """
+    query = db.text("""
+        SELECT
+            ri.id AS recurso_inventario_id,
+            COALESCE(ri.existencias, 0) AS existencias,
+            COALESCE(SUM(COALESCE(rr.cantidad_asignada, 0) * COALESCE(rr.en_uso, 1)), 0) AS total_asignado_en_uso,
+            COALESCE(ri.existencias, 0) - COALESCE(SUM(COALESCE(rr.cantidad_asignada, 0) * COALESCE(rr.en_uso, 1)), 0) AS disponible
+        FROM public.recursos_inventario ri
+        LEFT JOIN public.requerimiento_respuestas rr
+            ON rr.recurso_inventario_id = ri.id
+           AND COALESCE(rr.activo, true) = true
+        WHERE ri.id = :recurso_inventario_id
+          AND COALESCE(ri.activo, true) = true
+        GROUP BY ri.id, ri.existencias
+    """)
+    row = db.session.execute(query, {'recurso_inventario_id': recurso_inventario_id}).fetchone()
+
+    if row is None:
+        return jsonify({'error': 'Recurso inventario no encontrado'}), 404
+
+    return jsonify({
+        'recurso_inventario_id': row.recurso_inventario_id,
+        'existencias': row.existencias,
+        'total_asignado_en_uso': row.total_asignado_en_uso,
+        'disponible': row.disponible
+    })
 
 
 @recursos_inventario_bp.route(
