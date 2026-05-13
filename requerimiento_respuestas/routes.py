@@ -21,6 +21,26 @@ def _is_recurso_retorna(recurso_inventario_id):
     return bool(row.retorna) if row is not None else False
 
 
+def _normalize_factor(value, default=1):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return 1 if value else 0
+    if isinstance(value, (int, float)):
+        return 1 if int(value) != 0 else 0
+    if isinstance(value, str):
+        lowered = value.strip().lower()
+        if lowered in ('true', 't', 'yes', 'y', 'si', '1'):
+            return 1
+        if lowered in ('false', 'f', 'no', 'n', '0'):
+            return 0
+        try:
+            return 1 if int(lowered) != 0 else 0
+        except ValueError:
+            return default
+    return default
+
+
 def _serialize_requerimiento_respuesta(row):
     return {
         'id': row.id,
@@ -32,7 +52,7 @@ def _serialize_requerimiento_respuesta(row):
         'respuesta_estado_id': row.respuesta_estado_id,
         'responsable': row.responsable,
         'respuesta_fecha': row.respuesta_fecha.isoformat() if row.respuesta_fecha else None,
-        'en_uso': row.en_uso,
+        'factor': row.factor,
         'activo': row.activo,
         'creador': row.creador,
         'creacion': row.creacion.isoformat() if row.creacion else None,
@@ -64,7 +84,7 @@ def get_requerimiento_respuestas():
               respuesta_estado_id: {type: integer}
               responsable: {type: string}
               respuesta_fecha: {type: string}
-              en_uso: {type: integer}
+              factor: {type: integer}
               activo: {type: boolean}
               creador: {type: string}
               creacion: {type: string}
@@ -99,7 +119,7 @@ def create_requerimiento_respuesta():
             respuesta_estado_id: {type: integer}
             responsable: {type: string}
             respuesta_fecha: {type: string}
-            en_uso: {type: integer}
+            factor: {type: integer}
             activo: {type: boolean}
             creador: {type: string}
             modificador: {type: string}
@@ -119,7 +139,7 @@ def create_requerimiento_respuesta():
             respuesta_estado_id: {type: integer}
             responsable: {type: string}
             respuesta_fecha: {type: string}
-            en_uso: {type: integer}
+            factor: {type: integer}
             activo: {type: boolean}
             creador: {type: string}
             creacion: {type: string}
@@ -133,19 +153,19 @@ def create_requerimiento_respuesta():
         return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
 
     now = datetime.now(timezone.utc)
-    en_uso = data.get('en_uso', 1)
+    factor = _normalize_factor(data.get('factor', 1), default=1)
     if _is_recurso_retorna(data['recurso_inventario_id']) and _is_estado_finalizado(data['respuesta_estado_id']):
-        en_uso = 0
+        factor = 0
 
     query = db.text("""
         INSERT INTO requerimiento_respuestas (
             requerimiento_recurso_id, recurso_inventario_id, cantidad_asignada, situacion_actual, porcentaje_avance,
-            respuesta_estado_id, responsable, respuesta_fecha, en_uso, activo, creador, creacion,
+            respuesta_estado_id, responsable, respuesta_fecha, factor, activo, creador, creacion,
             modificador, modificacion
         )
         VALUES (
             :requerimiento_recurso_id, :recurso_inventario_id, :cantidad_asignada, :situacion_actual, :porcentaje_avance,
-            :respuesta_estado_id, :responsable, :respuesta_fecha, :en_uso, :activo, :creador, :creacion,
+            :respuesta_estado_id, :responsable, :respuesta_fecha, :factor, :activo, :creador, :creacion,
             :modificador, :modificacion
         )
         RETURNING id
@@ -160,7 +180,7 @@ def create_requerimiento_respuesta():
         'respuesta_estado_id': data['respuesta_estado_id'],
         'responsable': data.get('responsable'),
         'respuesta_fecha': data.get('respuesta_fecha', now),
-        'en_uso': en_uso,
+        'factor': factor,
         'activo': data.get('activo', True),
         'creador': data.get('creador', 'Sistema'),
         'creacion': now,
@@ -215,7 +235,7 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
               respuesta_estado_nombre: {type: string}
               responsable: {type: string}
               respuesta_fecha: {type: string}
-              en_uso: {type: integer}
+              factor: {type: integer}
               activo: {type: boolean}
       404:
         description: No encontrada
@@ -224,7 +244,7 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
     query = db.text("""
         SELECT r.id, r.requerimiento_recurso_id, r.recurso_inventario_id, r.cantidad_asignada, r.situacion_actual,
                r.porcentaje_avance, r.respuesta_estado_id, e.nombre AS respuesta_estado_nombre,
-               r.responsable, r.respuesta_fecha, r.en_uso, r.activo
+               r.responsable, r.respuesta_fecha, r.factor, r.activo
         FROM public.requerimiento_respuestas r
         INNER JOIN public.respuesta_estados e ON r.respuesta_estado_id = e.id
         WHERE r.requerimiento_recurso_id = :requerimiento_recurso_id
@@ -247,7 +267,7 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
             'respuesta_estado_nombre': row.respuesta_estado_nombre,
             'responsable': row.responsable,
             'respuesta_fecha': row.respuesta_fecha.isoformat() if row.respuesta_fecha else None,
-            'en_uso': row.en_uso,
+            'factor': row.factor,
             'activo': row.activo
         })
     return jsonify(respuestas)
@@ -280,7 +300,7 @@ def update_requerimiento_respuesta(id):
             respuesta_estado_id: {type: integer}
             responsable: {type: string}
             respuesta_fecha: {type: string}
-            en_uso: {type: integer}
+            factor: {type: integer}
             activo: {type: boolean}
             modificador: {type: string}
             modificacion: {type: string}
@@ -310,7 +330,7 @@ def update_requerimiento_respuesta(id):
         'respuesta_estado_id': data.get('respuesta_estado_id', actual.respuesta_estado_id),
         'responsable': data.get('responsable', actual.responsable),
         'respuesta_fecha': data.get('respuesta_fecha', actual.respuesta_fecha),
-        'en_uso': data.get('en_uso', actual.en_uso),
+        'factor': _normalize_factor(data.get('factor', actual.factor), default=1),
         'activo': data.get('activo', actual.activo),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now)
@@ -319,7 +339,7 @@ def update_requerimiento_respuesta(id):
     if _is_recurso_retorna(params['recurso_inventario_id']) and _is_estado_finalizado(
         params['respuesta_estado_id']
     ):
-        params['en_uso'] = 0
+        params['factor'] = 0
 
     query = db.text("""
         UPDATE requerimiento_respuestas
@@ -331,7 +351,7 @@ def update_requerimiento_respuesta(id):
             respuesta_estado_id = :respuesta_estado_id,
             responsable = :responsable,
             respuesta_fecha = :respuesta_fecha,
-            en_uso = :en_uso,
+            factor = :factor,
             activo = :activo,
             modificador = :modificador,
             modificacion = :modificacion

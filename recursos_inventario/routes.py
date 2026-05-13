@@ -109,7 +109,7 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
             COALESCE(
                 SUM(
                     CASE
-                        WHEN COALESCE(rm.factor, 0) = -1 THEN COALESCE(rm.cantidad, 0)
+                        WHEN COALESCE(rm.factor, 0) = -1 THEN COALESCE(rm.cantidad_asignada, 0)
                         ELSE 0
                     END
                 ),
@@ -135,7 +135,7 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
             SELECT
                 rresp.recurso_inventario_id,
                 COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0)), 0) AS comprometido,
-                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.en_uso, 1)), 0) AS comprometido_en_uso
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.factor, 1)), 0) AS comprometido_en_uso
             FROM public.requerimiento_respuestas rresp
             WHERE COALESCE(rresp.activo, true) = true
             GROUP BY rresp.recurso_inventario_id
@@ -196,6 +196,7 @@ def get_recurso_inventario_disponible(recurso_inventario_id):
           properties:
             recurso_inventario_id: {type: integer}
             existencias: {type: integer}
+            total_asignado_factor: {type: integer}
             total_asignado_en_uso: {type: integer}
             disponible: {type: integer}
       404:
@@ -205,15 +206,48 @@ def get_recurso_inventario_disponible(recurso_inventario_id):
         SELECT
             ri.id AS recurso_inventario_id,
             COALESCE(ri.existencias, 0) AS existencias,
-            COALESCE(SUM(COALESCE(rr.cantidad_asignada, 0) * COALESCE(rr.en_uso, 1)), 0) AS total_asignado_en_uso,
-            COALESCE(ri.existencias, 0) - COALESCE(SUM(COALESCE(rr.cantidad_asignada, 0) * COALESCE(rr.en_uso, 1)), 0) AS disponible
+            COALESCE(rm.total_asignado_factor, 0) AS total_asignado_factor,
+            COALESCE(rr.total_asignado_en_uso, 0) AS total_asignado_en_uso,
+            COALESCE(ri.existencias, 0)
+              - COALESCE(rm.total_asignado_factor, 0)
+              - COALESCE(rr.total_asignado_en_uso, 0) AS disponible
         FROM public.recursos_inventario ri
-        LEFT JOIN public.requerimiento_respuestas rr
-            ON rr.recurso_inventario_id = ri.id
-           AND COALESCE(rr.activo, true) = true
+        LEFT JOIN (
+            SELECT
+                m.recurso_inventario_id,
+                COALESCE(
+                    SUM(
+                        COALESCE(m.cantidad_asignada, 0) * CASE
+                            WHEN LOWER(COALESCE(m.factor::text, '0')) IN ('1', '-1', 'true', 't')
+                                THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_asignado_factor
+            FROM public.recursos_movilizados m
+            WHERE COALESCE(m.activo, true) = true
+            GROUP BY m.recurso_inventario_id
+        ) rm ON rm.recurso_inventario_id = ri.id
+        LEFT JOIN (
+            SELECT
+                r.recurso_inventario_id,
+                COALESCE(
+                    SUM(
+                        COALESCE(r.cantidad_asignada, 0) * CASE
+                            WHEN LOWER(COALESCE(r.factor::text, '1')) IN ('1', 'true', 't')
+                                THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_asignado_en_uso
+            FROM public.requerimiento_respuestas r
+            WHERE COALESCE(r.activo, true) = true
+            GROUP BY r.recurso_inventario_id
+        ) rr ON rr.recurso_inventario_id = ri.id
         WHERE ri.id = :recurso_inventario_id
           AND COALESCE(ri.activo, true) = true
-        GROUP BY ri.id, ri.existencias
     """)
     row = db.session.execute(query, {'recurso_inventario_id': recurso_inventario_id}).fetchone()
 
@@ -223,6 +257,7 @@ def get_recurso_inventario_disponible(recurso_inventario_id):
     return jsonify({
         'recurso_inventario_id': row.recurso_inventario_id,
         'existencias': row.existencias,
+        'total_asignado_factor': row.total_asignado_factor,
         'total_asignado_en_uso': row.total_asignado_en_uso,
         'disponible': row.disponible
     })

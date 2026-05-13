@@ -29,7 +29,7 @@ def get_recursos_movilizados():
               institucion_id: {type: integer}
               fecha_inicio: {type: string}
               fecha_fin: {type: string}
-              cantidad: {type: integer}
+              cantidad_asignada: {type: integer}
               longitud: {type: number}
               latitud: {type: number}
               disponible: {type: boolean}
@@ -54,7 +54,7 @@ def get_recursos_movilizados():
             'institucion_id': row.institucion_id,
             'fecha_inicio': row.fecha_inicio.isoformat() if getattr(row, 'fecha_inicio', None) else None,
             'fecha_fin': row.fecha_fin.isoformat() if getattr(row, 'fecha_fin', None) else None,
-            'cantidad': row.cantidad,
+            'cantidad_asignada': row.cantidad_asignada,
             'longitud': float(row.longitud) if getattr(row, 'longitud', None) is not None else None,
             'latitud': float(row.latitud) if getattr(row, 'latitud', None) is not None else None,
             'disponible': row.disponible,
@@ -100,14 +100,14 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
               institucion: {type: string}
               fecha_inicio: {type: string}
               fecha_fin: {type: string}
-              cantidad: {type: integer}
+              cantidad_asignada: {type: integer}
               disponible: {type: boolean}
               latitud: {type: number}
               longitud: {type: number}
     """
     query = db.text("""
         SELECT DISTINCT r.id, q.nombre parroquia_nombre, g.nombre recurso_grupo, t.nombre recurso_tipo, 
-        i.nombre institucion, r.fecha_inicio, r.fecha_fin, r.cantidad, r.disponible, r.latitud, r.longitud
+        i.nombre institucion, r.fecha_inicio, r.fecha_fin, r.cantidad_asignada, r.disponible, r.latitud, r.longitud
         FROM recursos_movilizados r
         INNER JOIN public.usuario_perfil_coe_dpa_mesa x
           ON r.provincia_id = x.provincia_id AND (r.canton_id = x.canton_id OR x.canton_id = 0)
@@ -138,7 +138,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
             'institucion': row.institucion,
             'fecha_inicio': row.fecha_inicio.isoformat() if getattr(row, 'fecha_inicio', None) else None,
             'fecha_fin': row.fecha_fin.isoformat() if getattr(row, 'fecha_fin', None) else None,
-            'cantidad': row.cantidad,
+            'cantidad_asignada': row.cantidad_asignada,
             'disponible': row.disponible,
             'latitud': float(row.latitud) if getattr(row, 'latitud', None) is not None else None,
             'longitud': float(row.longitud) if getattr(row, 'longitud', None) is not None else None,
@@ -171,7 +171,7 @@ def create_recurso_movilizado():
             institucion_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
-            cantidad: {type: integer}
+            cantidad_asignada: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
             disponible: {type: boolean}
@@ -194,7 +194,7 @@ def create_recurso_movilizado():
             institucion_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
-            cantidad: {type: integer}
+            cantidad_asignada: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
             disponible: {type: boolean}
@@ -222,13 +222,13 @@ def create_recurso_movilizado():
         INSERT INTO recursos_movilizados (
             emergencia_id, provincia_id, canton_id, parroquia_id,
             recurso_categoria_id, recurso_grupo_id, recurso_tipo_id, institucion_id,
-            fecha_inicio, fecha_fin, cantidad, longitud, latitud,
+            fecha_inicio, fecha_fin, cantidad_asignada, longitud, latitud,
             disponible, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
             :emergencia_id, :provincia_id, :canton_id, :parroquia_id,
             :recurso_categoria_id, :recurso_grupo_id, :recurso_tipo_id, :institucion_id,
-            :fecha_inicio, :fecha_fin, :cantidad, :longitud, :latitud,
+            :fecha_inicio, :fecha_fin, :cantidad_asignada, :longitud, :latitud,
             :disponible, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
@@ -245,7 +245,7 @@ def create_recurso_movilizado():
         'institucion_id': data['institucion_id'],
         'fecha_inicio': data.get('fecha_inicio'),
         'fecha_fin': data.get('fecha_fin'),
-        'cantidad': data.get('cantidad', 0),
+        'cantidad_asignada': data.get('cantidad_asignada', data.get('cantidad', 0)),
         'longitud': data.get('longitud', 0),
         'latitud': data.get('latitud', 0),
         'disponible': data.get('disponible', True),
@@ -284,7 +284,7 @@ def create_recurso_movilizado():
         'institucion_id': recurso.institucion_id,
         'fecha_inicio': recurso.fecha_inicio.isoformat() if getattr(recurso, 'fecha_inicio', None) else None,
         'fecha_fin': recurso.fecha_fin.isoformat() if getattr(recurso, 'fecha_fin', None) else None,
-        'cantidad': recurso.cantidad,
+        'cantidad_asignada': recurso.cantidad_asignada,
         'longitud': float(recurso.longitud) if getattr(recurso, 'longitud', None) is not None else None,
         'latitud': float(recurso.latitud) if getattr(recurso, 'latitud', None) is not None else None,
         'disponible': recurso.disponible,
@@ -324,7 +324,7 @@ def get_recurso_movilizado(id):
             institucion_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
-            cantidad: {type: integer}
+            cantidad_asignada: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
             disponible: {type: boolean}
@@ -357,7 +357,7 @@ def get_recurso_movilizado(id):
         'institucion_id': recurso.institucion_id,
         'fecha_inicio': recurso.fecha_inicio.isoformat() if getattr(recurso, 'fecha_inicio', None) else None,
         'fecha_fin': recurso.fecha_fin.isoformat() if getattr(recurso, 'fecha_fin', None) else None,
-        'cantidad': recurso.cantidad,
+        'cantidad_asignada': recurso.cantidad_asignada,
         'longitud': float(recurso.longitud) if getattr(recurso, 'longitud', None) is not None else None,
         'latitud': float(recurso.latitud) if getattr(recurso, 'latitud', None) is not None else None,
         'disponible': recurso.disponible,
@@ -398,7 +398,7 @@ def update_recurso_movilizado(id):
             institucion_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
-            cantidad: {type: integer}
+            cantidad_asignada: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
             disponible: {type: boolean}
@@ -421,7 +421,7 @@ def update_recurso_movilizado(id):
             institucion_id: {type: integer}
             fecha_inicio: {type: string}
             fecha_fin: {type: string}
-            cantidad: {type: integer}
+            cantidad_asignada: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
             disponible: {type: boolean}
@@ -439,7 +439,7 @@ def update_recurso_movilizado(id):
     fields = [
         'emergencia_id', 'provincia_id', 'canton_id', 'parroquia_id',
         'recurso_categoria_id', 'recurso_grupo_id', 'recurso_tipo_id', 'institucion_id',
-        'fecha_inicio', 'fecha_fin', 'cantidad', 'longitud', 'latitud',
+        'fecha_inicio', 'fecha_fin', 'cantidad_asignada', 'longitud', 'latitud',
         'disponible', 'activo'
     ]
 
@@ -490,7 +490,7 @@ def update_recurso_movilizado(id):
         'institucion_id': recurso.institucion_id,
         'fecha_inicio': recurso.fecha_inicio.isoformat() if getattr(recurso, 'fecha_inicio', None) else None,
         'fecha_fin': recurso.fecha_fin.isoformat() if getattr(recurso, 'fecha_fin', None) else None,
-        'cantidad': recurso.cantidad,
+        'cantidad_asignada': recurso.cantidad_asignada,
         'longitud': float(recurso.longitud) if getattr(recurso, 'longitud', None) is not None else None,
         'latitud': float(recurso.latitud) if getattr(recurso, 'latitud', None) is not None else None,
         'disponible': recurso.disponible,
