@@ -4,10 +4,24 @@ from models import db
 from datetime import datetime, timezone
 
 
+def _requerimiento_estado_existe(requerimiento_estado_id):
+    estado = db.session.execute(
+        db.text("""
+            SELECT id
+            FROM requerimiento_estados
+            WHERE id = :id
+        """),
+        {'id': requerimiento_estado_id}
+    ).fetchone()
+    return estado is not None
+
+
 def _serialize_requerimiento_recurso(row):
     return {
         'id': row.id,
+        'requerimiento_numero': row.requerimiento_numero,
         'requerimiento_id': row.requerimiento_id,
+        'requerimiento_estado_id': row.requerimiento_estado_id,
         'usuario_receptor_id': row.usuario_receptor_id,
         'recurso_grupo_id': row.recurso_grupo_id,
         'recurso_tipo_id': row.recurso_tipo_id,
@@ -39,7 +53,9 @@ def get_requerimiento_recursos():
             type: object
             properties:
               id: {type: integer}
+              requerimiento_numero: {type: string}
               requerimiento_id: {type: integer}
+              requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
               recurso_tipo_id: {type: integer}
@@ -72,9 +88,11 @@ def create_requerimiento_recurso():
         required: true
         schema:
           type: object
-          required: [requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id]
+          required: [requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, requerimiento_estado_id]
           properties:
+            requerimiento_numero: {type: string}
             requerimiento_id: {type: integer}
+            requerimiento_estado_id: {type: integer}
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
@@ -90,32 +108,45 @@ def create_requerimiento_recurso():
         description: Requerimiento recurso creado
     """
     data = request.get_json() or {}
-    required_fields = ['requerimiento_id', 'usuario_receptor_id', 'recurso_grupo_id', 'recurso_tipo_id']
-    missing_fields = [field for field in required_fields if field not in data]
+    required_fields = [
+        'requerimiento_id',
+        'usuario_receptor_id',
+        'recurso_grupo_id',
+        'recurso_tipo_id',
+        'requerimiento_estado_id'
+    ]
+    missing_fields = [field for field in required_fields if field not in data or data[field] is None]
     if missing_fields:
         return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
+    if not _requerimiento_estado_existe(data['requerimiento_estado_id']):
+        return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
 
     now = datetime.now(timezone.utc)
 
     query = db.text("""
         INSERT INTO requerimiento_recursos (
-            requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, cantidad_solicitada, costo,
+            requerimiento_numero, requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id,
+            cantidad_solicitada, costo, requerimiento_estado_id,
             especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion
         )
         VALUES (
-            :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id, :cantidad_solicitada, :costo,
+            :requerimiento_numero, :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id,
+            :cantidad_solicitada, :costo, :requerimiento_estado_id,
             :especificaciones, :destino, :detalle, :activo, :creador, :creacion, :modificador, :modificacion
         )
         RETURNING id
     """)
 
     result = db.session.execute(query, {
+        'requerimiento_numero': data.get('requerimiento_numero'),
         'requerimiento_id': data['requerimiento_id'],
         'usuario_receptor_id': data['usuario_receptor_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'recurso_tipo_id': data['recurso_tipo_id'],
         'cantidad_solicitada': data.get('cantidad_solicitada', data.get('cantidad', 1)),
         'costo': data.get('costo', 0),
+        'requerimiento_estado_id': data['requerimiento_estado_id'],
         'especificaciones': data.get('especificaciones'),
         'destino': data.get('destino'),
         'detalle': data.get('detalle'),
@@ -194,7 +225,9 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
             type: object
             properties:
               id: {type: integer}
+              requerimiento_numero: {type: string}
               requerimiento_id: {type: integer}
+              requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
               recurso_tipo_id: {type: integer}
@@ -338,7 +371,9 @@ def update_requerimiento_recurso(id):
         schema:
           type: object
           properties:
+            requerimiento_numero: {type: string}
             requerimiento_id: {type: integer}
+            requerimiento_estado_id: {type: integer}
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
             recurso_tipo_id: {type: integer}
@@ -366,9 +401,17 @@ def update_requerimiento_recurso(id):
     if actual is None:
         return jsonify({'error': 'Relacion no encontrada'}), 404
 
+    if 'requerimiento_estado_id' in data:
+        if data['requerimiento_estado_id'] is None:
+            return jsonify({'error': 'requerimiento_estado_id no puede ser null'}), 400
+        if not _requerimiento_estado_existe(data['requerimiento_estado_id']):
+            return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
+
     params = {
         'id': id,
+        'requerimiento_numero': data.get('requerimiento_numero', actual.requerimiento_numero),
         'requerimiento_id': data.get('requerimiento_id', actual.requerimiento_id),
+        'requerimiento_estado_id': data.get('requerimiento_estado_id', actual.requerimiento_estado_id),
         'usuario_receptor_id': data.get('usuario_receptor_id', actual.usuario_receptor_id),
         'recurso_grupo_id': data.get('recurso_grupo_id', actual.recurso_grupo_id),
         'recurso_tipo_id': data.get('recurso_tipo_id', actual.recurso_tipo_id),
@@ -384,7 +427,9 @@ def update_requerimiento_recurso(id):
 
     query = db.text("""
         UPDATE requerimiento_recursos
-        SET requerimiento_id = :requerimiento_id,
+        SET requerimiento_numero = :requerimiento_numero,
+            requerimiento_id = :requerimiento_id,
+            requerimiento_estado_id = :requerimiento_estado_id,
             usuario_receptor_id = :usuario_receptor_id,
             recurso_grupo_id = :recurso_grupo_id,
             recurso_tipo_id = :recurso_tipo_id,
