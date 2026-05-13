@@ -95,6 +95,48 @@ def get_requerimiento_respuestas():
     return jsonify([_serialize_requerimiento_respuesta(row) for row in result])
 
 
+@requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['GET'])
+def get_requerimiento_respuesta_by_id(id):
+    """Obtener respuesta de requerimiento por ID
+    ---
+    tags:
+      - Requerimiento Respuestas
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Respuesta de requerimiento encontrada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            requerimiento_recurso_id: {type: integer}
+            recurso_inventario_id: {type: integer}
+            cantidad_asignada: {type: integer}
+            situacion_actual: {type: string}
+            porcentaje_avance: {type: integer}
+            respuesta_estado_id: {type: integer}
+            responsable: {type: string}
+            respuesta_fecha: {type: string}
+            factor: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    """
+    row = db.session.execute(
+        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"),
+        {'id': id}
+    ).fetchone()
+    if row is None:
+        return jsonify({'error': 'Respuesta de requerimiento no encontrada'}), 404
+    return jsonify(_serialize_requerimiento_respuesta(row)) 
+
+
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas', methods=['POST'])
 def create_requerimiento_respuesta():
     """Crear respuesta de requerimiento
