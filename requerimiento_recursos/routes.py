@@ -249,6 +249,76 @@ def get_requerimiento_recurso(id):
     return jsonify(_serialize_requerimiento_recurso(relacion))
 
 
+@requerimiento_recursos_bp.route(
+    '/api/requerimiento-recursos/recurso-inventario/<int:recurso_inventario_id>/pendiente',
+    methods=['GET']
+)
+def get_recurso_inventario_pendiente(recurso_inventario_id):
+    """Obtener la cantidad pendiente por despachar de un recurso de inventario
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+      - name: recurso_inventario_id
+        in: path
+        type: integer
+        required: true
+        description: ID del recurso inventario
+    responses:
+      200:
+        description: Cantidad pendiente por despachar del recurso inventario
+        schema:
+          type: object
+          properties:
+            recurso_inventario_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            cantidad_solicitada: {type: integer}
+            cantidad_despachada: {type: integer}
+            cantidad_pendiente: {type: integer}
+      404:
+        description: Recurso inventario no encontrado
+    """
+    query = db.text("""
+        SELECT
+            ri.id AS recurso_inventario_id,
+            ri.recurso_tipo_id AS recurso_tipo_id,
+            COALESCE(req.total_cantidad_solicitada, 0) AS cantidad_solicitada,
+            COALESCE(resp.total_cantidad_despachada, 0) AS cantidad_despachada,
+            COALESCE(req.total_cantidad_solicitada, 0) - COALESCE(resp.total_cantidad_despachada, 0) AS cantidad_pendiente
+        FROM public.recursos_inventario ri
+        LEFT JOIN (
+            SELECT
+                rr.recurso_tipo_id,
+                COALESCE(SUM(COALESCE(rr.cantidad_solicitada, 0)), 0) AS total_cantidad_solicitada
+            FROM public.requerimiento_recursos rr
+            WHERE COALESCE(rr.activo, true) = true
+            GROUP BY rr.recurso_tipo_id
+        ) req ON req.recurso_tipo_id = ri.recurso_tipo_id
+        LEFT JOIN (
+            SELECT
+                rresp.recurso_inventario_id,
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.factor, 1)), 0) AS total_cantidad_despachada
+            FROM public.requerimiento_respuestas rresp
+            WHERE COALESCE(rresp.activo, true) = true
+            GROUP BY rresp.recurso_inventario_id
+        ) resp ON resp.recurso_inventario_id = ri.id
+        WHERE ri.id = :recurso_inventario_id
+          AND COALESCE(ri.activo, true) = true
+    """)
+    row = db.session.execute(query, {'recurso_inventario_id': recurso_inventario_id}).fetchone()
+
+    if row is None:
+        return jsonify({'error': 'Recurso inventario no encontrado'}), 404
+
+    return jsonify({
+        'recurso_inventario_id': row.recurso_inventario_id,
+        'recurso_tipo_id': row.recurso_tipo_id,
+        'cantidad_solicitada': row.cantidad_solicitada,
+        'cantidad_despachada': row.cantidad_despachada,
+        'cantidad_pendiente': row.cantidad_pendiente
+    })
+
+
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['PUT'])
 def update_requerimiento_recurso(id):
     """Actualizar requerimiento recurso
