@@ -340,7 +340,8 @@ def get_datos_login(usuario_id):
         description: No encontrado
     """
     query = db.text("""
-      SELECT u.usuario usuario_login
+      SELECT u.institucion_id usuario_institucion_id
+      , u.usuario usuario_login
       , u.id usuario_id
       , u.descripcion usuario_descripcion
       , ux.coe_id
@@ -371,6 +372,7 @@ def get_datos_login(usuario_id):
     if not row:
         return jsonify({'error': 'Datos de login no encontrados'}), 404
     return jsonify({
+        'usuario_institucion_id': row.usuario_institucion_id,
         'usuario_login': row.usuario_login,
         'usuario_id': row.usuario_id,
         'usuario_descripcion': row.usuario_descripcion, 
