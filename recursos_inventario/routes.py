@@ -755,8 +755,8 @@ def get_recursos_inventario_by_location(coe_id, mesa_id, provincia_id, canton_id
     return jsonify(items)
 
 
-@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>', methods=['GET'])
-def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id):
+@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>', methods=['GET'])
+def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id, recurso_requerimiento_id):
     """Obtener recursos inventario por recuros x intitución, COE y mesa
     ---
     tags:
@@ -845,6 +845,7 @@ def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo
           ) rm ON rm.recurso_inventario_id = ri.id
           LEFT JOIN (
               SELECT
+                  r.requerimiento_recurso_id,
                   r.id AS requerimiento_respuesta_id,
                   r.recurso_inventario_id,
                   COALESCE(
@@ -858,9 +859,11 @@ def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo
                       0
                   ) AS total_asignado_en_uso
               FROM public.requerimiento_respuestas r
-              WHERE COALESCE(r.activo, true) = true
+              WHERE COALESCE(r.activo, true) = true 
+                AND R.REQUERIMIENTO_RECURSO_ID = :recurso_requerimiento_id
               GROUP BY r.recurso_inventario_id, r.id
           ) rr ON rr.recurso_inventario_id = ri.id
+          LEFT JOIN PUBLIC.requerimiento_recursos RC ON RC.ID = RR.REQUERIMIENTO_RECURSO_ID
           WHERE COALESCE(ri.activo, true) = true
             AND ri.coe_id = :coe_id
             AND ri.mesa_id = :mesa_id
@@ -872,7 +875,8 @@ def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo
         'coe_id': coe_id,
         'mesa_id': mesa_id,
         'recurso_tipo_id': recurso_tipo_id,
-        'institucion_duena_id': institucion_duena_id
+        'institucion_duena_id': institucion_duena_id,
+        'recurso_requerimiento_id': recurso_requerimiento_id
     })
     items = []
     for row in result:
