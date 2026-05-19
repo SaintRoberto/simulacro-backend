@@ -897,3 +897,236 @@ def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo
 
         })
     return jsonify(items)
+
+
+@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>', methods=['GET'])
+def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id):
+    """Obtener recursos inventario por recuros x intitución, COE y mesa
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+        - name: coe_id
+          in: path
+          type: integer
+          required: true
+        - name: mesa_id 
+          in: path
+          type: integer
+          required: true
+        - name: recurso_tipo_id
+          in: path
+          type: integer
+          required: true
+        - name: institucion_duena_id
+          in: path
+          type: integer
+          required: true
+    responses:
+      200:
+        description: Lista de recursos inventario por ubicación
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+                recurso_inventario_id: {type: integer}
+                provincia: {type: string}
+                canton: {type: string}
+                parroquia: {type: string}
+                coe_id: {type: integer}
+                mesa_id: {type: integer}
+                existencias: {type: integer}
+    """
+    query = db.text("""
+        SELECT
+            RI.ID AS RECURSO_INVENTARIO_ID,
+            P.NOMBRE AS PROVINCIA,
+            C.NOMBRE AS CANTON,
+            PR.NOMBRE AS PARROQUIA,
+            RI.COE_ID AS COE_ID,
+            RI.MESA_ID AS MESA_ID,   
+            COALESCE(RI.EXISTENCIAS, 0) AS EXISTENCIAS
+        FROM
+            PUBLIC.RECURSOS_INVENTARIO RI
+        LEFT JOIN PUBLIC.PROVINCIAS P 
+            ON P.ID = RI.PROVINCIA_ID
+        LEFT JOIN PUBLIC.CANTONES C 
+            ON C.ID = RI.CANTON_ID
+        LEFT JOIN PUBLIC.PARROQUIAS PR 
+            ON PR.ID = RI.PARROQUIA_ID
+        WHERE
+            COALESCE(RI.ACTIVO, TRUE) = TRUE
+            AND RI.COE_ID = :coe_id
+            AND RI.MESA_ID = :mesa_id
+            AND RI.RECURSO_TIPO_ID = :recurso_tipo_id
+            AND RI.INSTITUCION_DUENA_ID = :institucion_duena_id
+        ORDER BY
+            P.NOMBRE,
+            C.NOMBRE,
+            PR.NOMBRE,
+            RI.ID
+        """)
+    result = db.session.execute(query, {
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'recurso_tipo_id': recurso_tipo_id,
+        'institucion_duena_id': institucion_duena_id
+    })
+    items = []
+    for row in result:
+        items.append({
+            'recurso_inventario_id': row.recurso_inventario_id,
+            'provincia': row.provincia,
+            'canton': row.canton,
+            'parroquia': row.parroquia,
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'existencias': row.existencias
+        })
+    return jsonify(items)
+
+
+@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>', methods=['GET'])
+def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_tipo_id, recurso_requerimiento_id):
+    """Obtener recursos inventario por recuros x requerimiento, COE y mesa
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+        - name: coe_id
+          in: path
+          type: integer
+          required: true
+        - name: mesa_id 
+          in: path
+          type: integer
+          required: true
+        - name: recurso_tipo_id
+          in: path
+          type: integer
+          required: true
+        - name: recurso_requerimiento_id
+          in: path
+          type: integer
+          required: true
+    responses:
+      200:
+        description: Lista de recursos inventario por ubicación
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              institucion_duena_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+              existencias: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+              parroquia_id: {type: integer}
+    """
+    query = db.text("""
+        SELECT
+              rr.requerimiento_respuesta_id AS requerimiento_respuesta_id,
+              ri.id AS id,
+              ri.id AS recurso_inventario_id,
+              ri.institucion_duena_id AS institucion_duena_id,
+              I.NOMBRE AS NOMBRE_INSTITUCION,
+              ri.recurso_tipo_id AS recurso_tipo_id,
+              ri.coe_id AS coe_id,
+              ri.mesa_id AS mesa_id,
+              p.nombre AS provincia,
+              c.nombre AS canton,
+              pr.nombre AS parroquia,
+              COALESCE(ri.existencias, 0) AS existencias,
+              COALESCE(rm.total_asignado_factor, 0) AS total_asignado_factor,
+              COALESCE(rr.total_asignado_en_uso, 0) AS total_asignado_en_uso,
+              COALESCE(ri.existencias, 0)
+                - COALESCE(rm.total_asignado_factor, 0)
+                - COALESCE(rr.total_asignado_en_uso, 0) AS disponible
+          FROM public.recursos_inventario ri
+          LEFT JOIN PUBLIC.INSTITUCIONES I 
+          ON I.ID = RI.INSTITUCION_DUENA_ID
+          LEFT JOIN public.provincias p 
+              ON p.id = ri.provincia_id
+          LEFT JOIN public.cantones c 
+              ON c.id = ri.canton_id
+          LEFT JOIN public.parroquias pr 
+              ON pr.id = ri.parroquia_id
+          LEFT JOIN (
+              SELECT
+                  m.recurso_inventario_id,
+                  COALESCE(
+                      SUM(
+                          COALESCE(m.cantidad_asignada, 0) * CASE
+                              WHEN LOWER(COALESCE(m.factor::text, '0')) IN ('1', '-1', 'true', 't')
+                                  THEN 1
+                              ELSE 0
+                          END
+                      ),
+                      0
+                  ) AS total_asignado_factor
+              FROM public.recursos_movilizados m
+              WHERE COALESCE(m.activo, true) = true
+              GROUP BY m.recurso_inventario_id
+          ) rm ON rm.recurso_inventario_id = ri.id
+          LEFT JOIN (
+              SELECT
+                  r.requerimiento_recurso_id,
+                  r.id AS requerimiento_respuesta_id,
+                  r.recurso_inventario_id,
+                  COALESCE(
+                      SUM(
+                          COALESCE(r.cantidad_asignada, 0) * CASE
+                              WHEN LOWER(COALESCE(r.factor::text, '1')) IN ('1', 'true', 't')
+                                  THEN 1
+                              ELSE 0
+                          END
+                      ),
+                      0
+                  ) AS total_asignado_en_uso
+              FROM public.requerimiento_respuestas r
+              WHERE COALESCE(r.activo, true) = true 
+                AND R.REQUERIMIENTO_RECURSO_ID = :recurso_requerimiento_id
+              GROUP BY r.recurso_inventario_id, r.id
+          ) rr ON rr.recurso_inventario_id = ri.id
+          LEFT JOIN PUBLIC.requerimiento_recursos RC ON RC.ID = RR.REQUERIMIENTO_RECURSO_ID
+          WHERE COALESCE(ri.activo, true) = true
+            AND ri.coe_id = :coe_id
+            AND ri.mesa_id = :mesa_id
+            AND ri.recurso_tipo_id = :recurso_tipo_id
+          ORDER BY i.nombre, p.nombre, c.nombre, pr.nombre, ri.id;
+            """)
+    result = db.session.execute(query, {
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'recurso_tipo_id': recurso_tipo_id,
+        'recurso_requerimiento_id': recurso_requerimiento_id
+    })
+    items = []
+    for row in result:
+        items.append({
+            'id': row.id,
+            'requerimiento_respuesta_id': row.requerimiento_respuesta_id,
+            'institucion_duena_id': row.institucion_duena_id,
+            'nombre_institucion': row.nombre_institucion,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'provincia': row.provincia,
+            'parroquia': row.parroquia,
+            'canton': row.canton,
+            'existencias': row.existencias,
+            'total_asignado_factor': row.total_asignado_factor,
+            'total_asignado_en_uso': row.total_asignado_en_uso,
+            'disponible': row.disponible,            
+        })
+    return jsonify(items)
