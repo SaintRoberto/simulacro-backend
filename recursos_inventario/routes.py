@@ -353,6 +353,125 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recu
     return jsonify(items)
 
 
+@recursos_inventario_bp.route(
+    '/api/recursos_inventario/no-rechazados/coe/<int:coe_id>/mesa/<int:mesa_id>/recurso_tipo/<int:recurso_tipo_id>/usuario/<int:usuario_id_sesion>/requerimiento_estado/<int:requerimiento_estado_id>',
+    methods=['GET']
+)
+def get_recursos_inventario_no_rechazados(
+    coe_id,
+    mesa_id,
+    recurso_tipo_id,
+    usuario_id_sesion,
+    requerimiento_estado_id
+):
+    """Obtener existencias por COE y mesa excluyendo mesas con rechazos previos
+    ---
+    tags:
+      - Recursos Inventario
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+        description: ID del COE del usuario en sesion
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la mesa del usuario en sesion
+      - name: recurso_tipo_id
+        in: path
+        type: integer
+        required: true
+        description: ID del tipo de recurso a consultar
+      - name: usuario_id_sesion
+        in: path
+        type: integer
+        required: true
+        description: ID del usuario emisor en sesion
+      - name: requerimiento_estado_id
+        in: path
+        type: integer
+        required: true
+        description: ID del estado de requerimiento que representa rechazo
+    responses:
+      200:
+        description: Existencias agrupadas por COE y mesa, excluyendo mesas que ya rechazaron al usuario emisor
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              mesa_nombre: {type: string}
+              existencias: {type: integer}
+    """
+    query = db.text("""
+        SELECT
+            m.coe_id,
+            m.id AS mesa_id,
+            c.siglas || ' - ' || m.nombre AS mesa_nombre,
+            COALESCE(SUM(ri.existencias), 0) AS existencias
+        FROM public.mesas m
+        INNER JOIN public.coes c
+                ON m.coe_id = c.id
+        LEFT JOIN public.recursos_inventario ri
+               ON ri.coe_id = m.coe_id
+              AND ri.mesa_id = m.id
+              AND ri.recurso_tipo_id = :recurso_tipo_id
+              AND ri.activo = true
+        WHERE m.activo = true
+          AND (
+                m.coe_id = :coe_id_usuario
+                OR
+                (
+                    :coe_id_usuario > 1
+                    AND m.coe_id = :coe_id_usuario - 1
+                    AND m.id = :mesa_id_usuario
+                )
+              )
+          AND NOT EXISTS (
+                SELECT 1
+                FROM public.requerimiento_recursos rr
+                INNER JOIN public.usuario_perfil_coe_dpa_mesa upcdm
+                        ON upcdm.usuario_id = rr.usuario_receptor_id
+                       AND upcdm.activo = true
+                WHERE rr.usuario_emisor_id = :usuario_id_sesion
+                  AND rr.requerimiento_estado_id = :requerimiento_estado_id
+                  AND rr.activo = true
+                  AND upcdm.coe_id = m.coe_id
+                  AND upcdm.mesa_id = m.id
+              )
+        GROUP BY
+            m.coe_id,
+            m.id,
+            c.siglas,
+            m.nombre
+        HAVING COALESCE(SUM(ri.existencias), 0) > 0
+        ORDER BY
+            m.coe_id,
+            m.id
+    """)
+    result = db.session.execute(query, {
+        'coe_id_usuario': coe_id,
+        'mesa_id_usuario': mesa_id,
+        'recurso_tipo_id': recurso_tipo_id,
+        'usuario_id_sesion': usuario_id_sesion,
+        'requerimiento_estado_id': requerimiento_estado_id
+    })
+
+    items = []
+    for row in result:
+        items.append({
+            'coe_id': row.coe_id,
+            'mesa_id': row.mesa_id,
+            'mesa_nombre': row.mesa_nombre,
+            'existencias': row.existencias
+        })
+    return jsonify(items)
+
+
 @recursos_inventario_bp.route('/api/recursos_inventario', methods=['POST'])
 def create_recurso_inventario():
     """Crear recurso inventario

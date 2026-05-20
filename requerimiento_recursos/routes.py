@@ -618,7 +618,6 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
     return jsonify(rows)
 
 
-
 @requerimiento_recursos_bp.route(
     '/api/requerimiento-recursos/rechazados/usuario_emisor/<int:usuario_emisor_id>/requerimiento_estado/<int:requerimiento_estado_id>',
     methods=['GET']
