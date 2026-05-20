@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request, jsonify, g
 from requerimiento_recursos import requerimiento_recursos_bp
 from models import db
 from datetime import datetime, timezone
@@ -49,6 +49,13 @@ def _serialize_requerimiento_recurso(row):
         "usuario_emisor_id": row.usuario_emisor_id,
         "usuario_emisor": _get_optional('usuario_emisor'),
     }
+
+
+def _resolve_authenticated_user():
+    user = getattr(g, 'user', None)
+    if not isinstance(user, dict):
+        return None
+    return user.get('usuario') or user.get('username') or user.get('user') or user.get('email')
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['GET'])
@@ -474,6 +481,117 @@ def update_requerimiento_recurso(id):
         return jsonify({'error': 'Relacion no encontrada despues de actualizar'}), 500
 
     return jsonify(_serialize_requerimiento_recurso(relacion))
+
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['PATCH'])
+def patch_requerimiento_recurso_estado(id):
+    """Actualizacion parcial de estado de requerimiento recurso
+    ---
+    tags:
+      - Requerimiento Recursos
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [requerimiento_estado_id]
+          properties:
+            requerimiento_estado_id: {type: integer}
+    responses:
+      200:
+        description: Estado de requerimiento recurso actualizado
+      400:
+        description: Payload invalido
+      404:
+        description: No encontrado
+      409:
+        description: Transicion de estado no permitida
+      500:
+        description: Error inesperado
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Payload invalido, se esperaba un objeto JSON'}), 400
+
+        allowed_fields = {'requerimiento_estado_id', 'modificador'}
+        unexpected_fields = [field for field in data.keys() if field not in allowed_fields]
+        if unexpected_fields:
+            return jsonify({
+                'error': f"Campos no permitidos para PATCH: {', '.join(unexpected_fields)}"
+            }), 400
+
+        if 'requerimiento_estado_id' not in data:
+            return jsonify({'error': 'requerimiento_estado_id es requerido'}), 400
+
+        new_estado = data.get('requerimiento_estado_id')
+        if new_estado is None:
+            return jsonify({'error': 'requerimiento_estado_id no puede ser null'}), 400
+        if not isinstance(new_estado, int) or isinstance(new_estado, bool):
+            return jsonify({'error': 'requerimiento_estado_id debe ser entero'}), 400
+        if not _requerimiento_estado_existe(new_estado):
+            return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
+
+        actual = db.session.execute(
+            db.text("""
+                SELECT id, requerimiento_estado_id, modificador, modificacion
+                FROM requerimiento_recursos
+                WHERE id = :id
+            """),
+            {'id': id}
+        ).fetchone()
+
+        if actual is None:
+            return jsonify({'error': 'Relacion no encontrada'}), 404
+
+        now = datetime.now(timezone.utc)
+        auth_user = _resolve_authenticated_user()
+        modificador = auth_user or data.get('modificador') or actual.modificador or 'Sistema'
+
+        db.session.execute(
+            db.text("""
+                UPDATE requerimiento_recursos
+                SET requerimiento_estado_id = :requerimiento_estado_id,
+                    modificacion = :modificacion,
+                    modificador = :modificador
+                WHERE id = :id
+            """),
+            {
+                'id': id,
+                'requerimiento_estado_id': new_estado,
+                'modificacion': now,
+                'modificador': modificador
+            }
+        )
+        db.session.commit()
+
+        updated = db.session.execute(
+            db.text("""
+                SELECT id, requerimiento_estado_id, modificacion, modificador
+                FROM requerimiento_recursos
+                WHERE id = :id
+            """),
+            {'id': id}
+        ).fetchone()
+        if updated is None:
+            return jsonify({'error': 'Relacion no encontrada despues de actualizar'}), 500
+
+        return jsonify({
+            'id': updated.id,
+            'requerimiento_estado_id': updated.requerimiento_estado_id,
+            'modificacion': updated.modificacion.isoformat() if updated.modificacion else None,
+            'modificador': updated.modificador
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error inesperado al actualizar estado', 'details': str(e)}), 500
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['DELETE'])
