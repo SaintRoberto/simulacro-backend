@@ -619,6 +619,137 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
 
 
 
+@requerimiento_recursos_bp.route(
+    '/api/requerimiento-recursos/rechazados/usuario_emisor/<int:usuario_emisor_id>/requerimiento_estado/<int:requerimiento_estado_id>',
+    methods=['GET']
+)
+def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estado_id):
+    """Listar requerimientos rechazados por usuario emisor y estado
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+      - name: usuario_emisor_id
+        in: path
+        type: integer
+        required: true
+        description: ID del usuario emisor al que le rechazaron requerimientos
+      - name: requerimiento_estado_id
+        in: path
+        type: integer
+        required: true
+        description: ID del estado de requerimiento que representa rechazo
+    responses:
+      200:
+        description: Lista de requerimientos rechazados del usuario emisor
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_numero: {type: string}
+              requerimiento_id: {type: integer}
+              requerimiento_estado_id: {type: integer}
+              usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_grupo_nombre: {type: string}
+              recurso_tipo_id: {type: integer}
+              recurso_tipo_nombre: {type: string}
+              cantidad_solicitada: {type: integer}
+              costo: {type: number}
+              especificaciones: {type: string}
+              destino: {type: string}
+              detalle: {type: string}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+      400:
+        description: requerimiento_estado_id invalido
+    """
+    if not _requerimiento_estado_existe(requerimiento_estado_id):
+        return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
+
+    result = db.session.execute(
+        db.text("""
+            SELECT
+                rr.id AS id,
+                rr.requerimiento_numero AS requerimiento_numero,
+                rr.requerimiento_id AS requerimiento_id,
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+                rr.recurso_grupo_id AS recurso_grupo_id,
+                rg.nombre AS recurso_grupo_nombre,
+                rr.recurso_tipo_id AS recurso_tipo_id,
+                rt.nombre AS recurso_tipo_nombre,
+                rr.cantidad_solicitada AS cantidad_solicitada,
+                rr.costo AS costo,
+                rr.especificaciones AS especificaciones,
+                rr.destino AS destino,
+                rr.detalle AS detalle,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion,
+                rr.modificador AS modificador,
+                rr.modificacion AS modificacion,
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor
+            FROM public.requerimiento_recursos rr
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+            LEFT JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+            LEFT JOIN public.recurso_tipos rt
+                ON rr.recurso_tipo_id = rt.id
+            LEFT JOIN public.recurso_grupos rg
+                ON rr.recurso_grupo_id = rg.id
+            WHERE rr.usuario_emisor_id = :usuario_emisor_id
+              AND rr.requerimiento_estado_id = :requerimiento_estado_id
+              AND COALESCE(rr.activo, true) = true
+            ORDER BY rr.id DESC
+        """),
+        {
+            'usuario_emisor_id': usuario_emisor_id,
+            'requerimiento_estado_id': requerimiento_estado_id
+        }
+    )
+    rows = []
+    for row in result:
+        row_mapping = row._mapping
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+            'requerimiento_id': row_mapping.get('requerimiento_id'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+            'recurso_grupo_id': row_mapping.get('recurso_grupo_id'),
+            'recurso_grupo_nombre': row_mapping.get('recurso_grupo_nombre'),
+            'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
+            'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
+            'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
+            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'especificaciones': row_mapping.get('especificaciones'),
+            'destino': row_mapping.get('destino'),
+            'detalle': row_mapping.get('detalle'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': row_mapping.get('creacion').isoformat() if row_mapping.get('creacion') else None,
+            'modificador': row_mapping.get('modificador'),
+            'modificacion': row_mapping.get('modificacion').isoformat() if row_mapping.get('modificacion') else None
+        })
+
+    return jsonify(rows)
+
+
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( usuario_emisor_id):
     """Obtener requerimientos agrupados por requerimiento_numero por usuario_emisor_id
