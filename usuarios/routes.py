@@ -393,6 +393,77 @@ def get_datos_login(usuario_id):
 
 # Las opciones CORS preflight son manejadas por la configuración global de CORS
 
+@usuarios_bp.route('/api/usuarios/get_usuario_nivel_superior/<int:usuario_id_origen>', methods=['GET'])
+def get_usuario_nivel_superior(usuario_id_origen):
+    """Obtener usuario(s) de la mesa del nivel superior de un usuario origen
+    ---
+    tags:
+      - Usuarios
+    parameters:
+      - name: usuario_id_origen
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de usuarios del nivel superior
+    """
+    query = db.text("""
+        SELECT
+            u.id AS usuario_origen_id,
+            u.usuario AS usuario_origen,
+            m.id AS mesa_origen_id,
+            m.coe_id AS coe_origen_id,
+            m.nombre AS mesa_origen_nombre,
+            m.mesa_grupo_id,
+            ms.id AS mesa_superior_id,
+            ms.coe_id AS coe_superior_id,
+            ms.nombre AS mesa_superior_nombre,
+            us.id AS usuario_superior_id,
+            us.usuario AS usuario_superior
+        FROM public.usuarios u
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa x
+                ON u.id = x.usuario_id
+        INNER JOIN public.mesas m
+                ON x.mesa_id = m.id
+        INNER JOIN public.mesas ms
+                ON ms.mesa_grupo_id = m.mesa_grupo_id
+               AND ms.coe_id = m.coe_id - 1
+        INNER JOIN public.usuario_perfil_coe_dpa_mesa xs
+                ON xs.mesa_id = ms.id
+               AND xs.coe_id = ms.coe_id
+        INNER JOIN public.usuarios us
+                ON us.id = xs.usuario_id
+        WHERE u.id = :usuario_id_origen
+          AND m.coe_id > 1
+          AND m.activo = true
+          AND ms.activo = true
+        ORDER BY
+            u.id,
+            ms.coe_id,
+            ms.id,
+            us.id
+    """)
+    result = db.session.execute(query, {'usuario_id_origen': usuario_id_origen})
+
+    rows = []
+    for row in result:
+        rows.append({
+            'usuario_origen_id': row.usuario_origen_id,
+            'usuario_origen': row.usuario_origen,
+            'mesa_origen_id': row.mesa_origen_id,
+            'coe_origen_id': row.coe_origen_id,
+            'mesa_origen_nombre': row.mesa_origen_nombre,
+            'mesa_grupo_id': row.mesa_grupo_id,
+            'mesa_superior_id': row.mesa_superior_id,
+            'coe_superior_id': row.coe_superior_id,
+            'mesa_superior_nombre': row.mesa_superior_nombre,
+            'usuario_superior_id': row.usuario_superior_id,
+            'usuario_superior': row.usuario_superior
+        })
+
+    return jsonify(rows)
+
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
 def login_usuario():
    

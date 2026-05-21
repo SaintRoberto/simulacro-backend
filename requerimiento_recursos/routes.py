@@ -629,15 +629,15 @@ def deshabilitar_requerimiento_recurso(id):
     tags:
       - Requerimiento Recursos
     parameters:
-        - name: id
-            in: path
-            type: integer
-            required: true
+      - name: id
+        in: path
+        type: integer
+        required: true
     responses:
-        200:
-            description: Requerimiento recurso deshabilitado
-        404:
-            description: No encontrado
+      200:
+        description: Requerimiento recurso deshabilitado
+      404:
+        description: No encontrado
     """
     result = db.session.execute(
         db.text("""
