@@ -304,28 +304,32 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(coe_id, mesa_id, recu
             m.id AS mesa_id,
             c.siglas || ' - ' || m.nombre AS mesa_nombre,
             COALESCE(SUM(ri.existencias), 0) AS existencias
-        FROM public.mesas m
+        FROM public.mesas mu
+        INNER JOIN public.mesas m
+                ON (
+                    -- Todas las mesas del COE actual
+                    m.coe_id = :coe_id_usuario
+
+                    OR
+
+                    -- Mesa equivalente en el COE inmediato superior
+                    (
+                        :coe_id_usuario > 1
+                        AND m.coe_id = :coe_id_usuario - 1
+                        AND m.mesa_grupo_id = mu.mesa_grupo_id
+                    )
+                )
         INNER JOIN public.coes c 
-                ON m.coe_id = c.id
+                ON c.id = m.coe_id
         LEFT JOIN public.recursos_inventario ri
             ON ri.coe_id = m.coe_id
             AND ri.mesa_id = m.id
             AND ri.recurso_tipo_id = :recurso_tipo_id
             AND ri.activo = true
-        WHERE m.activo = true
-        AND (
-                -- Todas las mesas del COE actual
-                m.coe_id = :coe_id_usuario
-
-                OR
-
-                -- Solo la mesa propia en el COE inmediato superior
-                (
-                    :coe_id_usuario > 1
-                    AND m.coe_id = :coe_id_usuario - 1
-                    AND m.id = :mesa_id_usuario
-                )
-            )
+        WHERE mu.id = :mesa_id_usuario
+        AND mu.coe_id = :coe_id_usuario
+        AND mu.activo = true
+        AND m.activo = true
         GROUP BY
             m.coe_id,
             m.id,
