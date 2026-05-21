@@ -622,6 +622,37 @@ def delete_requerimiento_recurso(id):
     db.session.commit()
     return jsonify({'mensaje': 'Relacion eliminada correctamente'})
 
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/deshabilitar-requerimiento/<int:id>', methods=['PATCH'])
+def deshabilitar_requerimiento_recurso(id):
+    """Deshabilitar requerimiento recurso (marcar como inactivo)
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+        - name: id
+            in: path
+            type: integer
+            required: true
+    responses:
+        200:
+            description: Requerimiento recurso deshabilitado
+        404:
+            description: No encontrado
+    """
+    result = db.session.execute(
+        db.text("""
+            UPDATE requerimiento_recursos
+            SET activo = false
+            WHERE id = :id
+        """),
+        {'id': id}
+    )
+
+    if getattr(result, 'rowcount', 0) == 0:
+        return jsonify({'error': 'Relacion no encontrada'}), 404
+
+    db.session.commit()
+    return jsonify({'mensaje': 'Relacion deshabilitada correctamente'})
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/usuario_emisor/<int:usuario_emisor_id>', methods=['GET'])
@@ -896,20 +927,16 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             SELECT
                 rr.requerimiento_numero AS requerimiento_numero,
                 SUM(rr.cantidad_solicitada) AS cantidad_solicitada,
-                rr.detalle,
-                rr.requerimiento_estado_id AS requerimiento_estado_id,
-                MAX(rr.creacion) AS creacion
+                rr.requerimiento_estado_id AS requerimiento_estado_id
             FROM
                 public.requerimiento_recursos rr
             WHERE
                 rr.usuario_emisor_id = :usuario_emisor_id
                 AND COALESCE(rr.activo, true) = true
+                AND rr.requerimiento_estado_id = 1
             GROUP BY
                 rr.requerimiento_numero,
-                rr.requerimiento_estado_id,
-                rr.detalle
-            ORDER BY
-                MAX(rr.creacion) DESC;
+                rr.requerimiento_estado_id;
         """),
         {'usuario_emisor_id': usuario_emisor_id}
         )
