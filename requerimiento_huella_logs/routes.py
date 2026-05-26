@@ -150,6 +150,26 @@ def _validate_fk(data, field_name, table_name, required=False):
     return None
 
 
+def _normalize_optional_fk_value(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip().lower()
+        if cleaned in ("", "0", "null", "none"):
+            return None
+    if value == 0:
+        return None
+    return value
+
+
+def _normalize_optional_fks(data, fields):
+    normalized = dict(data)
+    for field_name in fields:
+        if field_name in normalized:
+            normalized[field_name] = _normalize_optional_fk_value(normalized[field_name])
+    return normalized
+
+
 def _validate_cantidades(cantidad_solicitada, cantidad_asignada):
     if cantidad_solicitada is not None and cantidad_solicitada < 0:
         return "cantidad_solicitada debe ser mayor o igual a 0"
@@ -468,6 +488,19 @@ def create_requerimiento_huella_log():
         description: Conflicto de secuencia unica
     """
     data = request.get_json() or {}
+    optional_fk_fields = [
+        "respuesta_estado_id",
+        "movimiento_tipo_id",
+        "usuario_emisor_id",
+        "usuario_receptor_id",
+        "coe_origen_id",
+        "mesa_origen_id",
+        "coe_destino_id",
+        "mesa_destino_id",
+        "recurso_inventario_id",
+        "motivo_id",
+    ]
+    data = _normalize_optional_fks(data, optional_fk_fields)
 
     required_fields = [
         "requerimiento_recurso_id",
