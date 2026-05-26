@@ -594,6 +594,44 @@ def patch_requerimiento_recurso_estado(id):
         return jsonify({'error': 'Error inesperado al actualizar estado', 'details': str(e)}), 500
 
 
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>/asignar-mesa-superior/<int:usuario_emisor_id>', methods=['PATCH'])
+def patch_asignacion_mesa_superior(id,usuario_emisor_id):
+    """Actualizar asignacion a mesa superior de requerimiento recurso
+    ---
+    tags:
+      - Requerimiento Recursos
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - name: usuario_emisor_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Asignacion actualizada
+      404:
+        description: No encontrado
+    """
+    result = db.session.execute(
+        db.text("""
+            UPDATE requerimiento_recursos
+            SET usuario_emisor_id = :usuario_emisor_id
+            WHERE id = :id
+        """),
+        {'id': id, 'usuario_emisor_id': usuario_emisor_id}
+    )
+
+    if getattr(result, 'rowcount', 0) == 0:
+        return jsonify({'error': 'Asignacion no encontrada'}), 404
+
+    db.session.commit()
+    return jsonify({'mensaje': 'Asignacion actualizada correctamente'})
+
+
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['DELETE'])
 def delete_requerimiento_recurso(id):
     """Eliminar requerimiento recurso
@@ -960,9 +998,9 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
     return jsonify(rows)
 
 
-@requerimiento_recursos_bp.route('/api/requerimiento-recursos/requeramiento_numero/<string:requerimiento_numero>', methods=['GET'])
-def get_requerimiento_recursos_by_requerimiento_numero(requerimiento_numero):
-    """Obtener requerimientos recursos por requerimiento_numero
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/requeramiento_numero/<string:requerimiento_numero>/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
+def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(requerimiento_numero, usuario_emisor_id):
+    """Obtener requerimientos recursos por requerimiento_numero y usuario_emisor_id
     ---
     tags:
       - Requerimiento Recursos  
@@ -970,6 +1008,10 @@ def get_requerimiento_recursos_by_requerimiento_numero(requerimiento_numero):
       - name: requerimiento_numero
         in: path
         type: string
+        required: true
+      - name: usuario_emisor_id
+        in: path
+        type: integer
         required: true
     responses:
       200:
@@ -1022,9 +1064,10 @@ def get_requerimiento_recursos_by_requerimiento_numero(requerimiento_numero):
                 ON rr.recurso_grupo_id = rg.id
             WHERE rr.requerimiento_numero = :requerimiento_numero
                 AND COALESCE(rr.activo, true) = true
+                AND rr.usuario_emisor_id = :usuario_emisor_id
             ORDER BY rr.id DESC
         """),
-        {'requerimiento_numero': requerimiento_numero}
+        {'requerimiento_numero': requerimiento_numero, 'usuario_emisor_id': usuario_emisor_id}
     )
     def _to_iso_if_datetime(value):
         if value is None:
