@@ -93,6 +93,7 @@ from respuesta_estados import respuesta_estados_bp
 from requerimiento_estados import requerimiento_estados_bp
 from usuario_perfil import usuario_perfil_bp
 from perfil_menu import perfil_menu_bp
+from perfil_coe_mesa_menu_opcion import perfil_coe_mesa_menu_opcion_bp
 from afectacion_variable_registros import afectacion_variable_registros_bp
 from afectacion_variables import afectacion_variables_bp
 from acta_coe_resoluciones import acta_coe_resoluciones_bp
@@ -166,6 +167,7 @@ app.register_blueprint(respuesta_estados_bp)
 app.register_blueprint(requerimiento_estados_bp)
 app.register_blueprint(usuario_perfil_bp)
 app.register_blueprint(perfil_menu_bp)
+app.register_blueprint(perfil_coe_mesa_menu_opcion_bp)
 app.register_blueprint(afectacion_variable_registros_bp)
 app.register_blueprint(afectacion_variables_bp)
 app.register_blueprint(actas_coe_bp)
