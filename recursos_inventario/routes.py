@@ -1158,7 +1158,6 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
     """
     query = db.text("""
         SELECT
-            rr.requerimiento_respuesta_ids,
             ri.id AS id,
             ri.id AS recurso_inventario_id,
             ri.institucion_duena_id AS institucion_duena_id,
@@ -1172,13 +1171,12 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
 
             COALESCE(ri.existencias, 0) AS existencias,
 
-            COALESCE(rm.total_asignado_factor, 0) AS total_asignado_factor,
+            COALESCE(rr_req.total_asignado_requerimiento, 0) AS asignado_requerimiento,
 
-            COALESCE(rr.total_asignado_en_uso, 0) AS total_asignado_en_uso,
+            COALESCE(rr_global.total_en_uso_global, 0) AS total_en_uso_global,
 
             COALESCE(ri.existencias, 0)
-            - COALESCE(rm.total_asignado_factor, 0)
-            - COALESCE(rr.total_asignado_en_uso, 0) AS disponible
+            - COALESCE(rr_global.total_en_uso_global, 0) AS disponible
 
         FROM public.recursos_inventario ri
 
@@ -1194,50 +1192,54 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
         LEFT JOIN public.parroquias pr 
             ON pr.id = ri.parroquia_id
 
-        LEFT JOIN (
-            SELECT
-                m.recurso_inventario_id,
-                COALESCE(
-                    SUM(
-                        COALESCE(m.cantidad_asignada, 0) *
-                        CASE
-                            WHEN LOWER(COALESCE(m.factor::text, '0')) IN ('1', '-1', 'true', 't')
-                                THEN 1
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS total_asignado_factor
-            FROM public.recursos_movilizados m
-            WHERE COALESCE(m.activo, true) = true
-            GROUP BY m.recurso_inventario_id
-        ) rm 
-            ON rm.recurso_inventario_id = ri.id
-
+        /* USO GLOBAL DEL INVENTARIO */
         LEFT JOIN (
             SELECT
                 r.recurso_inventario_id,
-
-                ARRAY_AGG(r.id ORDER BY r.id) AS requerimiento_respuesta_ids,
-
                 COALESCE(
                     SUM(
                         COALESCE(r.cantidad_asignada, 0) *
                         CASE
-                            WHEN LOWER(COALESCE(r.factor::text, '1')) IN ('1', 'true', 't')
+                            WHEN LOWER(COALESCE(r.factor::text, '0')) IN ('1', 'true', 't')
                                 THEN 1
+                            WHEN LOWER(COALESCE(r.factor::text, '0')) IN ('-1', 'false', 'f')
+                                THEN -1
                             ELSE 0
                         END
                     ),
                     0
-                ) AS total_asignado_en_uso
-
+                ) AS total_en_uso_global
             FROM public.requerimiento_respuestas r
-            WHERE COALESCE(r.activo, true) = true 
-            AND r.requerimiento_recurso_id = :recurso_requerimiento_id
+            WHERE COALESCE(r.activo, true) = true
+            AND r.recurso_inventario_id IS NOT NULL
             GROUP BY r.recurso_inventario_id
-        ) rr 
-            ON rr.recurso_inventario_id = ri.id
+        ) rr_global
+            ON rr_global.recurso_inventario_id = ri.id
+
+        /* ASIGNADO SOLO EN EL REQUERIMIENTO ANALIZADO */
+        LEFT JOIN (
+            SELECT
+                r.recurso_inventario_id,
+                COALESCE(
+                    SUM(
+                        COALESCE(r.cantidad_asignada, 0) *
+                        CASE
+                            WHEN LOWER(COALESCE(r.factor::text, '0')) IN ('1', 'true', 't')
+                                THEN 1
+                            WHEN LOWER(COALESCE(r.factor::text, '0')) IN ('-1', 'false', 'f')
+                                THEN -1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_asignado_requerimiento
+            FROM public.requerimiento_respuestas r
+            WHERE COALESCE(r.activo, true) = true
+            AND r.requerimiento_recurso_id = :recurso_requerimiento_id
+            AND r.recurso_inventario_id IS NOT NULL
+            GROUP BY r.recurso_inventario_id
+        ) rr_req
+            ON rr_req.recurso_inventario_id = ri.id
 
         WHERE COALESCE(ri.activo, true) = true
         AND ri.coe_id = :coe_id
