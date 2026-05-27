@@ -1271,7 +1271,8 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
     for row in result:
         items.append({
             'id': row.id,
-            'requerimiento_respuesta_id': row.requerimiento_respuesta_ids,
+            'requerimiento_respuesta_ids': row.requerimiento_respuesta_ids,
+            'recurso_inventario_id': row.recurso_inventario_id,
             'institucion_duena_id': row.institucion_duena_id,
             'nombre_institucion': row.nombre_institucion,
             'recurso_tipo_id': row.recurso_tipo_id,
@@ -1281,8 +1282,8 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
             'parroquia': row.parroquia,
             'canton': row.canton,
             'existencias': row.existencias,
-            'total_asignado_factor': row.total_asignado_factor,
-            'total_asignado_en_uso': row.total_asignado_en_uso,
-            'disponible': row.disponible,            
+            'asignado_requerimiento': row.asignado_requerimiento,
+            'total_en_uso_global': row.total_en_uso_global,
+            'disponible': row.disponible,
         })
     return jsonify(items)
