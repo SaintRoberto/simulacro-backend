@@ -1112,7 +1112,7 @@ def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa(coe_id, mesa_i
 
 @recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>', methods=['GET'])
 def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_tipo_id, recurso_requerimiento_id):
-    """Obtener recursos inventario por recuros x requerimiento, COE y mesa
+    """Obtener recursos inventario por recursos x requerimiento, COE y mesa
     ---
     tags:
       - Recursos Inventario
@@ -1261,7 +1261,7 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
     for row in result:
         items.append({
             'id': row.id,
-            'requerimiento_respuesta_id': row.requerimiento_respuesta_id,
+            'requerimiento_respuesta_id': row.requerimiento_respuesta_ids,
             'institucion_duena_id': row.institucion_duena_id,
             'nombre_institucion': row.nombre_institucion,
             'recurso_tipo_id': row.recurso_tipo_id,

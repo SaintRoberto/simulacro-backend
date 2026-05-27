@@ -1007,7 +1007,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
     return jsonify(rows)
 
 
-@requerimiento_recursos_bp.route('/api/requerimiento-recursos/requeramiento_numero/<string:requerimiento_numero>/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(requerimiento_numero, usuario_emisor_id):
     """Obtener requerimientos recursos por requerimiento_numero y usuario_emisor_id
     ---
@@ -1073,7 +1073,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 ON rr.recurso_grupo_id = rg.id
             WHERE rr.requerimiento_numero = :requerimiento_numero
                 AND COALESCE(rr.activo, true) = true
-                AND rr.usuario_emisor_id = :usuario_emisor_id
+                AND rr.usuario_receptor_id = :usuario_emisor_id
             ORDER BY rr.id DESC
         """),
         {'requerimiento_numero': requerimiento_numero, 'usuario_emisor_id': usuario_emisor_id}
