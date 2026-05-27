@@ -1158,76 +1158,99 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
     """
     query = db.text("""
         SELECT
-              rr.requerimiento_respuesta_id AS requerimiento_respuesta_id,
-              ri.id AS id,
-              ri.id AS recurso_inventario_id,
-              ri.institucion_duena_id AS institucion_duena_id,
-              I.NOMBRE AS NOMBRE_INSTITUCION,
-              ri.recurso_tipo_id AS recurso_tipo_id,
-              ri.coe_id AS coe_id,
-              ri.mesa_id AS mesa_id,
-              p.nombre AS provincia,
-              c.nombre AS canton,
-              pr.nombre AS parroquia,
-              COALESCE(ri.existencias, 0) AS existencias,
-              COALESCE(rm.total_asignado_factor, 0) AS total_asignado_factor,
-              COALESCE(rr.total_asignado_en_uso, 0) AS total_asignado_en_uso,
-              COALESCE(ri.existencias, 0)
-                - COALESCE(rm.total_asignado_factor, 0)
-                - COALESCE(rr.total_asignado_en_uso, 0) AS disponible
-          FROM public.recursos_inventario ri
-          LEFT JOIN PUBLIC.INSTITUCIONES I 
-          ON I.ID = RI.INSTITUCION_DUENA_ID
-          LEFT JOIN public.provincias p 
-              ON p.id = ri.provincia_id
-          LEFT JOIN public.cantones c 
-              ON c.id = ri.canton_id
-          LEFT JOIN public.parroquias pr 
-              ON pr.id = ri.parroquia_id
-          LEFT JOIN (
-              SELECT
-                  m.recurso_inventario_id,
-                  COALESCE(
-                      SUM(
-                          COALESCE(m.cantidad_asignada, 0) * CASE
-                              WHEN LOWER(COALESCE(m.factor::text, '0')) IN ('1', '-1', 'true', 't')
-                                  THEN 1
-                              ELSE 0
-                          END
-                      ),
-                      0
-                  ) AS total_asignado_factor
-              FROM public.recursos_movilizados m
-              WHERE COALESCE(m.activo, true) = true
-              GROUP BY m.recurso_inventario_id
-          ) rm ON rm.recurso_inventario_id = ri.id
-          LEFT JOIN (
-              SELECT
-                  r.requerimiento_recurso_id,
-                  r.id AS requerimiento_respuesta_id,
-                  r.recurso_inventario_id,
-                  COALESCE(
-                      SUM(
-                          COALESCE(r.cantidad_asignada, 0) * CASE
-                              WHEN LOWER(COALESCE(r.factor::text, '1')) IN ('1', 'true', 't')
-                                  THEN 1
-                              ELSE 0
-                          END
-                      ),
-                      0
-                  ) AS total_asignado_en_uso
-              FROM public.requerimiento_respuestas r
-              WHERE COALESCE(r.activo, true) = true 
-                AND R.REQUERIMIENTO_RECURSO_ID = :recurso_requerimiento_id
-              GROUP BY r.recurso_inventario_id, r.id
-          ) rr ON rr.recurso_inventario_id = ri.id
-          LEFT JOIN PUBLIC.requerimiento_recursos RC ON RC.ID = RR.REQUERIMIENTO_RECURSO_ID
-          WHERE COALESCE(ri.activo, true) = true
-            AND ri.coe_id = :coe_id
-            AND ri.mesa_id = :mesa_id
-            AND ri.recurso_tipo_id = :recurso_tipo_id
-          ORDER BY i.nombre, p.nombre, c.nombre, pr.nombre, ri.id;
-            """)
+            rr.requerimiento_respuesta_ids,
+            ri.id AS id,
+            ri.id AS recurso_inventario_id,
+            ri.institucion_duena_id AS institucion_duena_id,
+            i.nombre AS nombre_institucion,
+            ri.recurso_tipo_id AS recurso_tipo_id,
+            ri.coe_id AS coe_id,
+            ri.mesa_id AS mesa_id,
+            p.nombre AS provincia,
+            c.nombre AS canton,
+            pr.nombre AS parroquia,
+
+            COALESCE(ri.existencias, 0) AS existencias,
+
+            COALESCE(rm.total_asignado_factor, 0) AS total_asignado_factor,
+
+            COALESCE(rr.total_asignado_en_uso, 0) AS total_asignado_en_uso,
+
+            COALESCE(ri.existencias, 0)
+            - COALESCE(rm.total_asignado_factor, 0)
+            - COALESCE(rr.total_asignado_en_uso, 0) AS disponible
+
+        FROM public.recursos_inventario ri
+
+        LEFT JOIN public.instituciones i 
+            ON i.id = ri.institucion_duena_id
+
+        LEFT JOIN public.provincias p 
+            ON p.id = ri.provincia_id
+
+        LEFT JOIN public.cantones c 
+            ON c.id = ri.canton_id
+
+        LEFT JOIN public.parroquias pr 
+            ON pr.id = ri.parroquia_id
+
+        LEFT JOIN (
+            SELECT
+                m.recurso_inventario_id,
+                COALESCE(
+                    SUM(
+                        COALESCE(m.cantidad_asignada, 0) *
+                        CASE
+                            WHEN LOWER(COALESCE(m.factor::text, '0')) IN ('1', '-1', 'true', 't')
+                                THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_asignado_factor
+            FROM public.recursos_movilizados m
+            WHERE COALESCE(m.activo, true) = true
+            GROUP BY m.recurso_inventario_id
+        ) rm 
+            ON rm.recurso_inventario_id = ri.id
+
+        LEFT JOIN (
+            SELECT
+                r.recurso_inventario_id,
+
+                ARRAY_AGG(r.id ORDER BY r.id) AS requerimiento_respuesta_ids,
+
+                COALESCE(
+                    SUM(
+                        COALESCE(r.cantidad_asignada, 0) *
+                        CASE
+                            WHEN LOWER(COALESCE(r.factor::text, '1')) IN ('1', 'true', 't')
+                                THEN 1
+                            ELSE 0
+                        END
+                    ),
+                    0
+                ) AS total_asignado_en_uso
+
+            FROM public.requerimiento_respuestas r
+            WHERE COALESCE(r.activo, true) = true 
+            AND r.requerimiento_recurso_id = :recurso_requerimiento_id
+            GROUP BY r.recurso_inventario_id
+        ) rr 
+            ON rr.recurso_inventario_id = ri.id
+
+        WHERE COALESCE(ri.activo, true) = true
+        AND ri.coe_id = :coe_id
+        AND ri.mesa_id = :mesa_id
+        AND ri.recurso_tipo_id = :recurso_tipo_id
+
+        ORDER BY 
+            i.nombre, 
+            p.nombre, 
+            c.nombre, 
+            pr.nombre, 
+            ri.id;
+    """)
     result = db.session.execute(query, {
         'coe_id': coe_id,
         'mesa_id': mesa_id,
