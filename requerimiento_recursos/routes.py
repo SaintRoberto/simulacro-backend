@@ -35,6 +35,7 @@ def _serialize_requerimiento_recurso(row):
         'usuario_receptor_id': row.usuario_receptor_id,
         "usuario_receptor": _get_optional('usuario_receptor'),
         'recurso_grupo_id': row.recurso_grupo_id,
+        'grupo_recurso': _get_optional('grupo_recurso'),
         'recurso_tipo_id': row.recurso_tipo_id,
         'cantidad_solicitada': row.cantidad_solicitada,
         'costo': float(row.costo) if row.costo is not None else None,
@@ -265,13 +266,21 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
               creacion: {type: string}
               modificador: {type: string}
               modificacion: {type: string}
+              grupo_recurso: {type: string}
     """
     result = db.session.execute(
         db.text("""
-            SELECT * FROM requerimiento_recursos
-            WHERE usuario_receptor_id = :usuario_receptor_id
-              AND COALESCE(activo, true) = true
-            ORDER BY id DESC
+                SELECT
+                    RR.*,
+                    G.NOMBRE AS GRUPO_RECURSO
+                FROM
+                    REQUERIMIENTO_RECURSOS RR
+                    INNER JOIN RECURSO_GRUPOS G ON RR.RECURSO_GRUPO_ID = G.ID
+                WHERE
+                    RR.USUARIO_RECEPTOR_ID = :usuario_receptor_id
+                    AND COALESCE(RR.ACTIVO, TRUE) = TRUE
+                ORDER BY
+                    RR.ID DESC            
         """),
         {'usuario_receptor_id': usuario_receptor_id}
     )
