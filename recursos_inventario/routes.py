@@ -1158,6 +1158,8 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
     """
     query = db.text("""
         SELECT
+            rr_req.requerimiento_respuesta_ids,
+
             ri.id AS id,
             ri.id AS recurso_inventario_id,
             ri.institucion_duena_id AS institucion_duena_id,
@@ -1196,6 +1198,7 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
         LEFT JOIN (
             SELECT
                 r.recurso_inventario_id,
+
                 COALESCE(
                     SUM(
                         COALESCE(r.cantidad_asignada, 0) *
@@ -1209,6 +1212,7 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
                     ),
                     0
                 ) AS total_en_uso_global
+
             FROM public.requerimiento_respuestas r
             WHERE COALESCE(r.activo, true) = true
             AND r.recurso_inventario_id IS NOT NULL
@@ -1220,6 +1224,9 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
         LEFT JOIN (
             SELECT
                 r.recurso_inventario_id,
+
+                ARRAY_AGG(r.id ORDER BY r.id) AS requerimiento_respuesta_ids,
+
                 COALESCE(
                     SUM(
                         COALESCE(r.cantidad_asignada, 0) *
@@ -1233,6 +1240,7 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
                     ),
                     0
                 ) AS total_asignado_requerimiento
+
             FROM public.requerimiento_respuestas r
             WHERE COALESCE(r.activo, true) = true
             AND r.requerimiento_recurso_id = :recurso_requerimiento_id
