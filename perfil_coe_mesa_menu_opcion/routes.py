@@ -172,6 +172,15 @@ def _validate_unique_combination(perfil_id, coe_id, mesa_id, menu_id, opcion_id,
 
 @perfil_coe_mesa_menu_opcion_bp.route("/api/perfil-coe-mesa-menu-opcion", methods=["GET"])
 def get_perfil_coe_mesa_menu_opcion():
+    """Lista permisos perfil/coe/mesa/menu/opcion.
+
+    Query params:
+        activo (bool, opcional): filtra por estado activo.
+
+    Returns:
+        200: listado de permisos con nombres descriptivos.
+        400: valor invalido para el parametro activo.
+    """
     activo_param = request.args.get("activo")
     where_clause = ""
     params = {}
@@ -218,6 +227,15 @@ def get_perfil_coe_mesa_menu_opcion():
 
 @perfil_coe_mesa_menu_opcion_bp.route("/api/perfil-coe-mesa-menu-opcion/<int:item_id>", methods=["GET"])
 def get_perfil_coe_mesa_menu_opcion_by_id(item_id):
+    """Obtiene un permiso por su identificador.
+
+    Args:
+        item_id (int): id del permiso.
+
+    Returns:
+        200: permiso encontrado.
+        404: permiso no existe.
+    """
     row = _get_item_with_details_by_id(item_id)
     if row is None:
         return jsonify({"error": "Permiso no encontrado"}), 404
@@ -229,6 +247,20 @@ def get_perfil_coe_mesa_menu_opcion_by_id(item_id):
     methods=["GET"],
 )
 def get_permisos_by_scope(perfil_id, coe_id, mesa_id):
+    """Lista permisos por ambito perfil/coe/mesa.
+
+    Args:
+        perfil_id (int): id del perfil.
+        coe_id (int): id del COE.
+        mesa_id (int): id de la mesa.
+
+    Query params:
+        activo (bool, opcional): filtra por estado activo.
+
+    Returns:
+        200: permisos del ambito solicitado.
+        400: ambito invalido o parametro activo invalido.
+    """
     scope_error = _validate_scope(perfil_id, coe_id, mesa_id)
     if scope_error:
         return jsonify({"error": scope_error}), 400
@@ -283,6 +315,18 @@ def get_permisos_by_scope(perfil_id, coe_id, mesa_id):
 
 @perfil_coe_mesa_menu_opcion_bp.route("/api/perfil-coe-mesa-menu-opcion", methods=["POST"])
 def create_perfil_coe_mesa_menu_opcion():
+    """Crea un permiso perfil/coe/mesa/menu/opcion.
+
+    Body:
+        perfil_id (int), coe_id (int), mesa_id (int), menu_id (int), opcion_id (int).
+        activo (bool, opcional), creador (str, opcional), modificador (str, opcional).
+
+    Returns:
+        201: permiso creado.
+        400: datos faltantes o referencias invalidas.
+        409: combinacion ya existente.
+        500: error al persistir.
+    """
     data = request.get_json() or {}
     required_fields = ["perfil_id", "coe_id", "mesa_id", "menu_id", "opcion_id"]
     missing = [field for field in required_fields if field not in data]
@@ -355,6 +399,21 @@ def create_perfil_coe_mesa_menu_opcion():
 
 @perfil_coe_mesa_menu_opcion_bp.route("/api/perfil-coe-mesa-menu-opcion/<int:item_id>", methods=["PUT"])
 def update_perfil_coe_mesa_menu_opcion(item_id):
+    """Actualiza un permiso existente.
+
+    Args:
+        item_id (int): id del permiso.
+
+    Body:
+        Campos opcionales para actualizar: perfil_id, coe_id, mesa_id, menu_id, opcion_id,
+        activo, modificador.
+
+    Returns:
+        200: permiso actualizado.
+        400: datos invalidos.
+        404: permiso no encontrado.
+        409: combinacion duplicada.
+    """
     data = request.get_json() or {}
     current = db.session.execute(
         db.text("SELECT * FROM perfil_coe_mesa_menu_opcion WHERE id = :id"),
@@ -427,6 +486,15 @@ def update_perfil_coe_mesa_menu_opcion(item_id):
 
 @perfil_coe_mesa_menu_opcion_bp.route("/api/perfil-coe-mesa-menu-opcion/<int:item_id>", methods=["DELETE"])
 def delete_perfil_coe_mesa_menu_opcion(item_id):
+    """Elimina un permiso por id.
+
+    Args:
+        item_id (int): id del permiso.
+
+    Returns:
+        200: permiso eliminado.
+        404: permiso no encontrado.
+    """
     result = db.session.execute(
         db.text("DELETE FROM perfil_coe_mesa_menu_opcion WHERE id = :id"),
         {"id": item_id},
@@ -444,6 +512,26 @@ def delete_perfil_coe_mesa_menu_opcion(item_id):
     methods=["PUT"],
 )
 def sync_permisos_by_scope(perfil_id, coe_id, mesa_id):
+    """Sincroniza permisos de un perfil en un COE y mesa.
+
+    Reglas:
+        - Inserta permisos nuevos.
+        - Actualiza permisos existentes.
+        - Desactiva permisos no enviados en la lista de entrada.
+
+    Args:
+        perfil_id (int): id del perfil.
+        coe_id (int): id del COE.
+        mesa_id (int): id de la mesa.
+
+    Body:
+        permisos (list): lista de objetos con menu_id, opcion_id y activo opcional.
+
+    Returns:
+        200: permisos sincronizados y estado final del ambito.
+        400: validaciones de entrada.
+        500: error de base de datos.
+    """
     data = request.get_json() or {}
     permisos = data.get("permisos")
     if not isinstance(permisos, list):
@@ -619,6 +707,19 @@ def sync_permisos_by_scope(perfil_id, coe_id, mesa_id):
     methods=["GET"],
 )
 def get_permisos_matriz(coe_id, mesa_id):
+    """Obtiene la matriz de permisos por COE y mesa.
+
+    Args:
+        coe_id (int): id del COE.
+        mesa_id (int): id de la mesa.
+
+    Query params:
+        solo_activos_perfil (bool, opcional, default=true): incluye solo perfiles activos.
+
+    Returns:
+        200: estructura de matriz (perfiles, opciones, grupos y filas).
+        400: coe/mesa invalidos o parametro incorrecto.
+    """
     scope_error = _validate_coe_mesa(coe_id, mesa_id)
     if scope_error:
         return jsonify({"error": scope_error}), 400
@@ -843,6 +944,23 @@ def get_permisos_matriz(coe_id, mesa_id):
     methods=["PUT"],
 )
 def upsert_permisos_matriz(coe_id, mesa_id):
+    """Crea o actualiza celdas de la matriz de permisos.
+
+    Args:
+        coe_id (int): id del COE.
+        mesa_id (int): id de la mesa.
+
+    Body:
+        celdas (list): elementos con perfil_id, menu_id, opcion_id y activo.
+        reemplazar (bool, opcional): si es true, desactiva celdas omitidas para perfiles
+            involucrados.
+        creador (str, opcional), modificador (str, opcional).
+
+    Returns:
+        200: resumen de actualizacion de matriz.
+        400: datos invalidos.
+        500: error de base de datos.
+    """
     data = request.get_json() or {}
     celdas = data.get("celdas")
     reemplazar = bool(data.get("reemplazar", False))
