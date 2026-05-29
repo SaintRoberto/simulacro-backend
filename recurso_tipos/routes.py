@@ -77,9 +77,11 @@ def get_recurso_tipos_by_categoria(categoria_id):
               modificacion: {type: string}
     """
     query = db.text("""
-        SELECT *
-        FROM recurso_tipos
-        WHERE recurso_categoria_id = :categoria_id
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE g.recurso_categoria_id = :categoria_id
+      ORDER BY t.id ASC 
     """)
 
     result = db.session.execute(query, {'categoria_id': categoria_id})
