@@ -142,21 +142,28 @@ def create_recurso_grupo():
     grupo_id = row[0]
     db.session.commit()
     
-    grupo = db.session.execute(
-        db.text("SELECT * FROM recurso_grupos WHERE id = :id"), 
-        {'id': grupo_id}
-    ).fetchone()
-    
-    return jsonify({
-        'id': grupo.id,
-        'nombre': grupo.nombre,
-        'descripcion': grupo.descripcion,
-        'activo': grupo.activo,
-        'creador': grupo.creador,
-        'creacion': grupo.creacion.isoformat() if grupo.creacion else None,
-        'modificador': grupo.modificador,
-        'modificacion': grupo.modificacion.isoformat() if grupo.modificacion else None
-    }), 201
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE t.id = :id
+      ORDER BY t.id ASC 
+    """)
+    result = db.session.execute(query, {'id': grupo_id})
+    grupo = []
+    for row in result:
+        grupo.append({
+            'id': row.id,
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+    return jsonify(grupo), 201
+
 
 @recurso_grupos_bp.route('/api/recurso_grupos/<int:id>', methods=['GET'])
 def get_recurso_grupo(id):
@@ -252,10 +259,13 @@ def update_recurso_grupo(id):
     db.session.commit()
     
     grupo = db.session.execute(
-        db.text("SELECT * FROM recurso_grupos WHERE id = :id"), 
+        db.text("SELECT * FROM recurso_grupos WHERE id = :id"),
         {'id': id}
     ).fetchone()
-    
+
+    if not grupo:
+        return jsonify({'error': 'Grupo no encontrado'}), 404
+
     return jsonify({
         'id': grupo.id,
         'nombre': grupo.nombre,
@@ -265,8 +275,8 @@ def update_recurso_grupo(id):
         'creacion': grupo.creacion.isoformat() if grupo.creacion else None,
         'modificador': grupo.modificador,
         'modificacion': grupo.modificacion.isoformat() if grupo.modificacion else None
-    })
-
+    }), 200
+    
 @recurso_grupos_bp.route('/api/recurso_grupos/<int:id>', methods=['DELETE'])
 def delete_recurso_grupo(id):
     """Eliminar grupo de recurso

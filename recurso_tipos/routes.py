@@ -1,4 +1,5 @@
 from flask import request, jsonify
+from flask_sqlalchemy import query
 from recurso_tipos import recurso_tipos_bp
 from models import db
 from datetime import datetime, timezone
@@ -29,7 +30,14 @@ def get_recurso_tipos():
               modificador: {type: string}
               modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM recurso_tipos"))
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id
+      ORDER BY t.id ASC 
+    """)
+
+    result = db.session.execute(query)
     tipos = []
     for row in result:
         tipos.append({
@@ -116,9 +124,8 @@ def create_recurso_tipo():
         required: true
         schema:
           type: object
-          required: [recurso_categoria_id, recurso_grupo_id, nombre]
+          required: [recurso_grupo_id, nombre]
           properties:
-            recurso_categoria_id: {type: integer}
             recurso_grupo_id: {type: integer}
             nombre: {type: string}
             descripcion: {type: string}
@@ -133,12 +140,12 @@ def create_recurso_tipo():
     
     query = db.text("""
         INSERT INTO recurso_tipos (
-            recurso_categoria_id, recurso_grupo_id,
+            recurso_grupo_id,
             nombre, descripcion, activo,
             creador, creacion, modificador, modificacion
         )
         VALUES (
-            :recurso_categoria_id, :recurso_grupo_id,
+            :recurso_grupo_id,
             :nombre, :descripcion, :activo,
             :creador, :creacion, :modificador, :modificacion
         )
@@ -146,7 +153,6 @@ def create_recurso_tipo():
     """)
     
     result = db.session.execute(query, {
-        'recurso_categoria_id': data['recurso_categoria_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'nombre': data['nombre'],
         'descripcion': data.get('descripcion'),
@@ -163,23 +169,31 @@ def create_recurso_tipo():
     tipo_id = row[0]
     db.session.commit()
     
-    tipo = db.session.execute(
-        db.text("SELECT * FROM recurso_tipos WHERE id = :id"), 
-        {'id': tipo_id}
-    ).fetchone()
-    
-    return jsonify({
-        'id': tipo.id,
-        'recurso_categoria_id': getattr(tipo, 'recurso_categoria_id', None),
-        'recurso_grupo_id': getattr(tipo, 'recurso_grupo_id', None),
-        'nombre': tipo.nombre,
-        'descripcion': tipo.descripcion,
-        'activo': tipo.activo,
-        'creador': tipo.creador,
-        'creacion': tipo.creacion.isoformat() if tipo.creacion else None,
-        'modificador': tipo.modificador,
-        'modificacion': tipo.modificacion.isoformat() if tipo.modificacion else None
-    }), 201
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE t.id = :id
+      ORDER BY t.id ASC 
+    """)
+
+    result = db.session.execute(query, {'id': id})
+    tipos = []
+    for row in result:
+        tipos.append({
+            'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    return jsonify(tipos), 201
 
 @recurso_tipos_bp.route('/api/recurso-tipos/<int:id>', methods=['GET'])
 def get_recurso_tipo(id):
@@ -211,27 +225,31 @@ def get_recurso_tipo(id):
       404:
         description: No encontrado
     """
-    result = db.session.execute(
-        db.text("SELECT * FROM recurso_tipos WHERE id = :id"), 
-        {'id': id}
-    )
-    tipo = result.fetchone()
-    
-    if not tipo:
-        return jsonify({'error': 'Tipo no encontrado'}), 404
-    
-    return jsonify({
-        'id': tipo.id,
-        'recurso_categoria_id': getattr(tipo, 'recurso_categoria_id', None),
-        'recurso_grupo_id': getattr(tipo, 'recurso_grupo_id', None),
-        'nombre': tipo.nombre,
-        'descripcion': tipo.descripcion,
-        'activo': tipo.activo,
-        'creador': tipo.creador,
-        'creacion': tipo.creacion.isoformat() if tipo.creacion else None,
-        'modificador': tipo.modificador,
-        'modificacion': tipo.modificacion.isoformat() if tipo.modificacion else None
-    })
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE t.id = :id
+      ORDER BY t.id ASC 
+    """)
+
+    result = db.session.execute(query, {'id': id})
+    tipos = []
+    for row in result:
+        tipos.append({
+            'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    return jsonify(tipos)
 
 @recurso_tipos_bp.route('/api/recurso-tipos/<int:id>', methods=['PUT'])
 def update_recurso_tipo(id):
@@ -295,21 +313,31 @@ def update_recurso_tipo(id):
     
     db.session.commit()
     
-    tipo = db.session.execute(
-        db.text("SELECT * FROM recurso_tipos WHERE id = :id"), 
-        {'id': id}
-    ).fetchone()
-    
-    return jsonify({
-        'id': tipo.id,
-        'nombre': tipo.nombre,
-        'descripcion': tipo.descripcion,
-        'activo': tipo.activo,
-        'creador': tipo.creador,
-        'creacion': tipo.creacion.isoformat() if tipo.creacion else None,
-        'modificador': tipo.modificador,
-        'modificacion': tipo.modificacion.isoformat() if tipo.modificacion else None
-    })
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE t.id = :id
+      ORDER BY t.id ASC 
+    """)
+
+    result = db.session.execute(query, {'id': id})
+    tipos = []
+    for row in result:
+        tipos.append({
+            'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
+            'nombre': row.nombre,
+            'descripcion': row.descripcion,
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
+        })
+
+    return jsonify(tipos), 200
 
 @recurso_tipos_bp.route('/api/recurso-tipos/<int:id>', methods=['DELETE'])
 def delete_recurso_tipo(id):
@@ -364,18 +392,28 @@ def get_recurso_tipos_by_grupo(grupo_id):
               costo: {type: string}
               complemento: {type: string}
     """
-    params = {'grupo_id': grupo_id}
-    query = db.text("""SELECT id, nombre, descripcion, costo, complemento FROM recurso_tipos WHERE recurso_grupo_id = :grupo_id""")
-    result = db.session.execute(query, params)
+    query = db.text("""
+      SELECT g.recurso_categoria_id, t.*
+      FROM public.recurso_tipos t
+      INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id     
+      WHERE t.recurso_grupo_id = :grupo_id
+      ORDER BY t.id ASC 
+    """)
+
+    result = db.session.execute(query, {'grupo_id': grupo_id})
     tipos = []
-    if not result:
-        return jsonify({'error': 'Tipos de recursos por el grupo de recursos seleccionado no encontrados'}), 404
     for row in result:
         tipos.append({
             'id': row.id,
+            'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
+            'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
             'nombre': row.nombre,
             'descripcion': row.descripcion,
-            'costo': row.costo,
-            'complemento': row.complemento
+            'activo': row.activo,
+            'creador': row.creador,
+            'creacion': row.creacion.isoformat() if row.creacion else None,
+            'modificador': row.modificador,
+            'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
-    return jsonify(tipos) 
+
+    return jsonify(tipos), 200
