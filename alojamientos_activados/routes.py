@@ -256,6 +256,9 @@ def create_alojamiento_activado():
         {'id': item_id}
     ).fetchone()
 
+    if item is None:
+        return jsonify({'error': 'No se pudo recuperar el registro'}), 500
+
     return jsonify({
         'id': item.id,
         'emergencia_id': item.emergencia_id,
