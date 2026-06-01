@@ -58,6 +58,41 @@ def _serialize_recurso(row, include_legacy_aliases=True):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["GET"])
 def get_recursos_movilizados():
+    """Listar recursos movilizados
+    ---
+    tags:
+      - Recursos Movilizados
+    responses:
+      200:
+        description: Lista de recursos movilizados
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              recurso_inventario_id: {type: integer}
+              emergencia_id: {type: integer}
+              provincia_destino_id: {type: integer}
+              canton_destino_id: {type: integer}
+              parroquia_destino_id: {type: integer}
+              longitud_destino: {type: number}
+              latitud_destino: {type: number}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
+              cantidad_asignada: {type: integer}
+              factor: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+              modificador: {type: string}
+              modificacion: {type: string}
+              provincia_id: {type: integer}
+              canton_id: {type: integer}
+              parroquia_id: {type: integer}
+              longitud: {type: number}
+              latitud: {type: number}
+    """
     result = db.session.execute(db.text("SELECT * FROM recursos_movilizados ORDER BY id ASC"))
     return jsonify([_serialize_recurso(row) for row in result])
 
@@ -67,6 +102,40 @@ def get_recursos_movilizados():
     methods=["GET"],
 )
 def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id):
+    """Obtener recursos movilizados por emergencia y usuario
+    ---
+    tags:
+      - Recursos Movilizados
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de recursos movilizados filtrados por emergencia y usuario
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              parroquia_nombre: {type: string}
+              recurso_grupo: {type: string}
+              recurso_tipo: {type: string}
+              institucion: {type: string}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
+              cantidad_asignada: {type: integer}
+              factor: {type: integer}
+              disponible: {type: integer}
+              latitud: {type: number}
+              longitud: {type: number}
+    """
     query = db.text(
         """
         SELECT DISTINCT
@@ -152,6 +221,86 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["POST"])
 def create_recurso_movilizado():
+    """Crear recurso movilizado
+    ---
+    tags:
+      - Recursos Movilizados
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - emergencia_id
+            - recurso_inventario_id
+            - provincia_destino_id
+            - canton_destino_id
+            - parroquia_destino_id
+          properties:
+            recurso_inventario_id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            factor: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
+            provincia_id:
+              type: integer
+              description: Alias legacy de provincia_destino_id
+            canton_id:
+              type: integer
+              description: Alias legacy de canton_destino_id
+            parroquia_id:
+              type: integer
+              description: Alias legacy de parroquia_destino_id
+            longitud:
+              type: number
+              description: Alias legacy de longitud_destino
+            latitud:
+              type: number
+              description: Alias legacy de latitud_destino
+            cantidad:
+              type: integer
+              description: Alias legacy de cantidad_asignada
+    responses:
+      201:
+        description: Recurso movilizado creado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            recurso_inventario_id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            factor: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            longitud: {type: number}
+            latitud: {type: number}
+    """
     data = request.get_json() or {}
 
     required_fields = [
@@ -254,6 +403,46 @@ def create_recurso_movilizado():
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["GET"])
 def get_recurso_movilizado(id):
+    """Obtener recurso movilizado por ID
+    ---
+    tags:
+      - Recursos Movilizados
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Recurso movilizado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            recurso_inventario_id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            factor: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            longitud: {type: number}
+            latitud: {type: number}
+      404:
+        description: No encontrado
+    """
     recurso = db.session.execute(
         db.text("SELECT * FROM recursos_movilizados WHERE id = :id"),
         {"id": id},
@@ -265,6 +454,85 @@ def get_recurso_movilizado(id):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["PUT"])
 def update_recurso_movilizado(id):
+    """Actualizar recurso movilizado
+    ---
+    tags:
+      - Recursos Movilizados
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            recurso_inventario_id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            factor: {type: integer}
+            activo: {type: boolean}
+            modificador: {type: string}
+            provincia_id:
+              type: integer
+              description: Alias legacy de provincia_destino_id
+            canton_id:
+              type: integer
+              description: Alias legacy de canton_destino_id
+            parroquia_id:
+              type: integer
+              description: Alias legacy de parroquia_destino_id
+            longitud:
+              type: number
+              description: Alias legacy de longitud_destino
+            latitud:
+              type: number
+              description: Alias legacy de latitud_destino
+            cantidad:
+              type: integer
+              description: Alias legacy de cantidad_asignada
+    responses:
+      200:
+        description: Recurso movilizado actualizado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            recurso_inventario_id: {type: integer}
+            emergencia_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            factor: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+            provincia_id: {type: integer}
+            canton_id: {type: integer}
+            parroquia_id: {type: integer}
+            longitud: {type: number}
+            latitud: {type: number}
+      404:
+        description: No encontrado
+    """
     data = request.get_json() or {}
     now = datetime.now(timezone.utc)
 
@@ -323,6 +591,21 @@ def update_recurso_movilizado(id):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["DELETE"])
 def delete_recurso_movilizado(id):
+    """Eliminar recurso movilizado
+    ---
+    tags:
+      - Recursos Movilizados
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Eliminado
+      404:
+        description: No encontrado
+    """
     result = db.session.execute(
         db.text("DELETE FROM recursos_movilizados WHERE id = :id"),
         {"id": id},
