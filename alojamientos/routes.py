@@ -119,7 +119,7 @@ def get_alojamientos_by_provincia_by_canton(provincia_id, canton_id):
     query = db.text("""
         SELECT *
         FROM alojamientos
-        WHERE provincia_id = :provincia_id
+        WHERE (provincia_id = :provincia_id or :provincia_id = 0)
           AND (canton_id = :canton_id or :canton_id = 0)
           AND activo = true
         ORDER BY id ASC;
@@ -301,6 +301,9 @@ def create_alojamiento():
         db.text("SELECT * FROM alojamientos WHERE id = :id"),
         {'id': item_id}
     ).fetchone()
+
+    if item is None:
+        return jsonify({'error': 'No se pudo recuperar el registro creado'}), 500
 
     return jsonify({
         'id': item.id,
