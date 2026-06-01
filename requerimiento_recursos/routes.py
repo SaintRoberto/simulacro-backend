@@ -1073,7 +1073,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 ON rr.recurso_grupo_id = rg.id
             WHERE rr.requerimiento_numero = :requerimiento_numero
                 AND COALESCE(rr.activo, true) = true
-                AND rr.usuario_receptor_id = :usuario_emisor_id
+                AND rr.usuario_emisor_id = :usuario_emisor_id
             ORDER BY rr.id DESC
         """),
         {'requerimiento_numero': requerimiento_numero, 'usuario_emisor_id': usuario_emisor_id}
