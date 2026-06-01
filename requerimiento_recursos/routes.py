@@ -1209,3 +1209,210 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
         })
         
     return jsonify(rows)
+
+
+
+
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_receptor_id/<int:usuario_receptor_id>', methods=['GET'])
+def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(requerimiento_numero, usuario_receptor_id):
+    """Obtener requerimientos recursos por requerimiento_numero y usuario_receptor_id
+    ---
+    tags:
+      - Requerimiento Recursos  
+    parameters:
+      - name: requerimiento_numero
+        in: path
+        type: string
+        required: true
+      - name: usuario_receptor_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Lista de requerimientos recursos que coinciden con el requerimiento_numero
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_numero: {type: string}
+              cantidad_solicitada: {type: integer}
+              activo: {type: boolean}
+              creacion: {type: string}
+              
+    """
+    result = db.session.execute(
+        db.text("""
+            SELECT
+                rr.id AS id,
+                rr.requerimiento_numero AS requerimiento_numero,
+                rr.requerimiento_id AS requerimiento_id,
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+                rr.recurso_grupo_id AS recurso_grupo_id,
+                rg.nombre AS recurso_grupo_nombre,
+                rr.recurso_tipo_id AS recurso_tipo_id,
+                rt.nombre AS recurso_tipo_nombre,
+                rr.cantidad_solicitada AS cantidad_solicitada,
+                rr.costo AS costo,
+                rr.especificaciones AS especificaciones,
+                rr.destino AS destino,
+                rr.detalle AS detalle,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion,
+                rr.modificador AS modificador,
+                rr.modificacion AS modificacion,
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor
+            FROM public.requerimiento_recursos rr
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+            LEFT JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+            LEFT JOIN public.recurso_tipos rt
+                ON rr.recurso_tipo_id = rt.id
+            LEFT JOIN public.recurso_grupos rg
+                ON rr.recurso_grupo_id = rg.id
+            WHERE rr.requerimiento_numero = :requerimiento_numero
+                AND COALESCE(rr.activo, true) = true
+                AND rr.usuario_receptor_id = :usuario_receptor_id
+            ORDER BY rr.id DESC
+        """),
+        {'requerimiento_numero': requerimiento_numero, 'usuario_receptor_id': usuario_receptor_id}
+    )
+    def _to_iso_if_datetime(value):
+        if value is None:
+            return None
+        return value.isoformat() if hasattr(value, 'isoformat') else str(value)
+
+    rows = []
+    for row in result:
+        row_mapping = row._mapping
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+            'requerimiento_id': row_mapping.get('requerimiento_id'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+            'recurso_grupo_id': row_mapping.get('recurso_grupo_id'),
+            'recurso_grupo_nombre': row_mapping.get('recurso_grupo_nombre'),
+            'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
+            'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
+            'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
+            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'especificaciones': row_mapping.get('especificaciones'),
+            'destino': row_mapping.get('destino'),
+            'detalle': row_mapping.get('detalle'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': _to_iso_if_datetime(row_mapping.get('creacion')),
+            'modificador': row_mapping.get('modificador'),
+            'modificacion': _to_iso_if_datetime(row_mapping.get('modificacion'))
+        })
+
+    return jsonify(rows)
+    """Obtener requerimientos recursos por requerimiento_numero 
+    ---
+    tags:
+      - Requerimiento Recursos  
+    parameters:
+      - name: requerimiento_numero
+        in: path
+        type: string
+        required: true
+    responses:
+      200:
+        description: Lista de requerimientos recursos que coinciden con el requerimiento_numero
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_numero: {type: string}
+              cantidad_solicitada: {type: integer}
+              activo: {type: boolean}
+              creacion: {type: string}
+    """
+    result = db.session.execute(
+        db.text("""
+            SELECT
+                rr.id AS id,
+                rr.requerimiento_numero AS requerimiento_numero,
+                rr.requerimiento_id AS requerimiento_id,
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+                rr.recurso_grupo_id AS recurso_grupo_id,
+                rg.nombre AS recurso_grupo_nombre,
+                rr.recurso_tipo_id AS recurso_tipo_id,
+                rt.nombre AS recurso_tipo_nombre,
+                rr.cantidad_solicitada AS cantidad_solicitada,
+                rr.costo AS costo,
+                rr.especificaciones AS especificaciones,
+                rr.destino AS destino,
+                rr.detalle AS detalle,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion,
+                rr.modificador AS modificador,
+                rr.modificacion AS modificacion,
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor
+            FROM public.requerimiento_recursos rr
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+            LEFT JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+            LEFT JOIN public.recurso_tipos rt
+                ON rr.recurso_tipo_id = rt.id
+            LEFT JOIN public.recurso_grupos rg
+                ON rr.recurso_grupo_id = rg.id
+            WHERE rr.requerimiento_numero = :requerimiento_numero
+                AND COALESCE(rr.activo, true) = true
+            ORDER BY rr.id DESC
+        """),
+        {'requerimiento_numero': requerimiento_numero}
+    )
+    def _to_iso_if_datetime(value):
+        if value is None:
+            return None
+        return value.isoformat() if hasattr(value, 'isoformat') else str(value)
+
+    rows = []
+    for row in result:
+        row_mapping = row._mapping
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+            'requerimiento_id': row_mapping.get('requerimiento_id'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+            'recurso_grupo_id': row_mapping.get('recurso_grupo_id'),
+            'recurso_grupo_nombre': row_mapping.get('recurso_grupo_nombre'),
+            'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
+            'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
+            'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
+            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'especificaciones': row_mapping.get('especificaciones'),
+            'destino': row_mapping.get('destino'),
+            'detalle': row_mapping.get('detalle'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': _to_iso_if_datetime(row_mapping.get('creacion')),
+            'modificador': row_mapping.get('modificador'),
+            'modificacion': _to_iso_if_datetime(row_mapping.get('modificacion'))
+        })
+        
+    return jsonify(rows)
