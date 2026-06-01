@@ -21,7 +21,7 @@ def _payload_get(data, *keys, default=None):
     return default
 
 
-def _serialize_recurso(row, include_legacy_aliases=True):
+def _serialize_recurso(row):
     payload = {
         "id": row.id,
         "recurso_inventario_id": row.recurso_inventario_id,
@@ -42,16 +42,12 @@ def _serialize_recurso(row, include_legacy_aliases=True):
         "modificacion": _to_iso(getattr(row, "modificacion", None)),
     }
 
-    if include_legacy_aliases:
-        payload.update(
-            {
-                "provincia_id": payload["provincia_destino_id"],
-                "canton_id": payload["canton_destino_id"],
-                "parroquia_id": payload["parroquia_destino_id"],
-                "longitud": payload["longitud_destino"],
-                "latitud": payload["latitud_destino"],
-            }
-        )
+    payload.update(
+        {
+            "longitud": payload["longitud_destino"],
+            "latitud": payload["latitud_destino"],
+        }
+    )
 
     return payload
 
@@ -87,9 +83,6 @@ def get_recursos_movilizados():
               creacion: {type: string}
               modificador: {type: string}
               modificacion: {type: string}
-              provincia_id: {type: integer}
-              canton_id: {type: integer}
-              parroquia_id: {type: integer}
               longitud: {type: number}
               latitud: {type: number}
     """
@@ -221,7 +214,7 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["POST"])
 def create_recurso_movilizado():
-    """Crear recurso movilizado
+    """Crear nuevo recurso movilizado
     ---
     tags:
       - Recursos Movilizados
@@ -254,15 +247,6 @@ def create_recurso_movilizado():
             activo: {type: boolean}
             creador: {type: string}
             modificador: {type: string}
-            provincia_id:
-              type: integer
-              description: Alias legacy de provincia_destino_id
-            canton_id:
-              type: integer
-              description: Alias legacy de canton_destino_id
-            parroquia_id:
-              type: integer
-              description: Alias legacy de parroquia_destino_id
             longitud:
               type: number
               description: Alias legacy de longitud_destino
@@ -295,9 +279,6 @@ def create_recurso_movilizado():
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            provincia_id: {type: integer}
-            canton_id: {type: integer}
-            parroquia_id: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
     """
@@ -313,9 +294,9 @@ def create_recurso_movilizado():
     payload = {
         "emergencia_id": data.get("emergencia_id"),
         "recurso_inventario_id": data.get("recurso_inventario_id"),
-        "provincia_destino_id": _payload_get(data, "provincia_destino_id", "provincia_id"),
-        "canton_destino_id": _payload_get(data, "canton_destino_id", "canton_id"),
-        "parroquia_destino_id": _payload_get(data, "parroquia_destino_id", "parroquia_id"),
+        "provincia_destino_id": data.get("provincia_destino_id"),
+        "canton_destino_id": data.get("canton_destino_id"),
+        "parroquia_destino_id": data.get("parroquia_destino_id"),
     }
     missing_fields = [field for field in required_fields if payload.get(field) is None]
     if missing_fields:
@@ -435,9 +416,6 @@ def get_recurso_movilizado(id):
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            provincia_id: {type: integer}
-            canton_id: {type: integer}
-            parroquia_id: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
       404:
@@ -484,15 +462,6 @@ def update_recurso_movilizado(id):
             factor: {type: integer}
             activo: {type: boolean}
             modificador: {type: string}
-            provincia_id:
-              type: integer
-              description: Alias legacy de provincia_destino_id
-            canton_id:
-              type: integer
-              description: Alias legacy de canton_destino_id
-            parroquia_id:
-              type: integer
-              description: Alias legacy de parroquia_destino_id
             longitud:
               type: number
               description: Alias legacy de longitud_destino
@@ -525,9 +494,6 @@ def update_recurso_movilizado(id):
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            provincia_id: {type: integer}
-            canton_id: {type: integer}
-            parroquia_id: {type: integer}
             longitud: {type: number}
             latitud: {type: number}
       404:
@@ -539,9 +505,9 @@ def update_recurso_movilizado(id):
     updatable_fields = {
         "recurso_inventario_id": ("recurso_inventario_id",),
         "emergencia_id": ("emergencia_id",),
-        "provincia_destino_id": ("provincia_destino_id", "provincia_id"),
-        "canton_destino_id": ("canton_destino_id", "canton_id"),
-        "parroquia_destino_id": ("parroquia_destino_id", "parroquia_id"),
+        "provincia_destino_id": ("provincia_destino_id",),
+        "canton_destino_id": ("canton_destino_id",),
+        "parroquia_destino_id": ("parroquia_destino_id",),
         "longitud_destino": ("longitud_destino", "longitud"),
         "latitud_destino": ("latitud_destino", "latitud"),
         "fecha_inicio": ("fecha_inicio",),
