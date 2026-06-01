@@ -22,7 +22,7 @@ def _payload_get(data, *keys, default=None):
 
 
 def _serialize_recurso(row):
-    payload = {
+    return {
         "id": row.id,
         "recurso_inventario_id": row.recurso_inventario_id,
         "emergencia_id": row.emergencia_id,
@@ -41,15 +41,6 @@ def _serialize_recurso(row):
         "modificador": getattr(row, "modificador", None),
         "modificacion": _to_iso(getattr(row, "modificacion", None)),
     }
-
-    payload.update(
-        {
-            "longitud": payload["longitud_destino"],
-            "latitud": payload["latitud_destino"],
-        }
-    )
-
-    return payload
 
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["GET"])
@@ -83,8 +74,6 @@ def get_recursos_movilizados():
               creacion: {type: string}
               modificador: {type: string}
               modificacion: {type: string}
-              longitud: {type: number}
-              latitud: {type: number}
     """
     result = db.session.execute(db.text("SELECT * FROM recursos_movilizados ORDER BY id ASC"))
     return jsonify([_serialize_recurso(row) for row in result])
@@ -126,8 +115,8 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
               cantidad_asignada: {type: integer}
               factor: {type: integer}
               disponible: {type: integer}
-              latitud: {type: number}
-              longitud: {type: number}
+              latitud_destino: {type: number}
+              longitud_destino: {type: number}
     """
     query = db.text(
         """
@@ -141,8 +130,8 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
             r.fecha_fin,
             r.cantidad_asignada,
             r.factor,
-            r.latitud_destino AS latitud,
-            r.longitud_destino AS longitud,
+            r.latitud_destino,
+            r.longitud_destino,
             (
                 COALESCE(inv.existencias, 0) - COALESCE(au.comprometido_en_uso, 0)
             ) AS disponible
@@ -151,9 +140,9 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
             ON (r.provincia_destino_id = x.provincia_id OR x.provincia_id = 0)
            AND (r.canton_destino_id = x.canton_id OR x.canton_id = 0)
         INNER JOIN parroquias q
-            ON (r.provincia_destino_id = q.provincia_id OR r.provincia_destino_id = 0)
-           AND (r.canton_destino_id = q.canton_id OR r.canton_destino_id = 0)
-           AND (r.parroquia_destino_id = q.id OR r.parroquia_destino_id =0)
+            ON (r.provincia_destino_id = q.provincia_id)
+           AND (r.canton_destino_id = q.canton_id)
+           AND (r.parroquia_destino_id = q.id)
         INNER JOIN recursos_inventario inv
             ON r.recurso_inventario_id = inv.id
         INNER JOIN recurso_tipos t
@@ -205,8 +194,8 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
                 "cantidad_asignada": row.cantidad_asignada,
                 "factor": row.factor,
                 "disponible": row.disponible,
-                "latitud": _to_float(getattr(row, "latitud", None)),
-                "longitud": _to_float(getattr(row, "longitud", None)),
+                "latitud_destino": _to_float(getattr(row, "latitud_destino", None)),
+                "longitud_destino": _to_float(getattr(row, "longitud_destino", None)),
             }
         )
     return jsonify(recursos)
@@ -247,15 +236,6 @@ def create_recurso_movilizado():
             activo: {type: boolean}
             creador: {type: string}
             modificador: {type: string}
-            longitud:
-              type: number
-              description: Alias legacy de longitud_destino
-            latitud:
-              type: number
-              description: Alias legacy de latitud_destino
-            cantidad:
-              type: integer
-              description: Alias legacy de cantidad_asignada
     responses:
       201:
         description: Recurso movilizado creado
@@ -279,8 +259,6 @@ def create_recurso_movilizado():
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            longitud: {type: number}
-            latitud: {type: number}
     """
     data = request.get_json() or {}
 
@@ -351,11 +329,11 @@ def create_recurso_movilizado():
         query,
         {
             **payload,
-            "longitud_destino": _payload_get(data, "longitud_destino", "longitud", default=0),
-            "latitud_destino": _payload_get(data, "latitud_destino", "latitud", default=0),
+            "longitud_destino": data.get("longitud_destino", 0),
+            "latitud_destino": data.get("latitud_destino", 0),
             "fecha_inicio": data.get("fecha_inicio"),
             "fecha_fin": data.get("fecha_fin"),
-            "cantidad_asignada": data.get("cantidad_asignada", data.get("cantidad", 0)),
+            "cantidad_asignada": data.get("cantidad_asignada", 0),
             "factor": data.get("factor", 0),
             "activo": data.get("activo", True),
             "creador": creador,
@@ -416,8 +394,6 @@ def get_recurso_movilizado(id):
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            longitud: {type: number}
-            latitud: {type: number}
       404:
         description: No encontrado
     """
@@ -462,15 +438,6 @@ def update_recurso_movilizado(id):
             factor: {type: integer}
             activo: {type: boolean}
             modificador: {type: string}
-            longitud:
-              type: number
-              description: Alias legacy de longitud_destino
-            latitud:
-              type: number
-              description: Alias legacy de latitud_destino
-            cantidad:
-              type: integer
-              description: Alias legacy de cantidad_asignada
     responses:
       200:
         description: Recurso movilizado actualizado
@@ -494,37 +461,34 @@ def update_recurso_movilizado(id):
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
-            longitud: {type: number}
-            latitud: {type: number}
       404:
         description: No encontrado
     """
     data = request.get_json() or {}
     now = datetime.now(timezone.utc)
 
-    updatable_fields = {
-        "recurso_inventario_id": ("recurso_inventario_id",),
-        "emergencia_id": ("emergencia_id",),
-        "provincia_destino_id": ("provincia_destino_id",),
-        "canton_destino_id": ("canton_destino_id",),
-        "parroquia_destino_id": ("parroquia_destino_id",),
-        "longitud_destino": ("longitud_destino", "longitud"),
-        "latitud_destino": ("latitud_destino", "latitud"),
-        "fecha_inicio": ("fecha_inicio",),
-        "fecha_fin": ("fecha_fin",),
-        "cantidad_asignada": ("cantidad_asignada", "cantidad"),
-        "factor": ("factor",),
-        "activo": ("activo",),
-    }
+    updatable_fields = [
+        "recurso_inventario_id",
+        "emergencia_id",
+        "provincia_destino_id",
+        "canton_destino_id",
+        "parroquia_destino_id",
+        "longitud_destino",
+        "latitud_destino",
+        "fecha_inicio",
+        "fecha_fin",
+        "cantidad_asignada",
+        "factor",
+        "activo",
+    ]
 
     params = {"id": id, "modificador": data.get("modificador", "Sistema"), "modificacion": now}
     update_fields = []
 
-    for target_field, candidate_keys in updatable_fields.items():
-        candidate_value = _payload_get(data, *candidate_keys, default=None)
-        if any(key in data for key in candidate_keys):
-            update_fields.append(f"{target_field} = :{target_field}")
-            params[target_field] = candidate_value
+    for field in updatable_fields:
+        if field in data:
+            update_fields.append(f"{field} = :{field}")
+            params[field] = data[field]
 
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400
