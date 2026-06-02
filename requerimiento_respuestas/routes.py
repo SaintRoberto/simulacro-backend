@@ -41,6 +41,13 @@ def _normalize_factor(value, default=1):
     return default
 
 
+def _resolve_factor_by_estado(recurso_inventario_id, respuesta_estado_id, factor):
+    normalized_factor = _normalize_factor(factor, default=1)
+    if _is_recurso_retorna(recurso_inventario_id) and _is_estado_finalizado(respuesta_estado_id):
+        return 0
+    return normalized_factor
+
+
 def _serialize_requerimiento_respuesta(row):
     return {
         'id': row.id,
@@ -195,9 +202,11 @@ def create_requerimiento_respuesta():
         return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
 
     now = datetime.now(timezone.utc)
-    factor = _normalize_factor(data.get('factor', 1), default=1)
-    if _is_recurso_retorna(data['recurso_inventario_id']) and _is_estado_finalizado(data['respuesta_estado_id']):
-        factor = 0
+    factor = _resolve_factor_by_estado(
+        data['recurso_inventario_id'],
+        data['respuesta_estado_id'],
+        data.get('factor', 1)
+    )
 
     query = db.text("""
         INSERT INTO requerimiento_respuestas (
@@ -372,16 +381,21 @@ def update_requerimiento_respuesta(id):
         'respuesta_estado_id': data.get('respuesta_estado_id', actual.respuesta_estado_id),
         'responsable': data.get('responsable', actual.responsable),
         'respuesta_fecha': data.get('respuesta_fecha', actual.respuesta_fecha),
-        'factor': _normalize_factor(data.get('factor', actual.factor), default=1),
+        'factor': _resolve_factor_by_estado(
+            params['recurso_inventario_id'],
+            params['respuesta_estado_id'],
+            data.get('factor', actual.factor)
+        ),
         'activo': data.get('activo', actual.activo),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now)
     }
 
-    if _is_recurso_retorna(params['recurso_inventario_id']) and _is_estado_finalizado(
-        params['respuesta_estado_id']
-    ):
-        params['factor'] = 0
+    params['factor'] = _resolve_factor_by_estado(
+        params['recurso_inventario_id'],
+        params['respuesta_estado_id'],
+        params['factor']
+    )
 
     query = db.text("""
         UPDATE requerimiento_respuestas
@@ -411,6 +425,92 @@ def update_requerimiento_respuesta(id):
         return jsonify({'error': 'Respuesta no encontrada'}), 404
 
     return jsonify(_serialize_requerimiento_respuesta(respuesta))
+
+
+@requerimiento_respuestas_bp.route(
+    '/api/requerimiento-respuestas/<int:requerimiento_respuesta_id>/libera-inventario/<int:recurso_inventario_id>',
+    methods=['PATCH']
+)
+def patch_libera_inventario_by_requerimiento_respuesta_id_by_recurso_inventario_id(
+    requerimiento_respuesta_id,
+    recurso_inventario_id,
+):
+    """Liberar inventario asociado a una respuesta de requerimiento.
+    ---
+    tags:
+      - Requerimiento Respuestas
+    parameters:
+      - name: requerimiento_respuesta_id
+        in: path
+        type: integer
+        required: true
+      - name: recurso_inventario_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Inventario liberado o sin cambios
+      404:
+        description: No encontrada
+    """
+    actual = db.session.execute(
+        db.text("""
+            SELECT id, recurso_inventario_id, factor
+            FROM requerimiento_respuestas
+            WHERE id = :requerimiento_respuesta_id
+        """),
+        {'requerimiento_respuesta_id': requerimiento_respuesta_id}
+    ).fetchone()
+    if actual is None:
+        return jsonify({'error': 'Respuesta no encontrada'}), 404
+
+    if actual.recurso_inventario_id != recurso_inventario_id:
+        return jsonify({
+            'error': 'El recurso_inventario_id no coincide con la respuesta indicada'
+        }), 400
+
+    retorna_row = db.session.execute(
+        db.text("""
+            SELECT COALESCE(rt.retorna, false) AS retorna
+            FROM recursos_inventario ri
+            INNER JOIN recurso_tipos rt ON ri.recurso_tipo_id = rt.id
+            WHERE ri.id = :recurso_inventario_id
+        """),
+        {'recurso_inventario_id': recurso_inventario_id}
+    ).fetchone()
+    retorna = bool(retorna_row.retorna) if retorna_row is not None else False
+
+    if retorna and actual.factor != 0:
+        now = datetime.now(timezone.utc)
+        db.session.execute(
+            db.text("""
+                UPDATE requerimiento_respuestas
+                SET factor = 0,
+                    modificacion = :modificacion
+                WHERE id = :requerimiento_respuesta_id
+            """),
+            {
+                'requerimiento_respuesta_id': requerimiento_respuesta_id,
+                'modificacion': now
+            }
+        )
+        db.session.commit()
+
+    respuesta = db.session.execute(
+        db.text("SELECT * FROM requerimiento_respuestas WHERE id = :requerimiento_respuesta_id"),
+        {'requerimiento_respuesta_id': requerimiento_respuesta_id}
+    ).fetchone()
+    if respuesta is None:
+        return jsonify({'error': 'Respuesta no encontrada despues de actualizar'}), 500
+
+    return jsonify({
+        'id': respuesta.id,
+        'requerimiento_recurso_id': respuesta.requerimiento_recurso_id,
+        'recurso_inventario_id': respuesta.recurso_inventario_id,
+        'factor': respuesta.factor,
+        'inventario_liberado': retorna and respuesta.factor == 0
+    }), 200
 
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['DELETE'])
