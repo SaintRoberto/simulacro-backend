@@ -38,15 +38,16 @@ def _serialize_requerimiento_recurso(row):
         'grupo_recurso': _get_optional('grupo_recurso'),
         'recurso_tipo_id': row.recurso_tipo_id,
         'cantidad_solicitada': row.cantidad_solicitada,
-        'costo': float(row.costo) if row.costo is not None else None,
+        'costo': _to_float_optional(row.costo),
+        'porcentaje_avance': getattr(row, 'porcentaje_avance', None),
         'especificaciones': row.especificaciones,
         'destino': row.destino,
         'detalle': row.detalle,
         'activo': row.activo,
         'creador': row.creador,
-        'creacion': row.creacion.isoformat() if row.creacion else None,
+        'creacion': _to_iso_optional(row.creacion),
         'modificador': row.modificador,
-        'modificacion': row.modificacion.isoformat() if row.modificacion else None,
+        'modificacion': _to_iso_optional(row.modificacion),
         "usuario_emisor_id": row.usuario_emisor_id,
         "usuario_emisor": _get_optional('usuario_emisor'),
     }
@@ -57,6 +58,31 @@ def _resolve_authenticated_user():
     if not isinstance(user, dict):
         return None
     return user.get('usuario') or user.get('username') or user.get('user') or user.get('email')
+
+
+def _to_float_optional(value):
+    if value is None or value == '':
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        if isinstance(value, str):
+            normalized_value = value.strip().replace(',', '.')
+            if not normalized_value:
+                return None
+            try:
+                return float(normalized_value)
+            except (TypeError, ValueError):
+                return None
+        return None
+
+
+def _to_iso_optional(value):
+    if value is None or value == '':
+        return None
+    if hasattr(value, 'isoformat'):
+        return value.isoformat()
+    return str(value)
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['GET'])
@@ -595,13 +621,135 @@ def patch_requerimiento_recurso_estado(id):
         return jsonify({
             'id': updated.id,
             'requerimiento_estado_id': updated.requerimiento_estado_id,
-            'modificacion': updated.modificacion.isoformat() if updated.modificacion else None,
+            'modificacion': _to_iso_optional(updated.modificacion),
             'modificador': updated.modificador
         }), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': 'Error inesperado al actualizar estado', 'details': str(e)}), 500
 
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>/actualiza-estado-requerimiento', methods=['PATCH'])
+def patch_actualiza_estado_requerimiento(id):
+    """Actualizar estado y porcentaje de avance de requerimiento recurso
+    ---
+    tags:
+      - Requerimiento Recursos
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [requerimiento_estado_id, porcentaje_avance]
+          properties:
+            requerimiento_estado_id: {type: integer}
+            porcentaje_avance: {type: integer}
+            modificador: {type: string}
+    responses:
+      200:
+        description: Estado y porcentaje de avance actualizados
+      400:
+        description: Payload invalido
+      404:
+        description: No encontrado
+      500:
+        description: Error inesperado
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Payload invalido, se esperaba un objeto JSON'}), 400
+
+        allowed_fields = {'requerimiento_estado_id', 'porcentaje_avance', 'modificador'}
+        unexpected_fields = [field for field in data.keys() if field not in allowed_fields]
+        if unexpected_fields:
+            return jsonify({
+                'error': f"Campos no permitidos para PATCH: {', '.join(unexpected_fields)}"
+            }), 400
+
+        missing_fields = [field for field in ('requerimiento_estado_id', 'porcentaje_avance') if field not in data]
+        if missing_fields:
+            return jsonify({'error': f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
+        new_estado = data.get('requerimiento_estado_id')
+        if new_estado is None:
+            return jsonify({'error': 'requerimiento_estado_id no puede ser null'}), 400
+        if not isinstance(new_estado, int) or isinstance(new_estado, bool):
+            return jsonify({'error': 'requerimiento_estado_id debe ser entero'}), 400
+        if not _requerimiento_estado_existe(new_estado):
+            return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
+
+        porcentaje_avance = data.get('porcentaje_avance')
+        if porcentaje_avance is None:
+            return jsonify({'error': 'porcentaje_avance no puede ser null'}), 400
+        if not isinstance(porcentaje_avance, int) or isinstance(porcentaje_avance, bool):
+            return jsonify({'error': 'porcentaje_avance debe ser entero'}), 400
+        if porcentaje_avance < 0 or porcentaje_avance > 100:
+            return jsonify({'error': 'porcentaje_avance debe estar entre 0 y 100'}), 400
+
+        actual = db.session.execute(
+            db.text("""
+                SELECT id, requerimiento_estado_id, porcentaje_avance, modificador, modificacion
+                FROM requerimiento_recursos
+                WHERE id = :id
+            """),
+            {'id': id}
+        ).fetchone()
+
+        if actual is None:
+            return jsonify({'error': 'Relacion no encontrada'}), 404
+
+        now = datetime.now(timezone.utc)
+        auth_user = _resolve_authenticated_user()
+        modificador = auth_user or data.get('modificador') or actual.modificador or 'Sistema'
+
+        db.session.execute(
+            db.text("""
+                UPDATE requerimiento_recursos
+                SET requerimiento_estado_id = :requerimiento_estado_id,
+                    porcentaje_avance = :porcentaje_avance,
+                    modificacion = :modificacion,
+                    modificador = :modificador
+                WHERE id = :id
+            """),
+            {
+                'id': id,
+                'requerimiento_estado_id': new_estado,
+                'porcentaje_avance': porcentaje_avance,
+                'modificacion': now,
+                'modificador': modificador
+            }
+        )
+        db.session.commit()
+
+        updated = db.session.execute(
+            db.text("""
+                SELECT id, requerimiento_estado_id, porcentaje_avance, modificacion, modificador
+                FROM requerimiento_recursos
+                WHERE id = :id
+            """),
+            {'id': id}
+        ).fetchone()
+        if updated is None:
+            return jsonify({'error': 'Relacion no encontrada despues de actualizar'}), 500
+
+        return jsonify({
+            'id': updated.id,
+            'requerimiento_estado_id': updated.requerimiento_estado_id,
+            'porcentaje_avance': updated.porcentaje_avance,
+            'modificacion': _to_iso_optional(updated.modificacion),
+            'modificador': updated.modificador
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Error inesperado al actualizar estado y avance', 'details': str(e)}), 500
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>/asignar-mesa-superior/<int:usuario_emisor_id>', methods=['PATCH'])
@@ -800,15 +948,15 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(row_mapping.get('costo')),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
             'activo': row_mapping.get('activo'),
             'creador': row_mapping.get('creador'),
-            'creacion': row_mapping.get('creacion').isoformat() if row_mapping.get('creacion') else None,
+            'creacion': _to_iso_optional(row_mapping.get('creacion')),
             'modificador': row_mapping.get('modificador'),
-            'modificacion': row_mapping.get('modificacion').isoformat() if row_mapping.get('modificacion') else None
+            'modificacion': _to_iso_optional(row_mapping.get('modificacion'))
         })
 
     return jsonify(rows)
@@ -917,6 +1065,8 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
     rows = []
     for row in result:
         row_mapping = row._mapping
+        creacion = row_mapping.get('creacion')
+        modificacion = row_mapping.get('modificacion')
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
@@ -931,15 +1081,15 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(row_mapping.get('costo')),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
             'activo': row_mapping.get('activo'),
             'creador': row_mapping.get('creador'),
-            'creacion': row_mapping.get('creacion').isoformat() if row_mapping.get('creacion') else None,
+            'creacion': _to_iso_optional(creacion),
             'modificador': row_mapping.get('modificador'),
-            'modificacion': row_mapping.get('modificacion').isoformat() if row_mapping.get('modificacion') else None
+            'modificacion': _to_iso_optional(modificacion)
         })
 
     return jsonify(rows)
@@ -1100,7 +1250,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(row_mapping.get('costo')),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
@@ -1197,7 +1347,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(row_mapping.get('costo')),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
@@ -1293,6 +1443,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
     rows = []
     for row in result:
         row_mapping = row._mapping
+        costo_raw = row_mapping.get('costo')
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
@@ -1307,7 +1458,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(costo_raw),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
@@ -1404,7 +1555,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             'recurso_tipo_id': row_mapping.get('recurso_tipo_id'),
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
-            'costo': float(row_mapping.get('costo')) if row_mapping.get('costo') is not None else None,
+            'costo': _to_float_optional(row_mapping.get('costo')),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
