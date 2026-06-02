@@ -70,10 +70,12 @@ def _serialize_requerimiento_respuesta(row):
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas', methods=['GET'])
 def get_requerimiento_respuestas():
-    """Listar respuestas de requerimientos
+    """Listar todas las respuestas de requerimientos.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Listar respuestas de requerimientos
+    description: Devuelve todas las respuestas registradas en `requerimiento_respuestas`, ordenadas por `id` descendente.
     responses:
       200:
         description: Lista de respuestas de requerimientos
@@ -104,10 +106,12 @@ def get_requerimiento_respuestas():
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['GET'])
 def get_requerimiento_respuesta_by_id(id):
-    """Obtener respuesta de requerimiento por ID
+    """Obtener una respuesta de requerimiento por ID.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Obtener respuesta por ID
+    description: Devuelve una sola respuesta de requerimiento identificada por `id`.
     parameters:
       - name: id
         in: path
@@ -134,6 +138,8 @@ def get_requerimiento_respuesta_by_id(id):
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
+      404:
+        description: Respuesta de requerimiento no encontrada
     """
     row = db.session.execute(
         db.text("SELECT * FROM requerimiento_respuestas WHERE id = :id"),
@@ -146,10 +152,12 @@ def get_requerimiento_respuesta_by_id(id):
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas', methods=['POST'])
 def create_requerimiento_respuesta():
-    """Crear respuesta de requerimiento
+    """Crear una nueva respuesta de requerimiento.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Crear respuesta de requerimiento
+    description: Inserta una respuesta de requerimiento. Si el recurso inventario retorna y el estado de la respuesta es finalizado, el campo `factor` se ajusta a `0`.
     consumes:
       - application/json
     parameters:
@@ -175,7 +183,7 @@ def create_requerimiento_respuesta():
             modificacion: {type: string}
     responses:
       201:
-        description: Respuesta de requerimiento creada
+        description: Respuesta de requerimiento creada correctamente
         schema:
           type: object
           properties:
@@ -194,6 +202,10 @@ def create_requerimiento_respuesta():
             creacion: {type: string}
             modificador: {type: string}
             modificacion: {type: string}
+      400:
+        description: Campos requeridos faltantes o datos inválidos
+      500:
+        description: Error inesperado al crear la respuesta
     """
     data = request.get_json() or {}
     required_fields = ['requerimiento_recurso_id', 'recurso_inventario_id', 'respuesta_estado_id']
@@ -259,10 +271,12 @@ def create_requerimiento_respuesta():
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:requerimiento_recurso_id>', methods=['GET'])
 def get_requerimiento_respuesta(requerimiento_recurso_id):
-    """Obtener el historico de respuestas del recurso del requerimiento seleccionado
+    """Obtener el histórico de respuestas de un requerimiento recurso.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Obtener historial de respuestas
+    description: Devuelve todas las respuestas asociadas a `requerimiento_recurso_id`, ordenadas por `id` descendente.
     parameters:
       - name: requerimiento_recurso_id
         in: path
@@ -270,7 +284,7 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
         required: true
     responses:
       200:
-        description: Historico de respuestas de requerimiento
+        description: Histórico de respuestas de requerimiento
         schema:
           type: array
           items:
@@ -289,7 +303,7 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
               factor: {type: integer}
               activo: {type: boolean}
       404:
-        description: No encontrada
+        description: Respuesta de requerimiento no encontrada
     """
     params = {'requerimiento_recurso_id': requerimiento_recurso_id}
     query = db.text("""
@@ -326,10 +340,12 @@ def get_requerimiento_respuesta(requerimiento_recurso_id):
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['PUT'])
 def update_requerimiento_respuesta(id):
-    """Actualizar respuesta de requerimiento
+    """Actualizar completamente una respuesta de requerimiento.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Actualizar respuesta de requerimiento
+    description: Actualiza una respuesta de requerimiento por `id`. Si el recurso inventario retorna y el estado finaliza, el campo `factor` se ajusta a `0`.
     consumes:
       - application/json
     parameters:
@@ -357,9 +373,9 @@ def update_requerimiento_respuesta(id):
             modificacion: {type: string}
     responses:
       200:
-        description: Respuesta de requerimiento actualizada
+        description: Respuesta de requerimiento actualizada correctamente
       404:
-        description: No encontrada
+        description: Respuesta de requerimiento no encontrada
     """
     data = request.get_json() or {}
     now = datetime.now(timezone.utc)
@@ -381,11 +397,7 @@ def update_requerimiento_respuesta(id):
         'respuesta_estado_id': data.get('respuesta_estado_id', actual.respuesta_estado_id),
         'responsable': data.get('responsable', actual.responsable),
         'respuesta_fecha': data.get('respuesta_fecha', actual.respuesta_fecha),
-        'factor': _resolve_factor_by_estado(
-            params['recurso_inventario_id'],
-            params['respuesta_estado_id'],
-            data.get('factor', actual.factor)
-        ),
+        'factor': data.get('factor', actual.factor),
         'activo': data.get('activo', actual.activo),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now)
@@ -439,6 +451,8 @@ def patch_libera_inventario_by_requerimiento_respuesta_id_by_recurso_inventario_
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Liberar inventario de una respuesta
+    description: Consulta si el recurso inventario retorna. Si `retorna = true`, deja `factor = 0` en la respuesta indicada. Si `retorna = false`, no modifica el registro.
     parameters:
       - name: requerimiento_respuesta_id
         in: path
@@ -451,8 +465,18 @@ def patch_libera_inventario_by_requerimiento_respuesta_id_by_recurso_inventario_
     responses:
       200:
         description: Inventario liberado o sin cambios
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            requerimiento_recurso_id: {type: integer}
+            recurso_inventario_id: {type: integer}
+            factor: {type: integer}
+            inventario_liberado: {type: boolean}
       404:
-        description: No encontrada
+        description: Respuesta no encontrada
+      400:
+        description: El recurso_inventario_id no coincide con la respuesta indicada
     """
     actual = db.session.execute(
         db.text("""
@@ -515,10 +539,12 @@ def patch_libera_inventario_by_requerimiento_respuesta_id_by_recurso_inventario_
 
 @requerimiento_respuestas_bp.route('/api/requerimiento-respuestas/<int:id>', methods=['DELETE'])
 def delete_requerimiento_respuesta(id):
-    """Eliminar respuesta de requerimiento
+    """Eliminar una respuesta de requerimiento.
     ---
     tags:
       - Requerimiento Respuestas
+    summary: Eliminar respuesta de requerimiento
+    description: Elimina físicamente una respuesta de requerimiento por `id`.
     parameters:
       - name: id
         in: path
@@ -526,9 +552,9 @@ def delete_requerimiento_respuesta(id):
         required: true
     responses:
       200:
-        description: Eliminada
+        description: Respuesta eliminada correctamente
       404:
-        description: No encontrada
+        description: Respuesta de requerimiento no encontrada
     """
     result = db.session.execute(
         db.text("DELETE FROM requerimiento_respuestas WHERE id = :id"),
