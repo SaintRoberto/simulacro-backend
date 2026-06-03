@@ -87,10 +87,12 @@ def _to_iso_optional(value):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['GET'])
 def get_requerimiento_recursos():
-    """Listar requerimiento recursos
+    """Listar todos los requerimientos de recursos.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Listar requerimientos de recursos
+    description: Devuelve todos los registros de `requerimiento_recursos` ordenados por `id` descendente.
     responses:
       200:
         description: Lista de requerimiento recursos
@@ -123,10 +125,12 @@ def get_requerimiento_recursos():
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos', methods=['POST'])
 def create_requerimiento_recurso():
-    """Crear requerimiento recurso
+    """Crear un requerimiento de recurso.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Crear requerimiento de recurso
+    description: Inserta un nuevo requerimiento de recurso con los datos enviados en el cuerpo de la solicitud.
     consumes:
       - application/json
     parameters:
@@ -153,7 +157,11 @@ def create_requerimiento_recurso():
             usuario_emisor_id: {type: integer}
     responses:
       201:
-        description: Requerimiento recurso creado
+        description: Requerimiento de recurso creado correctamente
+      400:
+        description: Campos requeridos faltantes o requerimiento_estado_id inválido
+      500:
+        description: Error inesperado al crear el requerimiento
     """
     data = request.get_json() or {}
     required_fields = [
@@ -228,10 +236,12 @@ def create_requerimiento_recurso():
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:requerimiento_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
-    """Obtener requerimiento recurso por requerimiento_id
+    """Obtener requerimientos de recursos por `requerimiento_id`.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Obtener requerimientos por requerimiento_id
+    description: Devuelve todos los requerimientos asociados al identificador de requerimiento indicado.
     parameters:
       - name: requerimiento_id
         in: path
@@ -239,7 +249,9 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
         required: true
     responses:
       200:
-        description: Requerimiento recurso
+        description: Lista de requerimientos de recursos
+      404:
+        description: No se encontraron requerimientos para el `requerimiento_id` indicado
     """
     result = db.session.execute(
         db.text("""
@@ -257,10 +269,12 @@ def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
     methods=['GET']
 )
 def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
-    """Obtener requerimientos recursos por usuario receptor
+    """Obtener requerimientos de recursos por usuario receptor.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Obtener requerimientos por usuario receptor
+    description: Devuelve los requerimientos asignados al usuario receptor indicado.
     parameters:
       - name: usuario_receptor_id
         in: path
@@ -315,10 +329,12 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/id/<int:id>', methods=['GET'])
 def get_requerimiento_recurso(id):
-    """Obtener requerimiento recurso por ID
+    """Obtener un requerimiento de recurso por ID.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Obtener requerimiento por ID
+    description: Devuelve el requerimiento de recurso identificado por `id`.
     parameters:
       - name: id
         in: path
@@ -346,10 +362,12 @@ def get_requerimiento_recurso(id):
     methods=['GET']
 )
 def get_recurso_inventario_pendiente(recurso_inventario_id):
-    """Obtener la cantidad pendiente por despachar de un recurso de inventario
+    """Obtener la cantidad pendiente por despachar de un recurso de inventario.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Obtener cantidad pendiente por despachar
+    description: Calcula la cantidad de un recurso de inventario que aún está pendiente por despachar.
     parameters:
       - name: recurso_inventario_id
         in: path
@@ -413,10 +431,12 @@ def get_recurso_inventario_pendiente(recurso_inventario_id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['PUT'])
 def update_requerimiento_recurso(id):
-    """Actualizar requerimiento recurso
+    """Actualizar un requerimiento de recurso.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Actualizar requerimiento de recurso
+    description: Actualiza los campos editables de un requerimiento de recurso por `id`.
     consumes:
       - application/json
     parameters:
@@ -446,9 +466,13 @@ def update_requerimiento_recurso(id):
             modificacion: {type: string}
     responses:
       200:
-        description: Requerimiento recurso actualizado
+        description: Requerimiento de recurso actualizado correctamente
+      400:
+        description: Campos inválidos o requerimiento_estado_id inexistente
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
+      500:
+        description: Error inesperado al actualizar el requerimiento
     """
     data = request.get_json() or {}
     now = datetime.now(timezone.utc)
@@ -520,10 +544,12 @@ def update_requerimiento_recurso(id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['PATCH'])
 def patch_requerimiento_recurso_estado(id):
-    """Actualizacion parcial de estado de requerimiento recurso
+    """Actualizar parcialmente el estado de un requerimiento de recurso.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Actualizar estado de requerimiento
+    description: Cambia únicamente el estado del requerimiento y registra auditoría de modificación.
     consumes:
       - application/json
     parameters:
@@ -541,11 +567,11 @@ def patch_requerimiento_recurso_estado(id):
             requerimiento_estado_id: {type: integer}
     responses:
       200:
-        description: Estado de requerimiento recurso actualizado
+        description: Estado de requerimiento actualizado correctamente
       400:
-        description: Payload invalido
+        description: Payload inválido o estado no permitido
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
       409:
         description: Transicion de estado no permitida
       500:
@@ -631,10 +657,12 @@ def patch_requerimiento_recurso_estado(id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>/actualiza-estado-requerimiento', methods=['PATCH'])
 def patch_actualiza_estado_requerimiento(id):
-    """Actualizar estado y porcentaje de avance de requerimiento recurso
+    """Actualizar el estado y el porcentaje de avance de un requerimiento.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Actualizar estado y avance
+    description: Actualiza `requerimiento_estado_id` y `porcentaje_avance` del requerimiento, dejando trazabilidad de modificación.
     consumes:
       - application/json
     parameters:
@@ -654,11 +682,11 @@ def patch_actualiza_estado_requerimiento(id):
             modificador: {type: string}
     responses:
       200:
-        description: Estado y porcentaje de avance actualizados
+        description: Estado y porcentaje de avance actualizados correctamente
       400:
-        description: Payload invalido
+        description: Payload inválido o datos fuera de rango
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
       500:
         description: Error inesperado
     """
@@ -754,10 +782,12 @@ def patch_actualiza_estado_requerimiento(id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>/asignar-mesa-superior/<int:usuario_emisor_id>', methods=['PATCH'])
 def patch_asignacion_mesa_superior(id,usuario_emisor_id):
-    """Actualizar asignacion a mesa superior de requerimiento recurso
+    """Asignar un requerimiento a una mesa superior.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Asignar mesa superior
+    description: Actualiza el usuario emisor asociado al requerimiento para reflejar la asignación a una mesa superior.
     parameters:
       - name: id
         in: path
@@ -769,9 +799,9 @@ def patch_asignacion_mesa_superior(id,usuario_emisor_id):
         required: true
     responses:
       200:
-        description: Asignacion actualizada
+        description: Asignación actualizada correctamente
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
     """
     result = db.session.execute(
         db.text("""
@@ -791,10 +821,12 @@ def patch_asignacion_mesa_superior(id,usuario_emisor_id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:id>', methods=['DELETE'])
 def delete_requerimiento_recurso(id):
-    """Eliminar requerimiento recurso
+    """Eliminar un requerimiento de recurso.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Eliminar requerimiento de recurso
+    description: Elimina físicamente el requerimiento de recurso identificado por `id`.
     parameters:
       - name: id
         in: path
@@ -802,9 +834,9 @@ def delete_requerimiento_recurso(id):
         required: true
     responses:
       200:
-        description: Eliminado
+        description: Requerimiento de recurso eliminado correctamente
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
     """
     result = db.session.execute(
         db.text("DELETE FROM requerimiento_recursos WHERE id = :id"),
@@ -819,10 +851,12 @@ def delete_requerimiento_recurso(id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/deshabilitar-requerimiento/<int:id>', methods=['PATCH'])
 def deshabilitar_requerimiento_recurso(id):
-    """Deshabilitar requerimiento recurso (marcar como inactivo)
+    """Deshabilitar un requerimiento de recurso sin eliminarlo.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Deshabilitar requerimiento de recurso
+    description: Marca el requerimiento como inactivo para conservar su histórico.
     parameters:
       - name: id
         in: path
@@ -830,9 +864,9 @@ def deshabilitar_requerimiento_recurso(id):
         required: true
     responses:
       200:
-        description: Requerimiento recurso deshabilitado
+        description: Requerimiento de recurso deshabilitado correctamente
       404:
-        description: No encontrado
+        description: Requerimiento de recurso no encontrado
     """
     result = db.session.execute(
         db.text("""
@@ -852,10 +886,12 @@ def deshabilitar_requerimiento_recurso(id):
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/usuario_emisor/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
-    """Obtener requerimientos recursos por usuario emisor
+    """Obtener requerimientos de recursos por usuario emisor.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Obtener requerimientos por usuario emisor
+    description: Devuelve los requerimientos emitidos por el usuario indicado.
     parameters:
       - name: usuario_emisor_id
         in: path
@@ -967,10 +1003,12 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
     methods=['GET']
 )
 def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estado_id):
-    """Listar requerimientos rechazados por usuario emisor y estado
+    """Listar requerimientos rechazados por usuario emisor y estado.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Listar requerimientos rechazados
+    description: Devuelve los requerimientos emitidos por un usuario que coinciden con el estado de rechazo indicado.
     parameters:
       - name: usuario_emisor_id
         in: path
@@ -1097,10 +1135,12 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( usuario_emisor_id):
-    """Obtener requerimientos agrupados por requerimiento_numero por usuario_emisor_id
+    """Obtener requerimientos agrupados por número de requerimiento y usuario emisor.
     ---
     tags:
       - Requerimiento Recursos
+    summary: Agrupar requerimientos por número y usuario emisor
+    description: Agrupa los requerimientos activos del usuario emisor indicado por `requerimiento_numero`.
     parameters:
       - name: usuario_emisor_id
         in: path
@@ -1159,10 +1199,12 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(requerimiento_numero, usuario_emisor_id):
-    """Obtener requerimientos recursos por requerimiento_numero y usuario_emisor_id
+    """Obtener requerimientos de recursos por número de requerimiento y usuario emisor.
     ---
     tags:
       - Requerimiento Recursos  
+    summary: Obtener requerimientos por número y usuario emisor
+    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_emisor_id` coinciden con los parámetros indicados.
     parameters:
       - name: requerimiento_numero
         in: path
@@ -1366,10 +1408,12 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_receptor_id/<int:usuario_receptor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(requerimiento_numero, usuario_receptor_id):
-    """Obtener requerimientos recursos por requerimiento_numero y usuario_receptor_id
+    """Obtener requerimientos de recursos por número de requerimiento y usuario receptor.
     ---
     tags:
       - Requerimiento Recursos  
+    summary: Obtener requerimientos por número y usuario receptor
+    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_receptor_id` coinciden con los parámetros indicados.
     parameters:
       - name: requerimiento_numero
         in: path

@@ -60,13 +60,17 @@ def _serialize_recurso(row):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["GET"])
 def get_recursos_movilizados():
-    """Listar recursos movilizados.
+    """Listar todos los recursos movilizados.
     ---
     tags:
       - Recursos Movilizados
+    summary: Listar recursos movilizados
+    description: Devuelve todos los registros de `recursos_movilizados` ordenados por `id` ascendente.
     responses:
       200:
         description: Lista de recursos movilizados
+      500:
+        description: Error inesperado al consultar los recursos movilizados
     """
     result = db.session.execute(db.text("SELECT * FROM recursos_movilizados ORDER BY id ASC"))
     return jsonify([_serialize_recurso(row) for row in result])
@@ -81,6 +85,8 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
     ---
     tags:
       - Recursos Movilizados
+    summary: Filtrar recursos movilizados por emergencia y usuario
+    description: Devuelve los recursos movilizados visibles para el usuario indicado dentro de la emergencia solicitada, incluyendo información de ubicación, institución y tipo de recurso.
     parameters:
       - name: emergencia_id
         in: path
@@ -90,6 +96,11 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
         in: path
         type: integer
         required: true
+    responses:
+      200:
+        description: Lista filtrada de recursos movilizados
+      500:
+        description: Error inesperado al consultar los recursos movilizados
     """
     query = db.text(
         """
@@ -144,12 +155,50 @@ def get_recursos_movilizados_by_emergencia_by_usuario(emergencia_id, usuario_id)
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados", methods=["POST"])
 def create_recurso_movilizado():
-    """Crear nuevo recurso movilizado.
+    """Crear un nuevo recurso movilizado.
     ---
     tags:
       - Recursos Movilizados
+    summary: Crear recurso movilizado
+    description: Inserta un registro en `recursos_movilizados` con los campos de emergencia, tipo de recurso, institución, destino y auditoría.
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - emergencia_id
+            - recurso_tipo_id
+            - institucion_id
+            - provincia_destino_id
+            - canton_destino_id
+            - parroquia_destino_id
+          properties:
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            institucion_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+    responses:
+      201:
+        description: Recurso movilizado creado correctamente
+      400:
+        description: Campos requeridos faltantes o datos inválidos
+      500:
+        description: Error inesperado al crear el recurso movilizado
     """
     data = request.get_json(silent=True) or {}
     required_fields = [
@@ -252,7 +301,23 @@ def create_recurso_movilizado():
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["GET"])
 def get_recurso_movilizado(id):
-    """Obtener recurso movilizado por ID."""
+    """Obtener un recurso movilizado por ID.
+    ---
+    tags:
+      - Recursos Movilizados
+    summary: Obtener recurso movilizado por ID
+    description: Devuelve el registro identificado por `id`.
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Recurso movilizado encontrado
+      404:
+        description: Recurso movilizado no encontrado
+    """
     recurso = db.session.execute(
         db.text("SELECT * FROM recursos_movilizados WHERE id = :id"),
         {"id": id},
@@ -264,7 +329,46 @@ def get_recurso_movilizado(id):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["PUT"])
 def update_recurso_movilizado(id):
-    """Actualizar recurso movilizado."""
+    """Actualizar un recurso movilizado.
+    ---
+    tags:
+      - Recursos Movilizados
+    summary: Actualizar recurso movilizado
+    description: Actualiza de forma parcial los campos editables del recurso movilizado identificado por `id`.
+    consumes:
+      - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            institucion_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            longitud_destino: {type: number}
+            latitud_destino: {type: number}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
+            cantidad_asignada: {type: integer}
+            activo: {type: boolean}
+            modificador: {type: string}
+    responses:
+      200:
+        description: Recurso movilizado actualizado correctamente
+      400:
+        description: No se enviaron campos para actualizar
+      404:
+        description: Recurso movilizado no encontrado
+    """
     data = request.get_json(silent=True) or {}
     now = datetime.now(timezone.utc)
 
@@ -327,7 +431,23 @@ def update_recurso_movilizado(id):
 
 @recursos_movilizados_bp.route("/api/recursos_movilizados/<int:id>", methods=["DELETE"])
 def delete_recurso_movilizado(id):
-    """Eliminar recurso movilizado."""
+    """Eliminar un recurso movilizado.
+    ---
+    tags:
+      - Recursos Movilizados
+    summary: Eliminar recurso movilizado
+    description: Elimina físicamente el registro identificado por `id`.
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Recurso movilizado eliminado correctamente
+      404:
+        description: Recurso movilizado no encontrado
+    """
     result = db.session.execute(
         db.text("DELETE FROM recursos_movilizados WHERE id = :id"),
         {"id": id},
