@@ -319,6 +319,7 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
                 WHERE
                     RR.USUARIO_RECEPTOR_ID = :usuario_receptor_id
                     AND COALESCE(RR.ACTIVO, TRUE) = TRUE
+                    AND RR.REQUERIMIENTO_ESTADO_ID <> 4
                 ORDER BY
                     RR.ID DESC            
         """),
