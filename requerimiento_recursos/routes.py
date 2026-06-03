@@ -807,7 +807,9 @@ def patch_asignacion_mesa_superior(id,usuario_emisor_id):
     result = db.session.execute(
         db.text("""
             UPDATE requerimiento_recursos
-            SET usuario_emisor_id = :usuario_emisor_id
+            SET usuario_emisor_id = :usuario_emisor_id,
+                requerimiento_estado_id = 5,
+                porcentaje_avance = 0,
             WHERE id = :id
         """),
         {'id': id, 'usuario_emisor_id': usuario_emisor_id}
