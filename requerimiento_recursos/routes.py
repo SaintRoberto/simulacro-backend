@@ -1124,16 +1124,14 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             SELECT
                 MAX(RR.ID) AS ULTIMO_ID,
                 RR.REQUERIMIENTO_NUMERO AS REQUERIMIENTO_NUMERO,
-                SUM(RR.CANTIDAD_SOLICITADA) AS CANTIDAD_SOLICITADA,
-                RR.REQUERIMIENTO_ESTADO_ID AS REQUERIMIENTO_ESTADO_ID                
+                SUM(RR.CANTIDAD_SOLICITADA) AS CANTIDAD_SOLICITADA               
             FROM
                 PUBLIC.REQUERIMIENTO_RECURSOS RR
             WHERE
                 RR.USUARIO_EMISOR_ID = :usuario_emisor_id
                 AND COALESCE(RR.ACTIVO, TRUE) = TRUE
             GROUP BY
-                RR.REQUERIMIENTO_NUMERO,
-                RR.REQUERIMIENTO_ESTADO_ID
+                RR.REQUERIMIENTO_NUMERO
             ORDER BY
                 MAX(RR.ID) DESC;
         """),

@@ -566,3 +566,54 @@ def delete_requerimiento_respuesta(id):
 
     db.session.commit()
     return jsonify({'mensaje': 'Respuesta eliminada correctamente'})
+
+
+@requerimiento_respuestas_bp.route('/api/requerimiento-respuesta/<int:id>/requerimiento-recurso/<int:requerimiento_recurso_id>', methods=['PATCH'])
+def patch_requerimiento_respuesta_cantidad(id, requerimiento_recurso_id):
+    """Actualizar cantidad asignada de respuesta de requerimiento
+    ---
+    tags:
+      - Requerimiento Respuestas
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true      
+      - name: requerimiento_recurso_id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [cantidad_asignadal]
+          properties:
+            cantidad_asignada: {type: integer}
+            
+    responses:
+      200:
+        description: Cantidad actualizada
+      404:
+        description: No encontrada
+    """
+    data = request.get_json() or {}
+    if 'cantidad_asignada' not in data:
+        return jsonify({'error': 'Campo cantidad_asignada es requerido'}), 400
+
+    result = db.session.execute(
+        db.text("""
+            UPDATE requerimiento_respuestas
+            SET cantidad_asignada = :cantidad_asignada
+            WHERE requerimiento_recurso_id = :requerimiento_recurso_id
+            AND id = :id
+        """),
+        {'cantidad_asignada': data['cantidad_asignada'], 'requerimiento_recurso_id': requerimiento_recurso_id, 'id': id}
+    )
+
+    if getattr(result, 'rowcount', 0) == 0:
+        return jsonify({'error': 'Respuesta no encontrada para el requerimiento_recurso_id dado'}), 404
+
+    db.session.commit()
+    return jsonify({'mensaje': 'Cantidad asignada actualizada correctamente'})
