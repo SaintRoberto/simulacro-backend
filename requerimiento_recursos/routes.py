@@ -1252,6 +1252,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 rr.destino AS destino,
                 rr.detalle AS detalle,
                 rr.requerimiento_estado_id AS requerimiento_estado_id,
+                re.nombre AS requerimiento_estado_nombre,
                 rr.activo AS activo,
                 rr.creador AS creador,
                 rr.creacion AS creacion,
@@ -1261,6 +1262,8 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 ue.usuario AS usuario_emisor,
                 rr.porcentaje_avance AS porcentaje_avance
             FROM public.requerimiento_recursos rr
+                INNER JOIN public.requerimiento_estados re
+                    ON rr.requerimiento_estado_id = re.id
             LEFT JOIN public.usuarios ur
                 ON rr.usuario_receptor_id = ur.id
             LEFT JOIN public.usuarios ue
@@ -1289,6 +1292,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
             'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'requerimiento_estado_nombre': row_mapping.get('requerimiento_estado_nombre'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
             'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
@@ -1352,6 +1356,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 rr.destino AS destino,
                 rr.detalle AS detalle,
                 rr.requerimiento_estado_id AS requerimiento_estado_id,
+                re.nombre AS requerimiento_estado_nombre,
                 rr.activo AS activo,
                 rr.creador AS creador,
                 rr.creacion AS creacion,
@@ -1387,6 +1392,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
             'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'requerimiento_estado_nombre': row_mapping.get('requerimiento_estado_nombre'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
             'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
