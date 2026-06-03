@@ -1171,6 +1171,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             WHERE
                 RR.USUARIO_EMISOR_ID = :usuario_emisor_id
                 AND COALESCE(RR.ACTIVO, TRUE) = TRUE
+                AND RR.REQUERIMIENTO_ESTADO_ID <> 4
             GROUP BY
                 RR.REQUERIMIENTO_NUMERO
             ORDER BY
@@ -1405,9 +1406,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
         })
         
     return jsonify(rows)
-
-
-
 
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_receptor_id/<int:usuario_receptor_id>', methods=['GET'])
