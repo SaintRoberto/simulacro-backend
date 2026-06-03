@@ -1122,18 +1122,20 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
     result = db.session.execute(
         db.text("""
             SELECT
-                rr.requerimiento_numero AS requerimiento_numero,
-                SUM(rr.cantidad_solicitada) AS cantidad_solicitada,
-                rr.requerimiento_estado_id AS requerimiento_estado_id
+                MAX(RR.ID) AS ULTIMO_ID,
+                RR.REQUERIMIENTO_NUMERO AS REQUERIMIENTO_NUMERO,
+                SUM(RR.CANTIDAD_SOLICITADA) AS CANTIDAD_SOLICITADA,
+                RR.REQUERIMIENTO_ESTADO_ID AS REQUERIMIENTO_ESTADO_ID                
             FROM
-                public.requerimiento_recursos rr
+                PUBLIC.REQUERIMIENTO_RECURSOS RR
             WHERE
-                rr.usuario_emisor_id = :usuario_emisor_id
-                AND COALESCE(rr.activo, true) = true
-                AND rr.requerimiento_estado_id = 1
+                RR.USUARIO_EMISOR_ID = :usuario_emisor_id
+                AND COALESCE(RR.ACTIVO, TRUE) = TRUE
             GROUP BY
-                rr.requerimiento_numero,
-                rr.requerimiento_estado_id;
+                RR.REQUERIMIENTO_NUMERO,
+                RR.REQUERIMIENTO_ESTADO_ID
+            ORDER BY
+                MAX(RR.ID) DESC;
         """),
         {'usuario_emisor_id': usuario_emisor_id}
         )
@@ -1147,6 +1149,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
     for row in result:
         row_mapping = row._mapping
         rows.append({
+            'id': row_mapping.get('ultimo_id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
             'activo': row_mapping.get('activo'),
@@ -1211,7 +1214,8 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
                 rr.modificador AS modificador,
                 rr.modificacion AS modificacion,
                 rr.usuario_emisor_id AS usuario_emisor_id,
-                ue.usuario AS usuario_emisor
+                ue.usuario AS usuario_emisor,
+                rr.porcentaje_avance AS porcentaje_avance
             FROM public.requerimiento_recursos rr
             LEFT JOIN public.usuarios ur
                 ON rr.usuario_receptor_id = ur.id
@@ -1255,6 +1259,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
             'activo': row_mapping.get('activo'),
+            'porcentaje_avance': row_mapping.get('porcentaje_avance'),
             'creador': row_mapping.get('creador'),
             'creacion': _to_iso_if_datetime(row_mapping.get('creacion')),
             'modificador': row_mapping.get('modificador'),
