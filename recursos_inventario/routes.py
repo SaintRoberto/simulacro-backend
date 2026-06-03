@@ -106,15 +106,7 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
             rt.nombre AS recurso_nombre,
             rt.retorna AS recurso_retorna,
             COALESCE(ri.existencias, 0) AS existencias,
-            COALESCE(
-                SUM(
-                    CASE
-                        WHEN COALESCE(rm.factor, 0) = -1 THEN COALESCE(rm.cantidad_asignada, 0)
-                        ELSE 0
-                    END
-                ),
-                0
-            ) AS movilizado,
+            0 AS movilizado,
             COALESCE(MAX(au.comprometido), 0) AS comprometido,
             COALESCE(MAX(au.comprometido_en_uso), 0) AS total_asignado_en_uso,
             COALESCE(ri.existencias, 0) - COALESCE(MAX(au.comprometido_en_uso), 0) AS disponible
@@ -128,9 +120,6 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
            AND ri.coe_id = icm.coe_id
            AND ri.mesa_id = icm.mesa_id
            AND COALESCE(ri.activo, true) = true
-        LEFT JOIN public.recursos_movilizados rm
-            ON rm.recurso_inventario_id = ri.id
-           AND COALESCE(rm.activo, true) = true
         LEFT JOIN (
             SELECT
                 rresp.recurso_inventario_id,
