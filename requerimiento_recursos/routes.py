@@ -1173,7 +1173,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             WHERE
                 RR.USUARIO_EMISOR_ID = :usuario_emisor_id
                 AND COALESCE(RR.ACTIVO, TRUE) = TRUE
-                AND RR.REQUERIMIENTO_ESTADO_ID <> 4
+                AND RR.REQUERIMIENTO_ESTADO_ID NOT IN (4, 6)  -- Excluir estados Rechazado (4) y Anulado (6)
             GROUP BY
                 RR.REQUERIMIENTO_NUMERO
             ORDER BY
@@ -1275,6 +1275,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             WHERE rr.requerimiento_numero = :requerimiento_numero
                 AND COALESCE(rr.activo, true) = true
                 AND rr.usuario_emisor_id = :usuario_emisor_id
+                and re.id not in (4,6) -- Excluir estados Rechazado (4) y Anulado (6)
             ORDER BY rr.id DESC
         """),
         {'requerimiento_numero': requerimiento_numero, 'usuario_emisor_id': usuario_emisor_id}
