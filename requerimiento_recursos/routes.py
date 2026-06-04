@@ -1373,7 +1373,8 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
                 rr.modificador AS modificador,
                 rr.modificacion AS modificacion,
                 rr.usuario_emisor_id AS usuario_emisor_id,
-                ue.usuario AS usuario_emisor
+                ue.usuario AS usuario_emisor,
+                rr.porcentaje_avance AS porcentaje_avance
             FROM public.requerimiento_recursos rr
             LEFT JOIN public.usuarios ur
                 ON rr.usuario_receptor_id = ur.id
@@ -1414,6 +1415,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             'recurso_tipo_nombre': row_mapping.get('recurso_tipo_nombre'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
             'costo': _to_float_optional(costo_raw),
+            'porcentaje_avance': row_mapping.get('porcentaje_avance'),
             'especificaciones': row_mapping.get('especificaciones'),
             'destino': row_mapping.get('destino'),
             'detalle': row_mapping.get('detalle'),
