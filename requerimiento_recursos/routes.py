@@ -1668,6 +1668,7 @@ def get_requerimiento_recursos_recibidos_notificacion(usuario_id, emergencia_id)
               AND rr.usuario_emisor_id <> :usuario_id
               AND rr.emergencia_id = :emergencia_id
               AND COALESCE(rr.activo, true) = true
+              AND rr.requerimiento_estado_id = 1
             ORDER BY fecha_inicio DESC
         """),
         {'usuario_id': usuario_id, 'emergencia_id': emergencia_id}
