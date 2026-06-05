@@ -3,7 +3,6 @@ from requerimiento_recursos import requerimiento_recursos_bp
 from models import db
 from datetime import datetime, timezone
 
-
 def _requerimiento_estado_existe(requerimiento_estado_id):
     estado = db.session.execute(
         db.text("""
@@ -91,10 +90,10 @@ def get_requerimiento_recursos():
     tags:
       - Requerimiento Recursos
     summary: Listar requerimientos de recursos
-    description: Devuelve todos los registros de `requerimiento_recursos` ordenados por `id` descendente.
+    description: Devuelve todos los registros de `requerimiento_recursos` ordenados por `id` descendente y normaliza los campos de fecha y numericos cuando aplica.
     responses:
       200:
-        description: Lista de requerimiento recursos
+        description: Lista completa de requerimientos de recursos
         schema:
           type: array
           items:
@@ -104,10 +103,13 @@ def get_requerimiento_recursos():
               requerimiento_numero: {type: string}
               requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
               recurso_grupo_id: {type: integer}
+              grupo_recurso: {type: string}
               recurso_tipo_id: {type: integer}
               cantidad_solicitada: {type: integer}
               costo: {type: number}
+              porcentaje_avance: {type: number}
               especificaciones: {type: string}
               destino: {type: string}
               detalle: {type: string}
@@ -116,6 +118,10 @@ def get_requerimiento_recursos():
               creacion: {type: string}
               modificador: {type: string}
               modificacion: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos de recursos
     """
     result = db.session.execute(db.text("SELECT * FROM requerimiento_recursos ORDER BY id DESC"))
     return jsonify([_serialize_requerimiento_recurso(row) for row in result])
@@ -128,7 +134,7 @@ def create_requerimiento_recurso():
     tags:
       - Requerimiento Recursos
     summary: Crear requerimiento de recurso
-    description: Inserta un nuevo requerimiento de recurso con los datos enviados en el cuerpo de la solicitud.
+    description: Inserta un nuevo requerimiento de recurso con los datos enviados en el cuerpo de la solicitud y devuelve el registro creado con la misma estructura usada por los listados del modulo.
     consumes:
       - application/json
     parameters:
@@ -137,7 +143,7 @@ def create_requerimiento_recurso():
         required: true
         schema:
           type: object
-          required: [usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, requerimiento_estado_id, usuario_emisor_id]
+          required: [usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, requerimiento_estado_id, usuario_emisor_id, requerimiento_numero, emergencia_id, fecha_inicio, fecha_fin]
           properties:
             requerimiento_numero: {type: string}
             requerimiento_estado_id: {type: integer}
@@ -151,6 +157,7 @@ def create_requerimiento_recurso():
             detalle: {type: string}
             activo: {type: boolean}
             creador: {type: string}
+            modificador: {type: string}
             usuario_emisor_id: {type: integer}
             emergencia_id: {type: integer}
             fecha_inicio: {type: string}
@@ -159,7 +166,7 @@ def create_requerimiento_recurso():
       201:
         description: Requerimiento de recurso creado correctamente
       400:
-        description: Campos requeridos faltantes o requerimiento_estado_id inválido
+        description: Campos requeridos faltantes o requerimiento_estado_id invalido
       500:
         description: Error inesperado al crear el requerimiento
     """
@@ -250,13 +257,13 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
     tags:
       - Requerimiento Recursos
     summary: Obtener requerimientos por usuario receptor
-    description: Devuelve los requerimientos asignados al usuario receptor indicado.
+    description: Devuelve los requerimientos asignados al usuario receptor indicado y conserva el formato normalizado de respuesta del modulo.
     parameters:
       - name: usuario_receptor_id
         in: path
         type: integer
         required: true
-        description: ID del usuario que inicia sesion
+        description: ID del usuario receptor que recibira los requerimientos
     responses:
       200:
         description: Lista de requerimientos recursos del usuario receptor
@@ -282,6 +289,8 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
               modificador: {type: string}
               modificacion: {type: string}
               grupo_recurso: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos del usuario receptor
     """
     result = db.session.execute(
         db.text("""
@@ -310,7 +319,7 @@ def get_requerimiento_recurso(id):
     tags:
       - Requerimiento Recursos
     summary: Obtener requerimiento por ID
-    description: Devuelve el requerimiento de recurso identificado por `id`.
+    description: Devuelve el requerimiento de recurso identificado por `id` con toda su informacion disponible, incluyendo los campos relacionados cuando existen.
     parameters:
       - name: id
         in: path
@@ -318,9 +327,35 @@ def get_requerimiento_recurso(id):
         required: true
     responses:
       200:
-        description: Requerimiento recurso
+        description: Requerimiento de recurso encontrado
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            requerimiento_numero: {type: string}
+            requerimiento_estado_id: {type: integer}
+            usuario_receptor_id: {type: integer}
+            usuario_receptor: {type: string}
+            recurso_grupo_id: {type: integer}
+            grupo_recurso: {type: string}
+            recurso_tipo_id: {type: integer}
+            cantidad_solicitada: {type: integer}
+            costo: {type: number}
+            porcentaje_avance: {type: number}
+            especificaciones: {type: string}
+            destino: {type: string}
+            detalle: {type: string}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string}
+            modificador: {type: string}
+            modificacion: {type: string}
+            usuario_emisor_id: {type: integer}
+            usuario_emisor: {type: string}
       404:
         description: No encontrado
+      500:
+        description: Error inesperado al obtener el requerimiento
     """
     relacion = db.session.execute(
         db.text("SELECT * FROM requerimiento_recursos WHERE id = :id"),
@@ -343,7 +378,7 @@ def get_recurso_inventario_pendiente(recurso_inventario_id):
     tags:
       - Requerimiento Recursos
     summary: Obtener cantidad pendiente por despachar
-    description: Calcula la cantidad de un recurso de inventario que aún está pendiente por despachar.
+    description: Calcula la cantidad de un recurso de inventario que aun esta pendiente por despachar a partir de lo solicitado en requerimientos activos y lo ya despachado en respuestas activas.
     parameters:
       - name: recurso_inventario_id
         in: path
@@ -363,6 +398,8 @@ def get_recurso_inventario_pendiente(recurso_inventario_id):
             cantidad_pendiente: {type: integer}
       404:
         description: Recurso inventario no encontrado
+      500:
+        description: Error inesperado al calcular la cantidad pendiente
     """
     query = db.text("""
         SELECT
@@ -412,7 +449,7 @@ def update_requerimiento_recurso(id):
     tags:
       - Requerimiento Recursos
     summary: Actualizar requerimiento de recurso
-    description: Actualiza los campos editables de un requerimiento de recurso por `id`.
+    description: Actualiza los campos editables de un requerimiento de recurso por `id`, manteniendo el registro completo y la trazabilidad de modificacion.
     consumes:
       - application/json
     parameters:
@@ -443,7 +480,7 @@ def update_requerimiento_recurso(id):
       200:
         description: Requerimiento de recurso actualizado correctamente
       400:
-        description: Campos inválidos o requerimiento_estado_id inexistente
+        description: Campos invalidos o requerimiento_estado_id inexistente
       404:
         description: Requerimiento de recurso no encontrado
       500:
@@ -525,7 +562,7 @@ def patch_requerimiento_recurso_estado(id):
     tags:
       - Requerimiento Recursos
     summary: Actualizar estado de requerimiento
-    description: Cambia únicamente el estado del requerimiento y registra auditoría de modificación.
+    description: Cambia unicamente el estado del requerimiento y registra auditoria de modificacion sin alterar el resto de los campos.
     consumes:
       - application/json
     parameters:
@@ -544,12 +581,17 @@ def patch_requerimiento_recurso_estado(id):
     responses:
       200:
         description: Estado de requerimiento actualizado correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            requerimiento_estado_id: {type: integer}
+            modificacion: {type: string}
+            modificador: {type: string}
       400:
-        description: Payload inválido o estado no permitido
+        description: Payload invalido, campos no permitidos o estado no permitido
       404:
         description: Requerimiento de recurso no encontrado
-      409:
-        description: Transicion de estado no permitida
       500:
         description: Error inesperado
     """
@@ -638,7 +680,7 @@ def patch_actualiza_estado_requerimiento(id):
     tags:
       - Requerimiento Recursos
     summary: Actualizar estado y avance
-    description: Actualiza `requerimiento_estado_id` y `porcentaje_avance` del requerimiento, dejando trazabilidad de modificación.
+    description: Actualiza `requerimiento_estado_id` y `porcentaje_avance` del requerimiento, dejando trazabilidad de modificacion.
     consumes:
       - application/json
     parameters:
@@ -660,7 +702,7 @@ def patch_actualiza_estado_requerimiento(id):
       200:
         description: Estado y porcentaje de avance actualizados correctamente
       400:
-        description: Payload inválido o datos fuera de rango
+        description: Payload invalido o datos fuera de rango
       404:
         description: Requerimiento de recurso no encontrado
       500:
@@ -763,7 +805,7 @@ def patch_asignacion_mesa_superior(id,usuario_emisor_id):
     tags:
       - Requerimiento Recursos
     summary: Asignar mesa superior
-    description: Actualiza el usuario emisor asociado al requerimiento para reflejar la asignación a una mesa superior.
+    description: Actualiza el usuario emisor asociado al requerimiento para reflejar la asignacion a una mesa superior y deja el requerimiento en estado 5 con porcentaje de avance en cero.
     parameters:
       - name: id
         in: path
@@ -775,9 +817,15 @@ def patch_asignacion_mesa_superior(id,usuario_emisor_id):
         required: true
     responses:
       200:
-        description: Asignación actualizada correctamente
+        description: Asignacion actualizada correctamente
+        schema:
+          type: object
+          properties:
+            mensaje: {type: string}
       404:
         description: Requerimiento de recurso no encontrado
+      500:
+        description: Error inesperado al asignar la mesa superior
     """
     result = db.session.execute(
         db.text("""
@@ -804,7 +852,7 @@ def delete_requerimiento_recurso(id):
     tags:
       - Requerimiento Recursos
     summary: Eliminar requerimiento de recurso
-    description: Elimina físicamente el requerimiento de recurso identificado por `id`.
+    description: Elimina fisicamente el requerimiento de recurso identificado por `id`.
     parameters:
       - name: id
         in: path
@@ -813,8 +861,14 @@ def delete_requerimiento_recurso(id):
     responses:
       200:
         description: Requerimiento de recurso eliminado correctamente
+        schema:
+          type: object
+          properties:
+            mensaje: {type: string}
       404:
         description: Requerimiento de recurso no encontrado
+      500:
+        description: Error inesperado al eliminar el requerimiento
     """
     result = db.session.execute(
         db.text("DELETE FROM requerimiento_recursos WHERE id = :id"),
@@ -834,7 +888,7 @@ def deshabilitar_requerimiento_recurso(id):
     tags:
       - Requerimiento Recursos
     summary: Deshabilitar requerimiento de recurso
-    description: Marca el requerimiento como inactivo para conservar su histórico.
+    description: Marca el requerimiento como inactivo para conservar su historico sin eliminar el registro.
     parameters:
       - name: id
         in: path
@@ -843,8 +897,14 @@ def deshabilitar_requerimiento_recurso(id):
     responses:
       200:
         description: Requerimiento de recurso deshabilitado correctamente
+        schema:
+          type: object
+          properties:
+            mensaje: {type: string}
       404:
         description: Requerimiento de recurso no encontrado
+      500:
+        description: Error inesperado al deshabilitar el requerimiento
     """
     result = db.session.execute(
         db.text("""
@@ -869,13 +929,13 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
     tags:
       - Requerimiento Recursos
     summary: Obtener requerimientos por usuario emisor
-    description: Devuelve los requerimientos emitidos por el usuario indicado.
+    description: Devuelve los requerimientos emitidos por el usuario indicado con la estructura consolidada del modulo.
     parameters:
       - name: usuario_emisor_id
         in: path
         type: integer
         required: true
-        description: ID del usuario que inicia sesion
+        description: ID del usuario que emitio los requerimientos
     responses:
       200:
         description: Lista de requerimientos recursos del usuario emisor
@@ -903,6 +963,8 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
               modificacion: {type: string}
               usuario_emisor: {type: string}
               usuario_receptor: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos del usuario emisor
     """
     result = db.session.execute(
         db.text("""
@@ -1026,6 +1088,8 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
               modificacion: {type: string}
       400:
         description: requerimiento_estado_id invalido
+      500:
+        description: Error inesperado al obtener los requerimientos rechazados
     """
     if not _requerimiento_estado_existe(requerimiento_estado_id):
         return jsonify({'error': 'requerimiento_estado_id no existe en requerimiento_estados'}), 400
@@ -1107,30 +1171,34 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( usuario_emisor_id):
-    """Obtener requerimientos agrupados por número de requerimiento y usuario emisor.
+    """Agrupar requerimientos por numero de requerimiento y usuario emisor.
     ---
     tags:
       - Requerimiento Recursos
-    summary: Agrupar requerimientos por número y usuario emisor
-    description: Agrupa los requerimientos activos del usuario emisor indicado por `requerimiento_numero`.
+    summary: Agrupar requerimientos por numero y usuario emisor
+    description: Agrupa los requerimientos activos del usuario emisor indicado por `requerimiento_numero` y resume la cantidad solicitada por cada grupo.
     parameters:
       - name: usuario_emisor_id
         in: path
         type: integer
         required: true
+        description: ID del usuario emisor
     responses:
       200:
-        description: Lista de requerimientos recursos que coinciden con el requerimiento_numero y usuario_emisor_id
+        description: Lista agrupada de requerimientos del usuario emisor
         schema:
           type: array
           items:
             type: object
             properties:
+              id: {type: integer}
               requerimiento_numero: {type: string}
               cantidad_solicitada: {type: integer}
               detalle: {type: string}
               activo: {type: boolean}
               creacion: {type: string}
+      500:
+        description: Error inesperado al agrupar los requerimientos
     """
     result = db.session.execute(
         db.text("""
@@ -1176,12 +1244,12 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_emisor_id/<int:usuario_emisor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(requerimiento_numero, usuario_emisor_id):
-    """Obtener requerimientos de recursos por número de requerimiento y usuario emisor.
+    """Obtener requerimientos de recursos por numero de requerimiento y usuario emisor.
     ---
     tags:
-      - Requerimiento Recursos  
-    summary: Obtener requerimientos por número y usuario emisor
-    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_emisor_id` coinciden con los parámetros indicados.
+      - Requerimiento Recursos
+    summary: Obtener requerimientos por numero y usuario emisor
+    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_emisor_id` coinciden con los parametros indicados.
     parameters:
       - name: requerimiento_numero
         in: path
@@ -1193,7 +1261,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
         required: true
     responses:
       200:
-        description: Lista de requerimientos recursos que coinciden con el requerimiento_numero
+        description: Lista de requerimientos que coinciden con el numero y el usuario emisor
         schema:
           type: array
           items:
@@ -1201,10 +1269,29 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
+              requerimiento_estado_id: {type: integer}
+              requerimiento_estado_nombre: {type: string}
+              usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_grupo_nombre: {type: string}
+              recurso_tipo_id: {type: integer}
+              recurso_tipo_nombre: {type: string}
               cantidad_solicitada: {type: integer}
+              costo: {type: number}
+              especificaciones: {type: string}
+              destino: {type: string}
+              detalle: {type: string}
               activo: {type: boolean}
+              porcentaje_avance: {type: number}
+              creador: {type: string}
               creacion: {type: string}
-              
+              modificador: {type: string}
+              modificacion: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos filtrados
     """
     result = db.session.execute(
         db.text("""
@@ -1289,12 +1376,12 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
 
 @requerimiento_recursos_bp.route('/api/requerimiento-recursos/requerimiento_numero/<string:requerimiento_numero>/usuario_receptor_id/<int:usuario_receptor_id>', methods=['GET'])
 def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(requerimiento_numero, usuario_receptor_id):
-    """Obtener requerimientos de recursos por número de requerimiento y usuario receptor.
+    """Obtener requerimientos de recursos por numero de requerimiento y usuario receptor.
     ---
     tags:
-      - Requerimiento Recursos  
-    summary: Obtener requerimientos por número y usuario receptor
-    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_receptor_id` coinciden con los parámetros indicados.
+      - Requerimiento Recursos
+    summary: Obtener requerimientos por numero y usuario receptor
+    description: Devuelve los requerimientos cuyo `requerimiento_numero` y `usuario_receptor_id` coinciden con los parametros indicados.
     parameters:
       - name: requerimiento_numero
         in: path
@@ -1306,7 +1393,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
         required: true
     responses:
       200:
-        description: Lista de requerimientos recursos que coinciden con el requerimiento_numero
+        description: Lista de requerimientos que coinciden con el numero y el usuario receptor
         schema:
           type: array
           items:
@@ -1314,10 +1401,28 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
+              requerimiento_estado_id: {type: integer}
+              usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_grupo_nombre: {type: string}
+              recurso_tipo_id: {type: integer}
+              recurso_tipo_nombre: {type: string}
               cantidad_solicitada: {type: integer}
+              costo: {type: number}
+              porcentaje_avance: {type: number}
+              especificaciones: {type: string}
+              destino: {type: string}
+              detalle: {type: string}
               activo: {type: boolean}
+              creador: {type: string}
               creacion: {type: string}
-              
+              modificador: {type: string}
+              modificacion: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos filtrados
     """
     result = db.session.execute(
         db.text("""
@@ -1489,4 +1594,208 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             'modificacion': _to_iso_if_datetime(row_mapping.get('modificacion'))
         })
         
+    return jsonify(rows)
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/recibidos_notificacion/usuario_id/<int:usuario_id>/emergencia_id/<int:emergencia_id>', methods=['GET'])
+def get_requerimiento_recursos_recibidos_notificacion(usuario_id, emergencia_id):
+    """Listar requerimientos de recursos recibidos para notificacion.
+    ---
+    tags:
+      - Requerimiento Recursos
+    summary: Listar requerimientos recibidos para notificacion
+    description: Devuelve los requerimientos dirigidos al usuario indicado dentro de la emergencia solicitada y solo los que siguen activos para mostrar como notificacion.
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del usuario receptor de la notificacion
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador de la emergencia para filtrar requerimientos relacionados a esa emergencia
+    responses:
+      200:
+        description: Lista de requerimientos recibidos para notificacion
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_recurso_id: {type: integer}
+              requerimiento_numero: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
+              detalle: {type: string}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
+              porcentaje_avance: {type: number}
+              requerimiento_estado_id: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+      500:
+        description: Error inesperado al obtener las notificaciones de requerimientos
+    """
+    result = db.session.execute(
+        db.text("""
+            SELECT DISTINCT
+                rr.id AS id,
+                rr.id AS requerimiento_recurso_id,
+                rr.requerimiento_numero AS requerimiento_numero,
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor,
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+                rr.detalle AS detalle,
+                rr.creacion AS fecha_inicio,
+                rr.modificacion AS fecha_fin,
+                rr.porcentaje_avance AS porcentaje_avance,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion
+            FROM public.requerimiento_recursos rr
+            LEFT JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+            WHERE rr.usuario_receptor_id = :usuario_id
+              AND rr.usuario_emisor_id <> :usuario_id
+              AND rr.emergencia_id = :emergencia_id
+              AND COALESCE(rr.activo, true) = true
+            ORDER BY rr.fecha_inicio DESC
+        """),
+        {'usuario_id': usuario_id, 'emergencia_id': emergencia_id}
+    )
+
+    rows = []
+    for row in result:
+        row_mapping = row._mapping
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_recurso_id': row_mapping.get('requerimiento_recurso_id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+            'detalle': row_mapping.get('detalle'),
+            'fecha_inicio': _to_iso_optional(row_mapping.get('fecha_inicio')),
+            'fecha_fin': _to_iso_optional(row_mapping.get('fecha_fin')),
+            'porcentaje_avance': row_mapping.get('porcentaje_avance'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': _to_iso_optional(row_mapping.get('creacion'))
+        })
+
+    return jsonify(rows)
+
+@requerimiento_recursos_bp.route('/api/requerimiento-recursos/retornados_notificacion/usuario_id/<int:usuario_id>/emergencia_id/<int:emergencia_id>', methods=['GET'])
+def get_requerimiento_recursos_retornados_notificacion(usuario_id, emergencia_id):
+    """Listar requerimientos de recursos retornados para notificacion.
+    ---
+    tags:
+      - Requerimiento Recursos
+    summary: Listar requerimientos retornados para notificacion
+    description: Devuelve los requerimientos enviados por el usuario indicado dentro de la emergencia solicitada que ya tienen avance o un estado distinto de solicitud inicial.
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del usuario emisor del requerimiento
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador de la emergencia para filtrar requerimientos relacionados
+    responses:
+      200:
+        description: Lista de requerimientos retornados para notificacion
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_recurso_id: {type: integer}
+              requerimiento_numero: {type: string}
+              usuario_emisor_id: {type: integer}
+              usuario_emisor: {type: string}
+              usuario_receptor_id: {type: integer}
+              usuario_receptor: {type: string}
+              detalle: {type: string}
+              fecha_inicio: {type: string}
+              fecha_fin: {type: string}
+              porcentaje_avance: {type: number}
+              requerimiento_estado_id: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string}
+      500:
+        description: Error inesperado al obtener los requerimientos retornados
+    """
+    result = db.session.execute(
+        db.text("""
+            SELECT DISTINCT
+                rr.id AS id,
+                rr.id AS requerimiento_recurso_id,
+                rr.requerimiento_numero AS requerimiento_numero,
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor,
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+                rr.detalle AS detalle,
+                rr.creacion AS fecha_inicio,
+                rr.modificacion AS fecha_fin,
+                rr.porcentaje_avance AS porcentaje_avance,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion
+            FROM public.requerimiento_recursos rr
+            LEFT JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+            WHERE rr.usuario_emisor_id = :usuario_id
+              AND rr.usuario_receptor_id <> :usuario_id
+              AND rr.emergencia_id = :emergencia_id
+              AND COALESCE(rr.activo, true) = true
+              AND (
+                    COALESCE(rr.porcentaje_avance, 0) > 0
+                    OR rr.requerimiento_estado_id <> 1
+                  )
+            ORDER BY rr.creacion DESC
+        """),
+        {'usuario_id': usuario_id, 'emergencia_id': emergencia_id}
+    )
+
+    rows = []
+    for row in result:
+        row_mapping = row._mapping
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_recurso_id': row_mapping.get('requerimiento_recurso_id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+            'detalle': row_mapping.get('detalle'),
+            'fecha_inicio': _to_iso_optional(row_mapping.get('fecha_inicio')),
+            'fecha_fin': _to_iso_optional(row_mapping.get('fecha_fin')),
+            'porcentaje_avance': row_mapping.get('porcentaje_avance'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': _to_iso_optional(row_mapping.get('creacion'))
+        })
+
     return jsonify(rows)
