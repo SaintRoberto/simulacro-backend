@@ -84,7 +84,6 @@ from alojamiento_estados import alojamiento_estados_bp
 from alojamiento_situaciones import alojamiento_situaciones_bp
 from alojamiento_tipos import alojamiento_tipos_bp
 from alojamientos_activados import alojamientos_activados_bp
-from requerimientos import requerimientos_bp
 from requerimiento_recursos import requerimiento_recursos_bp
 from requerimiento_respuestas import requerimiento_respuestas_bp
 from requerimiento_huella_logs import requerimiento_huella_logs_bp
@@ -158,7 +157,6 @@ app.register_blueprint(alojamiento_estados_bp)
 app.register_blueprint(alojamiento_situaciones_bp)
 app.register_blueprint(alojamiento_tipos_bp)
 app.register_blueprint(alojamientos_activados_bp)
-app.register_blueprint(requerimientos_bp)
 app.register_blueprint(requerimiento_recursos_bp)
 app.register_blueprint(requerimiento_respuestas_bp)
 app.register_blueprint(requerimiento_huella_logs_bp)

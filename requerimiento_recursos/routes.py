@@ -189,7 +189,7 @@ def create_requerimiento_recurso():
             requerimiento_numero,  usuario_receptor_id, recurso_grupo_id, recurso_tipo_id,
             cantidad_solicitada, costo, requerimiento_estado_id,
             especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion, usuario_emisor_id, 
-            emergencia_id, fecha_inicio, fecha_fin)
+            emergencia_id, fecha_inicio, fecha_fin
         )
         VALUES (
             :requerimiento_numero, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id,
