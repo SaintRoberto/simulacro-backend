@@ -30,7 +30,6 @@ def _serialize_requerimiento_recurso(row):
     return {
         'id': row.id,
         'requerimiento_numero': row.requerimiento_numero,
-        'requerimiento_id': row.requerimiento_id,
         'requerimiento_estado_id': row.requerimiento_estado_id,
         'usuario_receptor_id': row.usuario_receptor_id,
         "usuario_receptor": _get_optional('usuario_receptor'),
@@ -103,7 +102,6 @@ def get_requerimiento_recursos():
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
-              requerimiento_id: {type: integer}
               requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
@@ -139,10 +137,9 @@ def create_requerimiento_recurso():
         required: true
         schema:
           type: object
-          required: [requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, requerimiento_estado_id, usuario_emisor_id]
+          required: [usuario_receptor_id, recurso_grupo_id, recurso_tipo_id, requerimiento_estado_id, usuario_emisor_id]
           properties:
             requerimiento_numero: {type: string}
-            requerimiento_id: {type: integer}
             requerimiento_estado_id: {type: integer}
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
@@ -155,6 +152,9 @@ def create_requerimiento_recurso():
             activo: {type: boolean}
             creador: {type: string}
             usuario_emisor_id: {type: integer}
+            emergencia_id: {type: integer}
+            fecha_inicio: {type: string}
+            fecha_fin: {type: string}
     responses:
       201:
         description: Requerimiento de recurso creado correctamente
@@ -165,13 +165,15 @@ def create_requerimiento_recurso():
     """
     data = request.get_json() or {}
     required_fields = [
-        'requerimiento_id',
         'usuario_receptor_id',
         'recurso_grupo_id',
         'recurso_tipo_id',
         'requerimiento_estado_id',
         'requerimiento_numero',
-        'usuario_emisor_id'
+        'usuario_emisor_id',
+        'emergencia_id',
+        'fecha_inicio',
+        'fecha_fin'
     ]
     missing_fields = [field for field in required_fields if field not in data or data[field] is None]
     if missing_fields:
@@ -184,21 +186,22 @@ def create_requerimiento_recurso():
 
     query = db.text("""
         INSERT INTO requerimiento_recursos (
-            requerimiento_numero, requerimiento_id, usuario_receptor_id, recurso_grupo_id, recurso_tipo_id,
+            requerimiento_numero,  usuario_receptor_id, recurso_grupo_id, recurso_tipo_id,
             cantidad_solicitada, costo, requerimiento_estado_id,
-            especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion, usuario_emisor_id
+            especificaciones, destino, detalle, activo, creador, creacion, modificador, modificacion, usuario_emisor_id, 
+            emergencia_id, fecha_inicio, fecha_fin)
         )
         VALUES (
-            :requerimiento_numero, :requerimiento_id, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id,
+            :requerimiento_numero, :usuario_receptor_id, :recurso_grupo_id, :recurso_tipo_id,
             :cantidad_solicitada, :costo, :requerimiento_estado_id,
-            :especificaciones, :destino, :detalle, :activo, :creador, :creacion, :modificador, :modificacion, :usuario_emisor_id
+            :especificaciones, :destino, :detalle, :activo, :creador, :creacion, :modificador, :modificacion, :usuario_emisor_id,
+            :emergencia_id, :fecha_inicio, :fecha_fin
         )
         RETURNING id
     """)
 
     result = db.session.execute(query, {
         'requerimiento_numero': data.get('requerimiento_numero'),
-        'requerimiento_id': data['requerimiento_id'],
         'usuario_receptor_id': data['usuario_receptor_id'],
         'recurso_grupo_id': data['recurso_grupo_id'],
         'recurso_tipo_id': data['recurso_tipo_id'],
@@ -213,7 +216,10 @@ def create_requerimiento_recurso():
         'creacion': now,
         'modificador': data.get('modificador', data.get('creador', 'Sistema')),
         'modificacion': data.get('modificacion'),
-        'usuario_emisor_id': data['usuario_emisor_id']
+        'usuario_emisor_id': data['usuario_emisor_id'],
+        'emergencia_id': data['emergencia_id'],
+        'fecha_inicio': data.get('fecha_inicio', now),
+        'fecha_fin': data.get('fecha_fin')
     })
 
     row = result.fetchone()
@@ -232,36 +238,6 @@ def create_requerimiento_recurso():
         return jsonify({'error': 'Registro no encontrado despues de crear'}), 500
 
     return jsonify(_serialize_requerimiento_recurso(relacion)), 201
-
-
-@requerimiento_recursos_bp.route('/api/requerimiento-recursos/<int:requerimiento_id>', methods=['GET'])
-def get_requerimiento_recursos_by_requerimiento_id(requerimiento_id):
-    """Obtener requerimientos de recursos por `requerimiento_id`.
-    ---
-    tags:
-      - Requerimiento Recursos
-    summary: Obtener requerimientos por requerimiento_id
-    description: Devuelve todos los requerimientos asociados al identificador de requerimiento indicado.
-    parameters:
-      - name: requerimiento_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Lista de requerimientos de recursos
-      404:
-        description: No se encontraron requerimientos para el `requerimiento_id` indicado
-    """
-    result = db.session.execute(
-        db.text("""
-            SELECT * FROM requerimiento_recursos
-            WHERE requerimiento_id = :requerimiento_id
-            ORDER BY id DESC
-        """),
-        {'requerimiento_id': requerimiento_id}
-    )
-    return jsonify([_serialize_requerimiento_recurso(row) for row in result])
 
 
 @requerimiento_recursos_bp.route(
@@ -291,7 +267,6 @@ def get_requerimiento_recursos_by_usuario_receptor(usuario_receptor_id):
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
-              requerimiento_id: {type: integer}
               requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               recurso_grupo_id: {type: integer}
@@ -452,7 +427,6 @@ def update_requerimiento_recurso(id):
           type: object
           properties:
             requerimiento_numero: {type: string}
-            requerimiento_id: {type: integer}
             requerimiento_estado_id: {type: integer}
             usuario_receptor_id: {type: integer}
             recurso_grupo_id: {type: integer}
@@ -494,7 +468,6 @@ def update_requerimiento_recurso(id):
     params = {
         'id': id,
         'requerimiento_numero': data.get('requerimiento_numero', actual.requerimiento_numero),
-        'requerimiento_id': data.get('requerimiento_id', actual.requerimiento_id),
         'requerimiento_estado_id': data.get('requerimiento_estado_id', actual.requerimiento_estado_id),
         'usuario_receptor_id': data.get('usuario_receptor_id', actual.usuario_receptor_id),
         'recurso_grupo_id': data.get('recurso_grupo_id', actual.recurso_grupo_id),
@@ -507,13 +480,15 @@ def update_requerimiento_recurso(id):
         'activo': data.get('activo', actual.activo),
         'modificador': data.get('modificador', 'Sistema'),
         'modificacion': data.get('modificacion', now),
-        'usuario_emisor_id': data.get('usuario_emisor_id', actual.usuario_emisor_id)
+        'usuario_emisor_id': data.get('usuario_emisor_id', actual.usuario_emisor_id),
+        'emergencia_id': data.get('emergencia_id', actual.emergencia_id),
+        'fecha_inicio': data.get('fecha_inicio', actual.fecha_inicio),
+        'fecha_fin': data.get('fecha_fin', actual.fecha_fin)
     }
 
     query = db.text("""
         UPDATE requerimiento_recursos
         SET requerimiento_numero = :requerimiento_numero,
-            requerimiento_id = :requerimiento_id,
             requerimiento_estado_id = :requerimiento_estado_id,
             usuario_receptor_id = :usuario_receptor_id,
             recurso_grupo_id = :recurso_grupo_id,
@@ -911,7 +886,6 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
-              requerimiento_id: {type: integer}
               requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               usuario_emisor_id: {type: integer}
@@ -935,7 +909,6 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
             SELECT
                 rr.id AS id,
                 rr.requerimiento_numero AS requerimiento_numero,
-                rr.requerimiento_id AS requerimiento_id,
                 rr.usuario_receptor_id AS usuario_receptor_id,
                 ur.usuario AS usuario_receptor,
                 rr.recurso_grupo_id AS recurso_grupo_id,
@@ -976,7 +949,6 @@ def get_requerimiento_recursos_by_usuario_emisor(usuario_emisor_id):
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
-            'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
@@ -1033,7 +1005,6 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
-              requerimiento_id: {type: integer}
               requerimiento_estado_id: {type: integer}
               usuario_receptor_id: {type: integer}
               usuario_receptor: {type: string}
@@ -1064,7 +1035,6 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
             SELECT
                 rr.id AS id,
                 rr.requerimiento_numero AS requerimiento_numero,
-                rr.requerimiento_id AS requerimiento_id,
                 rr.usuario_receptor_id AS usuario_receptor_id,
                 ur.usuario AS usuario_receptor,
                 rr.recurso_grupo_id AS recurso_grupo_id,
@@ -1111,7 +1081,6 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
-            'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
@@ -1242,7 +1211,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
             SELECT
                 rr.id AS id,
                 rr.requerimiento_numero AS requerimiento_numero,
-                rr.requerimiento_id AS requerimiento_id,
                 rr.usuario_receptor_id AS usuario_receptor_id,
                 ur.usuario AS usuario_receptor,
                 rr.recurso_grupo_id AS recurso_grupo_id,
@@ -1294,7 +1262,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_emisor_id(reque
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
-            'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
             'requerimiento_estado_nombre': row_mapping.get('requerimiento_estado_nombre'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
@@ -1357,7 +1324,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             SELECT
                 rr.id AS id,
                 rr.requerimiento_numero AS requerimiento_numero,
-                rr.requerimiento_id AS requerimiento_id,
                 rr.usuario_receptor_id AS usuario_receptor_id,
                 ur.usuario AS usuario_receptor,
                 rr.recurso_grupo_id AS recurso_grupo_id,
@@ -1406,7 +1372,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
-            'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
@@ -1458,7 +1423,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
             SELECT
                 rr.id AS id,
                 rr.requerimiento_numero AS requerimiento_numero,
-                rr.requerimiento_id AS requerimiento_id,
                 rr.usuario_receptor_id AS usuario_receptor_id,
                 ur.usuario AS usuario_receptor,
                 rr.recurso_grupo_id AS recurso_grupo_id,
@@ -1504,7 +1468,6 @@ def get_requerimiento_recursos_by_requerimiento_numero_x_usuario_receptor_id(req
         rows.append({
             'id': row_mapping.get('id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
-            'requerimiento_id': row_mapping.get('requerimiento_id'),
             'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
             'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
             'usuario_receptor': row_mapping.get('usuario_receptor'),
