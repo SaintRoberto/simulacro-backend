@@ -1159,6 +1159,7 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             properties:
               requerimiento_numero: {type: string}
               cantidad_solicitada: {type: integer}
+              detalle: {type: string}
               activo: {type: boolean}
               creacion: {type: string}
     """
@@ -1167,7 +1168,8 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             SELECT
                 MAX(RR.ID) AS ULTIMO_ID,
                 RR.REQUERIMIENTO_NUMERO AS REQUERIMIENTO_NUMERO,
-                SUM(RR.CANTIDAD_SOLICITADA) AS CANTIDAD_SOLICITADA               
+                SUM(RR.CANTIDAD_SOLICITADA) AS CANTIDAD_SOLICITADA,
+                RR.DETALLE AS DETALLE
             FROM
                 PUBLIC.REQUERIMIENTO_RECURSOS RR
             WHERE
@@ -1175,7 +1177,8 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
                 AND COALESCE(RR.ACTIVO, TRUE) = TRUE
                 AND RR.REQUERIMIENTO_ESTADO_ID NOT IN (4, 6)  -- Excluir estados Rechazado (4) y Anulado (6)
             GROUP BY
-                RR.REQUERIMIENTO_NUMERO
+                RR.REQUERIMIENTO_NUMERO,
+                RR.DETALLE
             ORDER BY
                 MAX(RR.ID) DESC;
         """),
@@ -1194,9 +1197,9 @@ def get_requerimiento_recursos_by_requerimiento_numero_and_usuario_emisor_id( us
             'id': row_mapping.get('ultimo_id'),
             'requerimiento_numero': row_mapping.get('requerimiento_numero'),
             'cantidad_solicitada': row_mapping.get('cantidad_solicitada'),
+            'detalle': row_mapping.get('detalle'),
             'activo': row_mapping.get('activo'),
-            'creacion': _to_iso(row_mapping.get('creacion')),
-            'detalle': row_mapping.get('detalle')
+            'creacion': _to_iso(row_mapping.get('creacion'))
         })
 
     return jsonify(rows)
