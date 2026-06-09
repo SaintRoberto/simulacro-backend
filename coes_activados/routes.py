@@ -95,27 +95,22 @@ def get_coes_activados():
 
 
 @coes_activados_bp.route(
-    "/api/coes_activados/emergencia/<int:emergencia_id>/usuario/<int:usuario_id>",
+    "/api/coes_activados/emergencia/<int:emergencia_id>",
     methods=["GET"],
 )
-def get_coes_activados_by_emergencia_by_usuario(emergencia_id, usuario_id):
+def get_coes_activados_by_emergencia_by_usuario(emergencia_id):
     """Listar COE activados por emergencia y usuario.
     ---
     tags:
       - COE Activados
     summary: Filtrar COE activados por emergencia y usuario
-    description: Devuelve los registros activos de `coes_activados` visibles para el usuario indicado dentro de la emergencia solicitada. El filtro usa el nivel de COE y el DPA configurado en `usuario_perfil_coe_dpa_mesa`: un usuario nacional puede ver COE nacional, provinciales y cantonales; un usuario provincial puede ver el COE provincial de su provincia y sus COE cantonales; un usuario cantonal queda limitado a su cantón. La regla DPA sigue el patrón de comodines `(provincia_id = valor OR valor = 0)` y `(canton_id = valor OR valor = 0)`.
+    description: Devuelve los registros activos de coes_activados visibles para el usuario indicado dentro de la emergencia solicitada. El filtro usa el nivel de COE y el DPA configurado en `usuario_perfil_coe_dpa_mesa` -- un usuario nacional puede ver COE nacional, provinciales y cantonales; un usuario provincial puede ver el COE provincial de su provincia y sus COE cantonales; un usuario cantonal queda limitado a su cantón. La regla DPA sigue el patrón de comodines `(provincia_id = valor OR valor = 0)` y `(canton_id = valor OR valor = 0)`.
     parameters:
       - name: emergencia_id
         in: path
         type: integer
         required: true
         description: Identificador de la emergencia a consultar.
-      - name: usuario_id
-        in: path
-        type: integer
-        required: true
-        description: Identificador del usuario usado para resolver el nivel de COE y el alcance DPA.
     responses:
       200:
         description: Lista de COE activados visibles para el usuario
@@ -187,8 +182,7 @@ def get_coes_activados_by_emergencia_by_usuario(emergencia_id, usuario_id):
           AND EXISTS (
               SELECT 1
               FROM public.usuario_perfil_coe_dpa_mesa x
-              WHERE x.usuario_id = :usuario_id
-                AND COALESCE(x.activo, true) = true
+              WHERE COALESCE(x.activo, true) = true
                 AND ca.coe_id >= x.coe_id
                 AND (ca.provincia_id = x.provincia_id OR x.provincia_id IN (0, -1))
                 AND (ca.canton_id = x.canton_id OR x.canton_id IN (0, -1))
@@ -199,7 +193,7 @@ def get_coes_activados_by_emergencia_by_usuario(emergencia_id, usuario_id):
     )
     result = db.session.execute(
         query,
-        {"emergencia_id": emergencia_id, "usuario_id": usuario_id},
+        {"emergencia_id": emergencia_id},
     )
     return jsonify([_serialize_coe_activado_detalle(row) for row in result])
 
@@ -525,3 +519,30 @@ def delete_coe_activado(id):
 
     db.session.commit()
     return jsonify({"mensaje": "COE activado eliminado correctamente"})
+
+
+@coes_activados_bp.route("/api/coes_activados_estados", methods=["GET"])
+def get_coe_activados_estados():
+    """Listar estados de activación de COE.
+    ---
+    tags:
+      - COE Activados
+    summary: Listar estados de activación de COE
+    description: Devuelve todos los registros de `coe_activado_estados` ordenados
+    responses:
+      200:
+        description: Lista de estados de activación de COE
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              nombre: {type: string}
+      500:
+        description: Error inesperado al consultar los estados de activación de COE
+    """
+    query = db.text("SELECT * FROM coe_activado_estados WHERE activo = true ORDER BY id ASC")
+    result = db.session.execute(query)
+    return jsonify([{"id": row.id, "nombre": row.nombre} for row in result])
+  
