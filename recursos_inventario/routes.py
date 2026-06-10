@@ -3,7 +3,6 @@ from recursos_inventario import recursos_inventario_bp
 from models import db
 from datetime import datetime, timezone
 
-
 @recursos_inventario_bp.route('/api/recursos_inventario', methods=['GET'])
 def get_recursos_inventario():
     """Listar recursos inventario
@@ -51,116 +50,6 @@ def get_recursos_inventario():
             'creacion': row.creacion.isoformat() if row.creacion else None,
             'modificador': row.modificador,
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
-        })
-    return jsonify(items)
-
-
-@recursos_inventario_bp.route(
-    '/api/recursos_inventario/recurso_grupo/<int:recurso_grupo_id>/coe/<int:coe_id>/mesa/<int:mesa_id>',
-    methods=['GET']
-)
-def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, coe_id, mesa_id):
-    """Obtener recursos inventario por grupo de recurso, COE y mesa
-    ---
-    tags:
-      - Recursos Inventario
-    parameters:
-      - name: recurso_grupo_id
-        in: path
-        type: integer
-        required: true
-      - name: coe_id
-        in: path
-        type: integer
-        required: true
-      - name: mesa_id
-        in: path
-        type: integer
-        required: true
-    responses:
-      200:
-        description: Lista de recursos inventario por grupo de recurso, COE y mesa
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              recurso_inventario_id: {type: integer}
-              institucion_id: {type: integer}
-              institucion_siglas: {type: string}
-              recurso_tipo_id: {type: integer}
-              recurso_nombre: {type: string}
-              recurso_retorna: {type: boolean}
-              existencias: {type: integer}
-              movilizado: {type: integer}
-              comprometido: {type: integer}
-              total_asignado_en_uso: {type: integer}
-              disponible: {type: integer}
-    """
-    query = db.text("""
-        SELECT
-            ri.id AS recurso_inventario_id,
-            i.id AS institucion_id,
-            i.siglas AS institucion_siglas,
-            rt.id AS recurso_tipo_id,
-            rt.nombre AS recurso_nombre,
-            rt.retorna AS recurso_retorna,
-            COALESCE(ri.existencias, 0) AS existencias,
-            0 AS movilizado,
-            COALESCE(MAX(au.comprometido), 0) AS comprometido,
-            COALESCE(MAX(au.comprometido_en_uso), 0) AS total_asignado_en_uso,
-            COALESCE(ri.existencias, 0) - COALESCE(MAX(au.comprometido_en_uso), 0) AS disponible
-        FROM public.instituciones_coe_mesa icm
-        INNER JOIN public.instituciones i
-            ON icm.institucion_id = i.id
-        CROSS JOIN public.recurso_tipos rt
-        LEFT JOIN public.recursos_inventario ri
-            ON ri.institucion_duena_id = i.id
-           AND ri.recurso_tipo_id = rt.id
-           AND ri.coe_id = icm.coe_id
-           AND ri.mesa_id = icm.mesa_id
-           AND COALESCE(ri.activo, true) = true
-        LEFT JOIN (
-            SELECT
-                rresp.recurso_inventario_id,
-                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0)), 0) AS comprometido,
-                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.factor, 1)), 0) AS comprometido_en_uso
-            FROM public.requerimiento_respuestas rresp
-            WHERE COALESCE(rresp.activo, true) = true
-            GROUP BY rresp.recurso_inventario_id
-        ) au
-            ON au.recurso_inventario_id = ri.id
-        WHERE icm.coe_id = :coe_id
-          AND icm.mesa_id = :mesa_id
-          AND rt.recurso_grupo_id = :recurso_grupo_id
-          AND COALESCE(icm.activo, true) = true
-          AND COALESCE(i.activo, true) = true
-          AND COALESCE(rt.activo, true) = true
-        GROUP BY
-            i.id, i.nombre, i.siglas,
-            rt.id, rt.nombre, rt.descripcion, rt.retorna,
-            ri.id, ri.existencias
-        ORDER BY i.nombre, rt.nombre;
-    """)
-    result = db.session.execute(query, {
-        'recurso_grupo_id': recurso_grupo_id,
-        'coe_id': coe_id,
-        'mesa_id': mesa_id
-    })
-    items = []
-    for row in result:
-        items.append({
-            'recurso_inventario_id': row.recurso_inventario_id,
-            'institucion_id': row.institucion_id,
-            'institucion_siglas': row.institucion_siglas,
-            'recurso_tipo_id': row.recurso_tipo_id,
-            'recurso_nombre': row.recurso_nombre,
-            'recurso_retorna': row.recurso_retorna,
-            'existencias': row.existencias,
-            'movilizado': row.movilizado,
-            'comprometido': row.comprometido,
-            'total_asignado_en_uso': row.total_asignado_en_uso,
-            'disponible': row.disponible
         })
     return jsonify(items)
 
@@ -246,7 +135,6 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa_by_provincia_by_cant
         })
 
     return jsonify(items)
-
 
 @recursos_inventario_bp.route('/api/recursos_inventario/<int:recurso_inventario_id>/disponible', methods=['GET'])
 def get_recurso_inventario_disponible(recurso_inventario_id):
@@ -524,7 +412,6 @@ def get_recursos_inventario_no_rechazados(
         })
     return jsonify(items)
 
-
 @recursos_inventario_bp.route('/api/recursos_inventario', methods=['POST'])
 def create_recurso_inventario():
     """Crear recurso inventario
@@ -647,7 +534,6 @@ def create_recurso_inventario():
         'modificacion': item.modificacion.isoformat() if item.modificacion else None
     }), 201
 
-
 @recursos_inventario_bp.route('/api/recursos_inventario/<int:id>', methods=['GET'])
 def get_recurso_inventario(id):
     """Obtener recurso inventario por ID
@@ -690,7 +576,6 @@ def get_recurso_inventario(id):
         'modificador': item.modificador,
         'modificacion': item.modificacion.isoformat() if item.modificacion else None
     })
-
 
 @recursos_inventario_bp.route('/api/recursos_inventario/<int:id>', methods=['PUT'])
 def update_recurso_inventario(id):
@@ -787,7 +672,6 @@ def update_recurso_inventario(id):
         'modificacion': item.modificacion.isoformat() if item.modificacion else None
     })
 
-
 @recursos_inventario_bp.route('/api/recursos_inventario/<int:id>', methods=['DELETE'])
 def delete_recurso_inventario(id):
     """Eliminar recurso inventario
@@ -815,7 +699,6 @@ def delete_recurso_inventario(id):
 
     db.session.commit()
     return jsonify({'mensaje': 'Recurso inventario eliminado correctamente'})
-
 
 @recursos_inventario_bp.route('/api/recursos_inventario/count', methods=['GET'])
 def count_recursos_inventario():
@@ -925,7 +808,6 @@ def get_recursos_inventario_by_location(coe_id, mesa_id, provincia_id, canton_id
             'modificacion': row.modificacion.isoformat() if row.modificacion else None
         })
     return jsonify(items)
-
 
 @recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>', methods=['GET'])
 def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id, recurso_requerimiento_id):
@@ -1070,100 +952,11 @@ def get_recursos_inventario_by_recurso_institucion(coe_id, mesa_id, recurso_tipo
         })
     return jsonify(items)
 
-
-@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>', methods=['GET'])
-def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa(coe_id, mesa_id, recurso_tipo_id, institucion_duena_id):
-    """Obtener recursos inventario por recuros x intitución, COE y mesa
-    ---
-    tags:
-      - Recursos Inventario
-    parameters:
-        - name: coe_id
-          in: path
-          type: integer
-          required: true
-        - name: mesa_id 
-          in: path
-          type: integer
-          required: true
-        - name: recurso_tipo_id
-          in: path
-          type: integer
-          required: true
-        - name: institucion_duena_id
-          in: path
-          type: integer
-          required: true
-    responses:
-      200:
-        description: Lista de recursos inventario por ubicación
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-                recurso_inventario_id: {type: integer}
-                provincia: {type: string}
-                canton: {type: string}
-                parroquia: {type: string}
-                coe_id: {type: integer}
-                mesa_id: {type: integer}
-                existencias: {type: integer}
-    """
-    query = db.text("""
-        SELECT
-            RI.ID AS RECURSO_INVENTARIO_ID,
-            P.NOMBRE AS PROVINCIA,
-            C.NOMBRE AS CANTON,
-            PR.NOMBRE AS PARROQUIA,
-            RI.COE_ID AS COE_ID,
-            RI.MESA_ID AS MESA_ID,   
-            COALESCE(RI.EXISTENCIAS, 0) AS EXISTENCIAS
-        FROM
-            PUBLIC.RECURSOS_INVENTARIO RI
-        LEFT JOIN PUBLIC.PROVINCIAS P 
-            ON P.ID = RI.PROVINCIA_ID
-        LEFT JOIN PUBLIC.CANTONES C 
-            ON C.ID = RI.CANTON_ID
-        LEFT JOIN PUBLIC.PARROQUIAS PR 
-            ON PR.ID = RI.PARROQUIA_ID
-        WHERE
-            COALESCE(RI.ACTIVO, TRUE) = TRUE
-            AND RI.COE_ID = :coe_id
-            AND RI.MESA_ID = :mesa_id
-            AND RI.RECURSO_TIPO_ID = :recurso_tipo_id
-            AND RI.INSTITUCION_DUENA_ID = :institucion_duena_id
-        ORDER BY
-            P.NOMBRE,
-            C.NOMBRE,
-            PR.NOMBRE,
-            RI.ID
-        """)
-    result = db.session.execute(query, {
-        'coe_id': coe_id,
-        'mesa_id': mesa_id,
-        'recurso_tipo_id': recurso_tipo_id,
-        'institucion_duena_id': institucion_duena_id
-    })
-    items = []
-    for row in result:
-        items.append({
-            'recurso_inventario_id': row.recurso_inventario_id,
-            'provincia': row.provincia,
-            'canton': row.canton,
-            'parroquia': row.parroquia,
-            'coe_id': row.coe_id,
-            'mesa_id': row.mesa_id,
-            'existencias': row.existencias
-        })
-    return jsonify(items)
-
-
 @recursos_inventario_bp.route(
     '/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/institucion_duena_id/<int:institucion_duena_id>/provincia_id/<int:provincia_id>/canton_id/<int:canton_id>',
     methods=['GET']
 )
-def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa_by_provincia_by_canton(
+def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa(
     coe_id, mesa_id, recurso_tipo_id, institucion_duena_id, provincia_id, canton_id
 ):
     """
@@ -1231,56 +1024,18 @@ def get_recursos_inventario_by_recurso_institucion_by_coe_by_mesa_by_provincia_b
 
     return jsonify(items)
 
-@recursos_inventario_bp.route('/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>', methods=['GET'])
-def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_tipo_id, recurso_requerimiento_id):
-    """Obtener recursos inventario por recursos x requerimiento, COE y mesa
-    ---
-    tags:
-      - Recursos Inventario
-    parameters:
-        - name: coe_id
-          in: path
-          type: integer
-          required: true
-        - name: mesa_id 
-          in: path
-          type: integer
-          required: true
-        - name: recurso_tipo_id
-          in: path
-          type: integer
-          required: true
-        - name: recurso_requerimiento_id
-          in: path
-          type: integer
-          required: true
-    responses:
-      200:
-        description: Lista de recursos inventario por ubicación
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id: {type: integer}
-              institucion_duena_id: {type: integer}
-              recurso_tipo_id: {type: integer}
-              coe_id: {type: integer}
-              mesa_id: {type: integer}
-              provincia_id: {type: integer}
-              canton_id: {type: integer}
-              existencias: {type: integer}
-              activo: {type: boolean}
-              creador: {type: string}
-              creacion: {type: string}
-              modificador: {type: string}
-              modificacion: {type: string}
-              parroquia_id: {type: integer}
-    """
+@recursos_inventario_bp.route(
+    '/api/recursos_inventario/coe_id/<int:coe_id>/mesa_id/<int:mesa_id>/recurso_tipo_id/<int:recurso_tipo_id>/recurso_requerimiento_id/<int:recurso_requerimiento_id>/provincia_id/<int:provincia_id>/canton_id/<int:canton_id>',
+    methods=['GET']
+)
+def get_recursos_inventario_by_recurso_x_requerimiento(
+    coe_id, mesa_id, recurso_tipo_id, recurso_requerimiento_id, provincia_id, canton_id
+):
+    """Obtener recursos inventario por recursos x requerimiento, COE, mesa, provincia y cantón"""
+
     query = db.text("""
         SELECT
             rr_req.requerimiento_respuesta_ids,
-
             ri.id AS id,
             ri.id AS recurso_inventario_id,
             ri.institucion_duena_id AS institucion_duena_id,
@@ -1315,7 +1070,6 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
         LEFT JOIN public.parroquias pr 
             ON pr.id = ri.parroquia_id
 
-        /* USO GLOBAL DEL INVENTARIO */
         LEFT JOIN (
             SELECT
                 r.recurso_inventario_id,
@@ -1336,12 +1090,11 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
 
             FROM public.requerimiento_respuestas r
             WHERE COALESCE(r.activo, true) = true
-            AND r.recurso_inventario_id IS NOT NULL
+              AND r.recurso_inventario_id IS NOT NULL
             GROUP BY r.recurso_inventario_id
         ) rr_global
             ON rr_global.recurso_inventario_id = ri.id
 
-        /* ASIGNADO SOLO EN EL REQUERIMIENTO ANALIZADO */
         LEFT JOIN (
             SELECT
                 r.recurso_inventario_id,
@@ -1364,16 +1117,18 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
 
             FROM public.requerimiento_respuestas r
             WHERE COALESCE(r.activo, true) = true
-            AND r.requerimiento_recurso_id = :recurso_requerimiento_id
-            AND r.recurso_inventario_id IS NOT NULL
+              AND r.requerimiento_recurso_id = :recurso_requerimiento_id
+              AND r.recurso_inventario_id IS NOT NULL
             GROUP BY r.recurso_inventario_id
         ) rr_req
             ON rr_req.recurso_inventario_id = ri.id
 
         WHERE COALESCE(ri.activo, true) = true
-        AND ri.coe_id = :coe_id
-        AND ri.mesa_id = :mesa_id
-        AND ri.recurso_tipo_id = :recurso_tipo_id
+          AND ri.coe_id = :coe_id
+          AND ri.mesa_id = :mesa_id
+          AND ri.recurso_tipo_id = :recurso_tipo_id
+          AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+          AND (ri.canton_id = :canton_id OR :canton_id = 0)
 
         ORDER BY 
             i.nombre, 
@@ -1382,13 +1137,18 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
             pr.nombre, 
             ri.id;
     """)
+
     result = db.session.execute(query, {
         'coe_id': coe_id,
         'mesa_id': mesa_id,
         'recurso_tipo_id': recurso_tipo_id,
-        'recurso_requerimiento_id': recurso_requerimiento_id
+        'recurso_requerimiento_id': recurso_requerimiento_id,
+        'provincia_id': provincia_id,
+        'canton_id': canton_id
     })
+
     items = []
+
     for row in result:
         items.append({
             'id': row.id,
@@ -1400,11 +1160,12 @@ def get_recursos_inventario_by_recurso_x_requerimiento(coe_id, mesa_id, recurso_
             'coe_id': row.coe_id,
             'mesa_id': row.mesa_id,
             'provincia': row.provincia,
-            'parroquia': row.parroquia,
             'canton': row.canton,
+            'parroquia': row.parroquia,
             'existencias': row.existencias,
             'asignado_requerimiento': row.asignado_requerimiento,
             'total_en_uso_global': row.total_en_uso_global,
-            'disponible': row.disponible,
+            'disponible': row.disponible
         })
+
     return jsonify(items)
