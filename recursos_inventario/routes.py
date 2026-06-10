@@ -240,7 +240,10 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(
         FROM public.mesas mu
         INNER JOIN public.mesas m
                 ON (
-                    m.coe_id = :coe_id_usuario
+                    (
+                        m.coe_id = :coe_id_usuario
+                        AND m.id <> :mesa_id_usuario
+                    )
 
                     OR
 
