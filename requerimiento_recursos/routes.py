@@ -1800,3 +1800,118 @@ def get_requerimiento_recursos_retornados_notificacion(usuario_id, emergencia_id
         })
 
     return jsonify(rows)
+
+@requerimiento_recursos_bp.route(
+    '/api/requerimiento-recursos/delegado_notificacion/usuario_id/<int:usuario_id>/emergencia_id/<int:emergencia_id>',
+    methods=['GET']
+)
+def get_requerimiento_recursos_delegado_notificacion(usuario_id, emergencia_id):
+    """Listar requerimientos delegados al usuario superior para notificacion."""
+
+    result = db.session.execute(
+        db.text("""
+            SELECT DISTINCT
+                rr.id AS id,
+                rr.id AS requerimiento_recurso_id,
+                rr.requerimiento_numero AS requerimiento_numero,
+
+                rr.usuario_emisor_id AS usuario_emisor_id,
+                ue.usuario AS usuario_emisor,
+
+                rr.usuario_receptor_id AS usuario_receptor_id,
+                ur.usuario AS usuario_receptor,
+
+                us.id AS usuario_delegado_id,
+                us.usuario AS usuario_delegado,
+
+                rr.detalle AS detalle,
+                rr.creacion AS fecha_inicio,
+                rr.modificacion AS fecha_fin,
+                rr.porcentaje_avance AS porcentaje_avance,
+                rr.requerimiento_estado_id AS requerimiento_estado_id,
+                rr.activo AS activo,
+                rr.creador AS creador,
+                rr.creacion AS creacion
+
+            FROM public.requerimiento_recursos rr
+
+            INNER JOIN public.usuarios ue
+                ON rr.usuario_emisor_id = ue.id
+
+            LEFT JOIN public.usuarios ur
+                ON rr.usuario_receptor_id = ur.id
+
+            INNER JOIN public.usuario_perfil_coe_dpa_mesa x
+                ON x.usuario_id = rr.usuario_emisor_id
+
+            INNER JOIN public.mesas m
+                ON m.id = x.mesa_id
+
+            INNER JOIN public.mesas ms
+                ON ms.mesa_grupo_id = m.mesa_grupo_id
+               AND ms.coe_id = m.coe_id - 1
+
+            INNER JOIN public.usuario_perfil_coe_dpa_mesa xs
+                ON xs.mesa_id = ms.id
+               AND xs.coe_id = ms.coe_id
+               AND xs.provincia_id = CASE
+                                            WHEN ms.coe_id = 1 THEN 0
+                                            ELSE x.provincia_id
+                                      END
+               AND xs.canton_id = CASE
+                                        WHEN ms.coe_id IN (1, 2) THEN 0
+                                        ELSE x.canton_id
+                                   END
+
+            INNER JOIN public.usuarios us
+                ON us.id = xs.usuario_id
+
+            WHERE us.id = :usuario_id
+              AND rr.usuario_emisor_id <> :usuario_id
+              AND rr.emergencia_id = :emergencia_id
+              AND COALESCE(rr.activo, true) = true
+              AND rr.requerimiento_estado_id = 1
+              AND m.coe_id > 1
+              AND COALESCE(x.activo, true) = true
+              AND COALESCE(xs.activo, true) = true
+              AND COALESCE(m.activo, true) = true
+              AND COALESCE(ms.activo, true) = true
+
+            ORDER BY fecha_inicio DESC
+        """),
+        {
+            'usuario_id': usuario_id,
+            'emergencia_id': emergencia_id
+        }
+    )
+
+    rows = []
+
+    for row in result:
+        row_mapping = row._mapping
+
+        rows.append({
+            'id': row_mapping.get('id'),
+            'requerimiento_recurso_id': row_mapping.get('requerimiento_recurso_id'),
+            'requerimiento_numero': row_mapping.get('requerimiento_numero'),
+
+            'usuario_emisor_id': row_mapping.get('usuario_emisor_id'),
+            'usuario_emisor': row_mapping.get('usuario_emisor'),
+
+            'usuario_receptor_id': row_mapping.get('usuario_receptor_id'),
+            'usuario_receptor': row_mapping.get('usuario_receptor'),
+
+            'usuario_delegado_id': row_mapping.get('usuario_delegado_id'),
+            'usuario_delegado': row_mapping.get('usuario_delegado'),
+
+            'detalle': row_mapping.get('detalle'),
+            'fecha_inicio': _to_iso_optional(row_mapping.get('fecha_inicio')),
+            'fecha_fin': _to_iso_optional(row_mapping.get('fecha_fin')),
+            'porcentaje_avance': row_mapping.get('porcentaje_avance'),
+            'requerimiento_estado_id': row_mapping.get('requerimiento_estado_id'),
+            'activo': row_mapping.get('activo'),
+            'creador': row_mapping.get('creador'),
+            'creacion': _to_iso_optional(row_mapping.get('creacion'))
+        })
+
+    return jsonify(rows)
