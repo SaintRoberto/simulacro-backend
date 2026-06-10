@@ -410,39 +410,46 @@ def get_usuario_nivel_superior(usuario_id_origen):
     """
     query = db.text("""
         SELECT
-            u.id AS usuario_origen_id,
-            u.usuario AS usuario_origen,
-            m.id AS mesa_origen_id,
-            m.coe_id AS coe_origen_id,
-            m.nombre AS mesa_origen_nombre,
-            m.mesa_grupo_id,
-            ms.id AS mesa_superior_id,
-            ms.coe_id AS coe_superior_id,
-            ms.nombre AS mesa_superior_nombre,
-            us.id AS usuario_superior_id,
-            us.usuario AS usuario_superior
-        FROM public.usuarios u
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa x
-                ON u.id = x.usuario_id
-        INNER JOIN public.mesas m
-                ON x.mesa_id = m.id
-        INNER JOIN public.mesas ms
-                ON ms.mesa_grupo_id = m.mesa_grupo_id
-               AND ms.coe_id = m.coe_id - 1
-        INNER JOIN public.usuario_perfil_coe_dpa_mesa xs
-                ON xs.mesa_id = ms.id
-               AND xs.coe_id = ms.coe_id
-        INNER JOIN public.usuarios us
-                ON us.id = xs.usuario_id
-        WHERE u.id = :usuario_id_origen
-          AND m.coe_id > 1
-          AND m.activo = true
-          AND ms.activo = true
+            U.ID AS USUARIO_ORIGEN_ID,
+            U.USUARIO AS USUARIO_ORIGEN,
+            M.ID AS MESA_ORIGEN_ID,
+            M.COE_ID AS COE_ORIGEN_ID,
+            M.NOMBRE AS MESA_ORIGEN_NOMBRE,
+            M.MESA_GRUPO_ID,
+            MS.ID AS MESA_SUPERIOR_ID,
+            MS.COE_ID AS COE_SUPERIOR_ID,
+            MS.NOMBRE AS MESA_SUPERIOR_NOMBRE,
+            US.ID AS USUARIO_SUPERIOR_ID,
+            US.USUARIO AS USUARIO_SUPERIOR
+        FROM
+            PUBLIC.USUARIOS U
+            INNER JOIN PUBLIC.USUARIO_PERFIL_COE_DPA_MESA X ON U.ID = X.USUARIO_ID
+            INNER JOIN PUBLIC.MESAS M ON X.MESA_ID = M.ID
+            INNER JOIN PUBLIC.MESAS MS ON MS.MESA_GRUPO_ID = M.MESA_GRUPO_ID
+            AND MS.COE_ID = M.COE_ID - 1
+            INNER JOIN PUBLIC.USUARIO_PERFIL_COE_DPA_MESA XS ON XS.MESA_ID = MS.ID
+            AND XS.COE_ID = MS.COE_ID
+            AND XS.PROVINCIA_ID = CASE
+                WHEN MS.COE_ID = 1 THEN 0
+                ELSE X.PROVINCIA_ID
+            END
+            AND XS.CANTON_ID = CASE
+                WHEN MS.COE_ID IN (1, 2) THEN 0
+                ELSE X.CANTON_ID
+            END
+            INNER JOIN PUBLIC.USUARIOS US ON US.ID = XS.USUARIO_ID
+        WHERE
+            U.ID = :usuario_id_origen
+            AND M.COE_ID > 1
+            AND COALESCE(M.ACTIVO, TRUE) = TRUE
+            AND COALESCE(MS.ACTIVO, TRUE) = TRUE
+            AND COALESCE(X.ACTIVO, TRUE) = TRUE
+            AND COALESCE(XS.ACTIVO, TRUE) = TRUE
         ORDER BY
-            u.id,
-            ms.coe_id,
-            ms.id,
-            us.id
+            U.ID,
+            MS.COE_ID,
+            MS.ID,
+            US.ID;
     """)
     result = db.session.execute(query, {'usuario_id_origen': usuario_id_origen})
 
