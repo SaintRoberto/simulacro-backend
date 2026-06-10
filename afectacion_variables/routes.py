@@ -88,7 +88,7 @@ def get_afectacion_variables_by_mesa_grupo(mesa_grupo_id):
                 modificador: {type: string}
                 modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM afectacion_variables WHERE mesa_grupo_id = :mesa_grupo_id"), {'mesa_grupo_id': mesa_grupo_id})
+    result = db.session.execute(db.text("SELECT * FROM afectacion_variables WHERE mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0"), {'mesa_grupo_id': mesa_grupo_id})
     variables = []
     for row in result:
         variables.append({  # type: ignore
