@@ -163,25 +163,47 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
                 costo: {type: integer}
     """
     query = db.text("""
-        SELECT DISTINCT r.id as id, p.id AS parroquia_id, p.nombre AS parroquia_nombre, 
-        e.id evento_id, CASE WHEN s.nombre IS NULL OR s.nombre = '' THEN t.nombre ELSE t.nombre || '/' || s.nombre END evento_nombre,
-        v.id AS afectacion_variable_id, v.nombre as variable_nombre, v.requiere_gis,
-        COALESCE(r.cantidad, 0) as cantidad, COALESCE(r.costo, 0) as costo
-        FROM public.eventos e
-        CROSS JOIN afectacion_variables v
-        INNER JOIN parroquias p ON e.parroquia_id = p.id
-        INNER JOIN evento_tipos t ON e.evento_tipo_id = t.id
-        LEFT JOIN evento_subtipos s ON e.evento_subtipo_id = s.id
-        LEFT JOIN afectacion_variable_registros r ON e.id = r.evento_id
-        AND r.afectacion_variable_id = v.id  AND r.emergencia_id = :emergencia_id
-        INNER JOIN emergencia_parroquias x ON p.id = x.parroquia_id
-        WHERE p.canton_id = :canton_id AND 
-              (v.mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0) AND
-              (
-                :mesa_grupo_id <> 0
-                OR (r.cantidad IS NOT NULL OR r.costo IS NOT NULL)
-              )
-        ORDER BY p.nombre,e.id, v.id;
+      SELECT DISTINCT
+          r.id AS id,
+          p.id AS parroquia_id,
+          p.nombre AS parroquia_nombre,
+          e.id AS evento_id,
+          CASE 
+              WHEN s.nombre IS NULL OR s.nombre = '' 
+                  THEN t.nombre 
+              ELSE t.nombre || '/' || s.nombre 
+          END AS evento_nombre,
+          v.id AS afectacion_variable_id,
+          v.nombre AS variable_nombre,
+          v.requiere_gis,
+          COALESCE(r.cantidad, 0) AS cantidad,
+          COALESCE(r.costo, 0) AS costo
+      FROM public.emergencia_parroquias ep
+      INNER JOIN public.parroquias p 
+          ON p.id = ep.parroquia_id
+      INNER JOIN public.eventos e 
+          ON e.parroquia_id = p.id
+      CROSS JOIN public.afectacion_variables v
+      INNER JOIN public.evento_tipos t 
+          ON e.evento_tipo_id = t.id
+      LEFT JOIN public.evento_subtipos s 
+          ON e.evento_subtipo_id = s.id
+      LEFT JOIN public.afectacion_variable_registros r 
+          ON e.id = r.evento_id
+        AND r.afectacion_variable_id = v.id
+        AND r.emergencia_id = :emergencia_id
+      WHERE ep.emergencia_id = :emergencia_id
+        AND COALESCE(ep.activo, true) = true
+        AND p.canton_id = :canton_id
+        AND (v.mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0)
+        AND (
+              :mesa_grupo_id <> 0
+              OR (r.cantidad IS NOT NULL OR r.costo IS NOT NULL)
+            )
+      ORDER BY 
+          p.nombre,
+          e.id,
+          v.id;
     """)
     result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
     registros = []
