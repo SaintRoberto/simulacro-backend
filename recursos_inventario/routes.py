@@ -164,6 +164,89 @@ def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa(recurso_grupo_id, co
         })
     return jsonify(items)
 
+@recursos_inventario_bp.route(
+    '/api/recursos_inventario/recurso_grupo/<int:recurso_grupo_id>/coe/<int:coe_id>/mesa/<int:mesa_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/',
+    methods=['GET']
+)
+def get_recursos_inventario_by_recurso_grupo_by_coe_by_mesa_by_provincia_by_canton(
+    recurso_grupo_id, coe_id, mesa_id, provincia_id, canton_id
+):
+    """Obtener recursos inventario por grupo de recurso, COE, mesa, provincia y canton"""
+    query = db.text("""
+        SELECT
+            ri.id AS recurso_inventario_id,
+            i.id AS institucion_id,
+            i.siglas AS institucion_siglas,
+            rt.id AS recurso_tipo_id,
+            rt.nombre AS recurso_nombre,
+            rt.retorna AS recurso_retorna,
+            COALESCE(ri.existencias, 0) AS existencias,
+            0 AS movilizado,
+            COALESCE(MAX(au.comprometido), 0) AS comprometido,
+            COALESCE(MAX(au.comprometido_en_uso), 0) AS total_asignado_en_uso,
+            COALESCE(ri.existencias, 0) - COALESCE(MAX(au.comprometido_en_uso), 0) AS disponible
+        FROM public.instituciones_coe_mesa icm
+        INNER JOIN public.instituciones i
+            ON icm.institucion_id = i.id
+        CROSS JOIN public.recurso_tipos rt
+        LEFT JOIN public.recursos_inventario ri
+            ON ri.institucion_duena_id = i.id
+           AND ri.recurso_tipo_id = rt.id
+           AND ri.coe_id = icm.coe_id
+           AND ri.mesa_id = icm.mesa_id
+           AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+           AND (ri.canton_id = :canton_id OR :canton_id = 0)
+           AND COALESCE(ri.activo, true) = true
+        LEFT JOIN (
+            SELECT
+                rresp.recurso_inventario_id,
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0)), 0) AS comprometido,
+                COALESCE(SUM(COALESCE(rresp.cantidad_asignada, 0) * COALESCE(rresp.factor, 1)), 0) AS comprometido_en_uso
+            FROM public.requerimiento_respuestas rresp
+            WHERE COALESCE(rresp.activo, true) = true
+            GROUP BY rresp.recurso_inventario_id
+        ) au
+            ON au.recurso_inventario_id = ri.id
+        WHERE icm.coe_id = :coe_id
+          AND icm.mesa_id = :mesa_id
+          AND rt.recurso_grupo_id = :recurso_grupo_id
+          AND COALESCE(icm.activo, true) = true
+          AND COALESCE(i.activo, true) = true
+          AND COALESCE(rt.activo, true) = true
+        GROUP BY
+            i.id, i.nombre, i.siglas,
+            rt.id, rt.nombre, rt.descripcion, rt.retorna,
+            ri.id, ri.existencias
+        ORDER BY i.nombre, rt.nombre;
+    """)
+
+    result = db.session.execute(query, {
+        'recurso_grupo_id': recurso_grupo_id,
+        'coe_id': coe_id,
+        'mesa_id': mesa_id,
+        'provincia_id': provincia_id,
+        'canton_id': canton_id
+    })
+
+    items = []
+
+    for row in result:
+        items.append({
+            'recurso_inventario_id': row.recurso_inventario_id,
+            'institucion_id': row.institucion_id,
+            'institucion_siglas': row.institucion_siglas,
+            'recurso_tipo_id': row.recurso_tipo_id,
+            'recurso_nombre': row.recurso_nombre,
+            'recurso_retorna': row.recurso_retorna,
+            'existencias': row.existencias,
+            'movilizado': row.movilizado,
+            'comprometido': row.comprometido,
+            'total_asignado_en_uso': row.total_asignado_en_uso,
+            'disponible': row.disponible
+        })
+
+    return jsonify(items)
+
 
 @recursos_inventario_bp.route('/api/recursos_inventario/<int:recurso_inventario_id>/disponible', methods=['GET'])
 def get_recurso_inventario_disponible(recurso_inventario_id):
