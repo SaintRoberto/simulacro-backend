@@ -31,6 +31,28 @@ def _barrido_estado_existe(barrido_estado_id):
     return row is not None
 
 
+def _volcan_accidente_geografico_existe(accidente_geografico_id):
+    if accidente_geografico_id in (None, "", 0, "0"):
+        return True
+
+    row = db.session.execute(
+        db.text(
+            """
+            SELECT 1
+            FROM public.accidentes_geograficos ag
+            INNER JOIN public.accidente_geografico_tipos agt
+                ON agt.id = ag.accidente_geografico_tipo_id
+            WHERE ag.id = :id
+              AND agt.codigo = 'VOLCAN'
+              AND COALESCE(ag.activo, true) = true
+              AND COALESCE(agt.activo, true) = true
+            """
+        ),
+        {"id": accidente_geografico_id},
+    ).fetchone()
+    return row is not None
+
+
 def _serialize_barrido(row):
     item = {
         "id": getattr(row, "id", None),
@@ -44,6 +66,11 @@ def _serialize_barrido(row):
         "longitud": _to_float_optional(getattr(row, "longitud", None)),
         "latitud": _to_float_optional(getattr(row, "latitud", None)),
         "parametro_0": getattr(row, "parametro_0", None),
+        "volcan_id": getattr(row, "volcan_id", None),
+        "volcan_nombre": getattr(row, "volcan_nombre", None),
+        "volcan_descripcion": getattr(row, "volcan_descripcion", None),
+        "volcan_longitud": _to_float_optional(getattr(row, "volcan_longitud", None)),
+        "volcan_latitud": _to_float_optional(getattr(row, "volcan_latitud", None)),
         "parametro_1": _to_float_optional(getattr(row, "parametro_1", None)),
         "parametro_2": _to_float_optional(getattr(row, "parametro_2", None)),
         "parametro_3": getattr(row, "parametro_3", None),
@@ -95,6 +122,11 @@ def _get_barrido_by_id(item_id):
             b.longitud,
             b.latitud,
             b.parametro_0,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.id END AS volcan_id,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.nombre END AS volcan_nombre,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.descripcion END AS volcan_descripcion,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.longitud END AS volcan_longitud,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.latitud END AS volcan_latitud,
             b.parametro_1,
             b.parametro_2,
             b.parametro_3,
@@ -126,6 +158,10 @@ def _get_barrido_by_id(item_id):
            AND q.id = b.parroquia_id
         LEFT JOIN public.barrido_estado be
             ON be.id = b.barrido_estado_id
+        LEFT JOIN public.accidentes_geograficos v
+            ON v.id = b.parametro_0
+        LEFT JOIN public.accidente_geografico_tipos vt
+            ON vt.id = v.accidente_geografico_tipo_id
         WHERE b.id = :id
         """
     )
@@ -152,6 +188,11 @@ def _select_barridos(where_clause="", order_by="b.id ASC"):
             b.longitud,
             b.latitud,
             b.parametro_0,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.id END AS volcan_id,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.nombre END AS volcan_nombre,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.descripcion END AS volcan_descripcion,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.longitud END AS volcan_longitud,
+            CASE WHEN vt.codigo = 'VOLCAN' THEN v.latitud END AS volcan_latitud,
             b.parametro_1,
             b.parametro_2,
             b.parametro_3,
@@ -183,6 +224,10 @@ def _select_barridos(where_clause="", order_by="b.id ASC"):
            AND q.id = b.parroquia_id
         LEFT JOIN public.barrido_estado be
             ON be.id = b.barrido_estado_id
+        LEFT JOIN public.accidentes_geograficos v
+            ON v.id = b.parametro_0
+        LEFT JOIN public.accidente_geografico_tipos vt
+            ON vt.id = v.accidente_geografico_tipo_id
         {where_clause}
         ORDER BY {order_by}
         """
@@ -222,6 +267,11 @@ def get_barridos():
               longitud: {type: number, format: float, description: Longitud del epicentro}
               latitud: {type: number, format: float, description: Latitud del epicentro}
               parametro_0: {type: integer, description: Para erupcion volcanica contiene el ID del volcan; para sismo se mantiene en 0}
+              volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
+              volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
+              volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
+              volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
+              volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
               parametro_1: {type: number, format: float, description: Magnitud para sismo}
               parametro_2: {type: number, format: float, description: Profundidad para sismo}
               parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
@@ -282,6 +332,11 @@ def get_barridos_by_emergencia(emergencia_id):
               longitud: {type: number, format: float, description: Longitud del epicentro}
               latitud: {type: number, format: float, description: Latitud del epicentro}
               parametro_0: {type: integer, description: Para erupcion volcanica contiene el ID del volcan; para sismo se mantiene en 0}
+              volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
+              volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
+              volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
+              volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
+              volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
               parametro_1: {type: number, format: float, description: Magnitud para sismo}
               parametro_2: {type: number, format: float, description: Profundidad para sismo}
               parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
@@ -344,6 +399,11 @@ def get_barrido(id):
             longitud: {type: number, format: float, description: Longitud del epicentro}
             latitud: {type: number, format: float, description: Latitud del epicentro}
             parametro_0: {type: integer, description: Para erupcion volcanica contiene el ID del volcan; para sismo se mantiene en 0}
+            volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
+            volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
+            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
+            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
+            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             parametro_1: {type: number, format: float, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
@@ -404,7 +464,7 @@ def create_barrido():
             sector: {type: string, description: Sector del epicentro}
             longitud: {type: number, format: float, default: 0, description: Longitud del epicentro}
             latitud: {type: number, format: float, default: 0, description: Latitud del epicentro}
-            parametro_0: {type: integer, default: 0, description: Para erupcion volcanica contiene el ID del volcan; para sismo se mantiene en 0}
+            parametro_0: {type: integer, default: 0, description: Para erupcion volcanica contiene el ID de `accidentes_geograficos` cuyo tipo tiene codigo VOLCAN; para sismo se mantiene en 0}
             parametro_1: {type: number, format: float, default: 0, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, default: 0, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
@@ -429,6 +489,11 @@ def create_barrido():
             longitud: {type: number, format: float, description: Longitud del epicentro}
             latitud: {type: number, format: float, description: Latitud del epicentro}
             parametro_0: {type: integer, description: Parametro complementario entero}
+            volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
+            volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
+            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
+            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
+            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             parametro_1: {type: number, format: float, description: Parametro complementario numerico}
             parametro_2: {type: number, format: float, description: Parametro complementario numerico}
             parametro_3: {type: string, description: Parametro complementario textual, nullable: true}
@@ -445,7 +510,7 @@ def create_barrido():
             modificador: {type: string, description: Usuario modificador, nullable: true}
             modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
-        description: Campos requeridos faltantes, cuerpo JSON invalido o barrido_estado_id inexistente
+        description: Campos requeridos faltantes, cuerpo JSON invalido, barrido_estado_id inexistente o parametro_0 no corresponde a un volcan
       500:
         description: Error inesperado al crear el barrido
     """
@@ -465,6 +530,9 @@ def create_barrido():
 
     if not _barrido_estado_existe(data["barrido_estado_id"]):
         return jsonify({"error": "barrido_estado_id no existe en barrido_estado"}), 400
+
+    if not _volcan_accidente_geografico_existe(data.get("parametro_0", 0)):
+        return jsonify({"error": "parametro_0 debe ser un accidente_geografico activo de tipo VOLCAN"}), 400
 
     now = datetime.now(timezone.utc)
     creador = data.get("creador", "Sistema")
@@ -592,7 +660,7 @@ def update_barrido(id):
             sector: {type: string, description: Sector del epicentro}
             longitud: {type: number, format: float, description: Longitud del epicentro}
             latitud: {type: number, format: float, description: Latitud del epicentro}
-            parametro_0: {type: integer, description: Para erupcion volcanica contiene el ID del volcan; para sismo se mantiene en 0}
+            parametro_0: {type: integer, description: Para erupcion volcanica contiene el ID de `accidentes_geograficos` cuyo tipo tiene codigo VOLCAN; para sismo se mantiene en 0}
             parametro_1: {type: number, format: float, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
@@ -616,6 +684,11 @@ def update_barrido(id):
             longitud: {type: number, format: float, description: Longitud del epicentro}
             latitud: {type: number, format: float, description: Latitud del epicentro}
             parametro_0: {type: integer, description: Parametro complementario entero}
+            volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
+            volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
+            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
+            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
+            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             parametro_1: {type: number, format: float, description: Parametro complementario numerico}
             parametro_2: {type: number, format: float, description: Parametro complementario numerico}
             parametro_3: {type: string, description: Parametro complementario textual, nullable: true}
@@ -632,7 +705,7 @@ def update_barrido(id):
             modificador: {type: string, description: Usuario modificador, nullable: true}
             modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
-        description: No se enviaron campos validos para actualizar o barrido_estado_id es invalido
+        description: No se enviaron campos validos, barrido_estado_id es invalido o parametro_0 no corresponde a un volcan
       404:
         description: Barrido no encontrado
       500:
@@ -644,6 +717,9 @@ def update_barrido(id):
             return jsonify({"error": "barrido_estado_id no puede ser null"}), 400
         if not _barrido_estado_existe(data["barrido_estado_id"]):
             return jsonify({"error": "barrido_estado_id no existe en barrido_estado"}), 400
+
+    if "parametro_0" in data and not _volcan_accidente_geografico_existe(data["parametro_0"]):
+        return jsonify({"error": "parametro_0 debe ser un accidente_geografico activo de tipo VOLCAN"}), 400
 
     now = datetime.now(timezone.utc)
 

@@ -125,6 +125,8 @@ from barridos import barridos_bp
 from barrido_estado import barrido_estado_bp
 from barrido_intensidad import barrido_intensidad_bp
 from barrido_monitoreo import barrido_monitoreo_bp
+from accidente_geografico_tipos import accidente_geografico_tipos_bp
+from accidentes_geograficos import accidentes_geograficos_bp
 
 
 
@@ -203,6 +205,8 @@ app.register_blueprint(barridos_bp)
 app.register_blueprint(barrido_estado_bp)
 app.register_blueprint(barrido_intensidad_bp)
 app.register_blueprint(barrido_monitoreo_bp)
+app.register_blueprint(accidente_geografico_tipos_bp)
+app.register_blueprint(accidentes_geograficos_bp)
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
