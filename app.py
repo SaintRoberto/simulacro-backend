@@ -121,6 +121,10 @@ from reportes.geoJson_afectaciones import geoJson_afectaciones_script_bp
 from reportes.geoJson_asistencias import geoJson_asistencias_script_bp
 from reportes.geoJson_afectaciones_vs_asistencias import geoJson_afectaciones_vs_asistencias_script_bp
 from coes_activados import coes_activados_bp
+from barridos import barridos_bp
+from barrido_estado import barrido_estado_bp
+from barrido_intensidad import barrido_intensidad_bp
+from barrido_monitoreo import barrido_monitoreo_bp
 
 
 
@@ -195,6 +199,10 @@ app.register_blueprint(geoJson_afectaciones_script_bp)
 app.register_blueprint(geoJson_asistencias_script_bp)
 app.register_blueprint(geoJson_afectaciones_vs_asistencias_script_bp)  # <-- corregido para evitar conflicto de rutas
 app.register_blueprint(coes_activados_bp)
+app.register_blueprint(barridos_bp)
+app.register_blueprint(barrido_estado_bp)
+app.register_blueprint(barrido_intensidad_bp)
+app.register_blueprint(barrido_monitoreo_bp)
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
