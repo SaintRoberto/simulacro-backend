@@ -68,24 +68,13 @@ def _serialize_barrido(row):
         "accidente_geografico_id": getattr(row, "accidente_geografico_id", None),
         "volcan_id": getattr(row, "volcan_id", None),
         "volcan_nombre": getattr(row, "volcan_nombre", None),
-        "volcan_descripcion": getattr(row, "volcan_descripcion", None),
-        "volcan_longitud": _to_float_optional(getattr(row, "volcan_longitud", None)),
-        "volcan_latitud": _to_float_optional(getattr(row, "volcan_latitud", None)),
         "magnitud": _to_float_optional(getattr(row, "magnitud", None)),
         "profundidad": _to_float_optional(getattr(row, "profundidad", None)),
         "epicentro": getattr(row, "epicentro", None),
         "barrido_estado_id": getattr(row, "barrido_estado_id", None),
         "barrido_estado_codigo": getattr(row, "barrido_estado_codigo", None),
         "barrido_estado_nombre": getattr(row, "barrido_estado_nombre", None),
-        "barrido_estado_descripcion": getattr(row, "barrido_estado_descripcion", None),
-        "barrido_estado_permite_edicion": getattr(row, "barrido_estado_permite_edicion", None),
-        "barrido_estado_permite_registro_monitoreo": getattr(row, "barrido_estado_permite_registro_monitoreo", None),
-        "barrido_estado_es_estado_final": getattr(row, "barrido_estado_es_estado_final", None),
         "activo": getattr(row, "activo", None),
-        "creador": getattr(row, "creador", None),
-        "creacion": _to_iso_optional(getattr(row, "creacion", None)),
-        "modificador": getattr(row, "modificador", None),
-        "modificacion": _to_iso_optional(getattr(row, "modificacion", None)),
     }
 
     optional_fields = [
@@ -124,24 +113,13 @@ def _get_barrido_by_id(item_id):
             b.accidente_geografico_id,
             CASE WHEN vt.codigo = 'VOLCAN' THEN v.id END AS volcan_id,
             CASE WHEN vt.codigo = 'VOLCAN' THEN v.nombre END AS volcan_nombre,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.descripcion END AS volcan_descripcion,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.longitud END AS volcan_longitud,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.latitud END AS volcan_latitud,
             b.magnitud,
             b.profundidad,
             b.epicentro,
             b.barrido_estado_id,
             be.codigo AS barrido_estado_codigo,
             be.nombre AS barrido_estado_nombre,
-            be.descripcion AS barrido_estado_descripcion,
-            be.permite_edicion AS barrido_estado_permite_edicion,
-            be.permite_registro_monitoreo AS barrido_estado_permite_registro_monitoreo,
-            be.es_estado_final AS barrido_estado_es_estado_final,
-            b.activo,
-            b.creador,
-            b.creacion,
-            b.modificador,
-            b.modificacion
+            b.activo
         FROM {TABLE_NAME} b
         LEFT JOIN public.emergencias e
             ON e.id = b.emergencia_id
@@ -190,24 +168,13 @@ def _select_barridos(where_clause="", order_by="b.id ASC"):
             b.accidente_geografico_id,
             CASE WHEN vt.codigo = 'VOLCAN' THEN v.id END AS volcan_id,
             CASE WHEN vt.codigo = 'VOLCAN' THEN v.nombre END AS volcan_nombre,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.descripcion END AS volcan_descripcion,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.longitud END AS volcan_longitud,
-            CASE WHEN vt.codigo = 'VOLCAN' THEN v.latitud END AS volcan_latitud,
             b.magnitud,
             b.profundidad,
             b.epicentro,
             b.barrido_estado_id,
             be.codigo AS barrido_estado_codigo,
             be.nombre AS barrido_estado_nombre,
-            be.descripcion AS barrido_estado_descripcion,
-            be.permite_edicion AS barrido_estado_permite_edicion,
-            be.permite_registro_monitoreo AS barrido_estado_permite_registro_monitoreo,
-            be.es_estado_final AS barrido_estado_es_estado_final,
-            b.activo,
-            b.creador,
-            b.creacion,
-            b.modificador,
-            b.modificacion
+            b.activo
         FROM {TABLE_NAME} b
         LEFT JOIN public.emergencias e
             ON e.id = b.emergencia_id
@@ -242,7 +209,7 @@ def get_barridos():
     tags:
       - Barridos
     summary: Listar barridos
-    description: Devuelve todos los registros de `barridos` ordenados por `id` ascendente. Incluye datos de emergencia, tipo de evento, ubicacion del epicentro, coordenadas, datos complementarios, estado de barrido y auditoria.
+    description: Devuelve todos los registros de `barridos` ordenados por `id` ascendente. Incluye datos de emergencia, tipo de evento, ubicacion del epicentro, coordenadas, datos complementarios y estado de barrido.
     responses:
       200:
         description: Lista de barridos
@@ -269,24 +236,13 @@ def get_barridos():
               accidente_geografico_id: {type: integer, description: Para erupcion volcanica contiene el ID de `accidentes_geograficos` cuyo tipo tiene codigo VOLCAN; para sismo se mantiene en 0}
               volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
               volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
-              volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
-              volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
-              volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
               magnitud: {type: number, format: float, description: Magnitud para sismo}
               profundidad: {type: number, format: float, description: Profundidad para sismo}
               epicentro: {type: string, description: Epicentro textual para sismo, nullable: true}
               barrido_estado_id: {type: integer, description: ID del estado del barrido}
               barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
               barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
-              barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
-              barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
-              barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
-              barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
               activo: {type: boolean, description: Estado activo del barrido}
-              creador: {type: string, description: Usuario creador, nullable: true}
-              creacion: {type: string, format: date-time, description: Fecha de creacion}
-              modificador: {type: string, description: Usuario modificador, nullable: true}
-              modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       500:
         description: Error inesperado al consultar los barridos
     """
@@ -334,24 +290,13 @@ def get_barridos_by_emergencia(emergencia_id):
               accidente_geografico_id: {type: integer, description: Para erupcion volcanica contiene el ID de `accidentes_geograficos` cuyo tipo tiene codigo VOLCAN; para sismo se mantiene en 0}
               volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
               volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
-              volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
-              volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
-              volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
               magnitud: {type: number, format: float, description: Magnitud para sismo}
               profundidad: {type: number, format: float, description: Profundidad para sismo}
               epicentro: {type: string, description: Epicentro textual para sismo, nullable: true}
               barrido_estado_id: {type: integer, description: ID del estado del barrido}
               barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
               barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
-              barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
-              barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
-              barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
-              barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
               activo: {type: boolean, description: Estado activo del barrido}
-              creador: {type: string, description: Usuario creador, nullable: true}
-              creacion: {type: string, format: date-time, description: Fecha de creacion}
-              modificador: {type: string, description: Usuario modificador, nullable: true}
-              modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       500:
         description: Error inesperado al consultar los barridos por emergencia
     """
@@ -401,24 +346,13 @@ def get_barrido(id):
             accidente_geografico_id: {type: integer, description: Para erupcion volcanica contiene el ID de `accidentes_geograficos` cuyo tipo tiene codigo VOLCAN; para sismo se mantiene en 0}
             volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
             volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
-            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
-            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
-            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             magnitud: {type: number, format: float, description: Magnitud para sismo}
             profundidad: {type: number, format: float, description: Profundidad para sismo}
             epicentro: {type: string, description: Epicentro textual para sismo, nullable: true}
             barrido_estado_id: {type: integer, description: ID del estado del barrido}
             barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
             barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
-            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
-            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
-            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
-            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
-            creador: {type: string, description: Usuario creador, nullable: true}
-            creacion: {type: string, format: date-time, description: Fecha de creacion}
-            modificador: {type: string, description: Usuario modificador, nullable: true}
-            modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       404:
         description: Barrido no encontrado
       500:
@@ -491,24 +425,13 @@ def create_barrido():
             accidente_geografico_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado para erupcion volcanica; para sismo se mantiene en 0}
             volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
             volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
-            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
-            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
-            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             magnitud: {type: number, format: float, description: Magnitud para sismo}
             profundidad: {type: number, format: float, description: Profundidad para sismo}
             epicentro: {type: string, description: Epicentro textual para sismo, nullable: true}
             barrido_estado_id: {type: integer, description: ID del estado del barrido}
             barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
             barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
-            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
-            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
-            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
-            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
-            creador: {type: string, description: Usuario creador, nullable: true}
-            creacion: {type: string, format: date-time, description: Fecha de creacion}
-            modificador: {type: string, description: Usuario modificador, nullable: true}
-            modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
         description: Campos requeridos faltantes, cuerpo JSON invalido, barrido_estado_id inexistente o accidente_geografico_id no corresponde a un volcan
       500:
@@ -686,24 +609,13 @@ def update_barrido(id):
             accidente_geografico_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado para erupcion volcanica; para sismo se mantiene en 0}
             volcan_id: {type: integer, description: ID del accidente geografico tipo VOLCAN asociado al barrido, nullable: true}
             volcan_nombre: {type: string, description: Nombre del volcan asociado, nullable: true}
-            volcan_descripcion: {type: string, description: Descripcion del volcan asociado, nullable: true}
-            volcan_longitud: {type: number, format: float, description: Longitud del volcan asociado, nullable: true}
-            volcan_latitud: {type: number, format: float, description: Latitud del volcan asociado, nullable: true}
             magnitud: {type: number, format: float, description: Magnitud para sismo}
             profundidad: {type: number, format: float, description: Profundidad para sismo}
             epicentro: {type: string, description: Epicentro textual para sismo, nullable: true}
             barrido_estado_id: {type: integer, description: ID del estado del barrido}
             barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
             barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
-            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
-            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
-            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
-            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
-            creador: {type: string, description: Usuario creador, nullable: true}
-            creacion: {type: string, format: date-time, description: Fecha de creacion}
-            modificador: {type: string, description: Usuario modificador, nullable: true}
-            modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
         description: No se enviaron campos validos, barrido_estado_id es invalido o accidente_geografico_id no corresponde a un volcan
       404:
