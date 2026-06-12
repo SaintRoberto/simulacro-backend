@@ -181,7 +181,7 @@ def get_accidentes_geograficos_by_tipo_codigo(codigo):
     tags:
       - Accidentes Geograficos
     summary: Listar accidentes geograficos por codigo de tipo
-    description: Devuelve los accidentes geograficos activos cuyo tipo coincide con el `codigo` indicado en `accidente_geografico_tipos`. Por ejemplo, `VOLCAN` devuelve el catalogo de volcanes usado por `barridos.parametro_0`.
+    description: Devuelve los accidentes geograficos activos cuyo tipo coincide con el `codigo` indicado en `accidente_geografico_tipos`. Por ejemplo, `VOLCAN` devuelve el catalogo de volcanes usado por `barridos.accidente_geografico_id`.
     parameters:
       - name: codigo
         in: path
@@ -213,7 +213,7 @@ def get_accidentes_geograficos_volcanes():
     tags:
       - Accidentes Geograficos
     summary: Listar volcanes
-    description: Devuelve los accidentes geograficos activos cuyo tipo tiene codigo `VOLCAN`. Estos registros son los valores validos para `barridos.parametro_0` en eventos de erupcion volcanica.
+    description: Devuelve los accidentes geograficos activos cuyo tipo tiene codigo `VOLCAN`. Estos registros son los valores validos para `barridos.accidente_geografico_id` en eventos de erupcion volcanica.
     responses:
       200:
         description: Lista de volcanes activos
