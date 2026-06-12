@@ -23,6 +23,14 @@ def _to_iso_optional(value):
     return str(value)
 
 
+def _barrido_estado_existe(barrido_estado_id):
+    row = db.session.execute(
+        db.text("SELECT 1 FROM public.barrido_estado WHERE id = :id"),
+        {"id": barrido_estado_id},
+    ).fetchone()
+    return row is not None
+
+
 def _serialize_barrido(row):
     item = {
         "id": getattr(row, "id", None),
@@ -39,6 +47,13 @@ def _serialize_barrido(row):
         "parametro_1": _to_float_optional(getattr(row, "parametro_1", None)),
         "parametro_2": _to_float_optional(getattr(row, "parametro_2", None)),
         "parametro_3": getattr(row, "parametro_3", None),
+        "barrido_estado_id": getattr(row, "barrido_estado_id", None),
+        "barrido_estado_codigo": getattr(row, "barrido_estado_codigo", None),
+        "barrido_estado_nombre": getattr(row, "barrido_estado_nombre", None),
+        "barrido_estado_descripcion": getattr(row, "barrido_estado_descripcion", None),
+        "barrido_estado_permite_edicion": getattr(row, "barrido_estado_permite_edicion", None),
+        "barrido_estado_permite_registro_monitoreo": getattr(row, "barrido_estado_permite_registro_monitoreo", None),
+        "barrido_estado_es_estado_final": getattr(row, "barrido_estado_es_estado_final", None),
         "activo": getattr(row, "activo", None),
         "creador": getattr(row, "creador", None),
         "creacion": _to_iso_optional(getattr(row, "creacion", None)),
@@ -83,6 +98,13 @@ def _get_barrido_by_id(item_id):
             b.parametro_1,
             b.parametro_2,
             b.parametro_3,
+            b.barrido_estado_id,
+            be.codigo AS barrido_estado_codigo,
+            be.nombre AS barrido_estado_nombre,
+            be.descripcion AS barrido_estado_descripcion,
+            be.permite_edicion AS barrido_estado_permite_edicion,
+            be.permite_registro_monitoreo AS barrido_estado_permite_registro_monitoreo,
+            be.es_estado_final AS barrido_estado_es_estado_final,
             b.activo,
             b.creador,
             b.creacion,
@@ -102,6 +124,8 @@ def _get_barrido_by_id(item_id):
             ON q.provincia_id = b.provincia_id
            AND q.canton_id = b.canton_id
            AND q.id = b.parroquia_id
+        LEFT JOIN public.barrido_estado be
+            ON be.id = b.barrido_estado_id
         WHERE b.id = :id
         """
     )
@@ -131,6 +155,13 @@ def _select_barridos(where_clause="", order_by="b.id ASC"):
             b.parametro_1,
             b.parametro_2,
             b.parametro_3,
+            b.barrido_estado_id,
+            be.codigo AS barrido_estado_codigo,
+            be.nombre AS barrido_estado_nombre,
+            be.descripcion AS barrido_estado_descripcion,
+            be.permite_edicion AS barrido_estado_permite_edicion,
+            be.permite_registro_monitoreo AS barrido_estado_permite_registro_monitoreo,
+            be.es_estado_final AS barrido_estado_es_estado_final,
             b.activo,
             b.creador,
             b.creacion,
@@ -150,6 +181,8 @@ def _select_barridos(where_clause="", order_by="b.id ASC"):
             ON q.provincia_id = b.provincia_id
            AND q.canton_id = b.canton_id
            AND q.id = b.parroquia_id
+        LEFT JOIN public.barrido_estado be
+            ON be.id = b.barrido_estado_id
         {where_clause}
         ORDER BY {order_by}
         """
@@ -164,7 +197,7 @@ def get_barridos():
     tags:
       - Barridos
     summary: Listar barridos
-    description: Devuelve todos los registros de `barridos` ordenados por `id` ascendente. Incluye datos de emergencia, tipo de evento, ubicacion del epicentro, coordenadas, parametros complementarios y auditoria.
+    description: Devuelve todos los registros de `barridos` ordenados por `id` ascendente. Incluye datos de emergencia, tipo de evento, ubicacion del epicentro, coordenadas, parametros complementarios, estado de barrido y auditoria.
     responses:
       200:
         description: Lista de barridos
@@ -192,6 +225,13 @@ def get_barridos():
               parametro_1: {type: number, format: float, description: Magnitud para sismo}
               parametro_2: {type: number, format: float, description: Profundidad para sismo}
               parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
+              barrido_estado_id: {type: integer, description: ID del estado del barrido}
+              barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
+              barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
+              barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
+              barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
+              barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
+              barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
               activo: {type: boolean, description: Estado activo del barrido}
               creador: {type: string, description: Usuario creador, nullable: true}
               creacion: {type: string, format: date-time, description: Fecha de creacion}
@@ -245,6 +285,13 @@ def get_barridos_by_emergencia(emergencia_id):
               parametro_1: {type: number, format: float, description: Magnitud para sismo}
               parametro_2: {type: number, format: float, description: Profundidad para sismo}
               parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
+              barrido_estado_id: {type: integer, description: ID del estado del barrido}
+              barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
+              barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
+              barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
+              barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
+              barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
+              barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
               activo: {type: boolean, description: Estado activo del barrido}
               creador: {type: string, description: Usuario creador, nullable: true}
               creacion: {type: string, format: date-time, description: Fecha de creacion}
@@ -300,6 +347,13 @@ def get_barrido(id):
             parametro_1: {type: number, format: float, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
+            barrido_estado_id: {type: integer, description: ID del estado del barrido}
+            barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
+            barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
+            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
+            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
+            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
+            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
             creador: {type: string, description: Usuario creador, nullable: true}
             creacion: {type: string, format: date-time, description: Fecha de creacion}
@@ -323,7 +377,7 @@ def create_barrido():
     tags:
       - Barridos
     summary: Crear barrido
-    description: Inserta una cabecera de barrido en `barridos` con la emergencia, tipo y fecha de evento, ubicacion del epicentro, coordenadas, parametros complementarios y campos de auditoria.
+    description: Inserta una cabecera de barrido en `barridos` con la emergencia, tipo y fecha de evento, ubicacion del epicentro, coordenadas, parametros complementarios, estado de barrido y campos de auditoria.
     consumes:
       - application/json
     parameters:
@@ -339,6 +393,7 @@ def create_barrido():
             - canton_id
             - parroquia_id
             - sector
+            - barrido_estado_id
           properties:
             emergencia_id: {type: integer, description: ID de la emergencia relacionada}
             evento_tipo_id: {type: integer, description: ID del tipo de evento}
@@ -353,6 +408,7 @@ def create_barrido():
             parametro_1: {type: number, format: float, default: 0, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, default: 0, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
+            barrido_estado_id: {type: integer, description: ID del estado del barrido}
             activo: {type: boolean, default: true, description: Estado activo del barrido}
             creador: {type: string, description: Usuario creador}
             modificador: {type: string, description: Usuario modificador}
@@ -376,13 +432,20 @@ def create_barrido():
             parametro_1: {type: number, format: float, description: Parametro complementario numerico}
             parametro_2: {type: number, format: float, description: Parametro complementario numerico}
             parametro_3: {type: string, description: Parametro complementario textual, nullable: true}
+            barrido_estado_id: {type: integer, description: ID del estado del barrido}
+            barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
+            barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
+            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
+            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
+            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
+            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
             creador: {type: string, description: Usuario creador, nullable: true}
             creacion: {type: string, format: date-time, description: Fecha de creacion}
             modificador: {type: string, description: Usuario modificador, nullable: true}
             modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
-        description: Campos requeridos faltantes o cuerpo JSON invalido
+        description: Campos requeridos faltantes, cuerpo JSON invalido o barrido_estado_id inexistente
       500:
         description: Error inesperado al crear el barrido
     """
@@ -394,10 +457,14 @@ def create_barrido():
         "canton_id",
         "parroquia_id",
         "sector",
+        "barrido_estado_id",
     ]
     missing_fields = [field for field in required_fields if data.get(field) is None]
     if missing_fields:
         return jsonify({"error": f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
+    if not _barrido_estado_existe(data["barrido_estado_id"]):
+        return jsonify({"error": "barrido_estado_id no existe en barrido_estado"}), 400
 
     now = datetime.now(timezone.utc)
     creador = data.get("creador", "Sistema")
@@ -419,6 +486,7 @@ def create_barrido():
             parametro_1,
             parametro_2,
             parametro_3,
+            barrido_estado_id,
             activo,
             creador,
             creacion,
@@ -439,6 +507,7 @@ def create_barrido():
             :parametro_1,
             :parametro_2,
             :parametro_3,
+            :barrido_estado_id,
             :activo,
             :creador,
             :creacion,
@@ -466,6 +535,7 @@ def create_barrido():
                 "parametro_1": data.get("parametro_1", 0),
                 "parametro_2": data.get("parametro_2", 0),
                 "parametro_3": data.get("parametro_3"),
+                "barrido_estado_id": data["barrido_estado_id"],
                 "activo": data.get("activo", True),
                 "creador": creador,
                 "creacion": now,
@@ -526,6 +596,7 @@ def update_barrido(id):
             parametro_1: {type: number, format: float, description: Magnitud para sismo}
             parametro_2: {type: number, format: float, description: Profundidad para sismo}
             parametro_3: {type: string, description: Epicentro textual para sismo, nullable: true}
+            barrido_estado_id: {type: integer, description: ID del estado del barrido}
             activo: {type: boolean, description: Estado activo del barrido}
             modificador: {type: string, description: Usuario modificador}
     responses:
@@ -548,19 +619,32 @@ def update_barrido(id):
             parametro_1: {type: number, format: float, description: Parametro complementario numerico}
             parametro_2: {type: number, format: float, description: Parametro complementario numerico}
             parametro_3: {type: string, description: Parametro complementario textual, nullable: true}
+            barrido_estado_id: {type: integer, description: ID del estado del barrido}
+            barrido_estado_codigo: {type: string, description: Codigo del estado del barrido, nullable: true}
+            barrido_estado_nombre: {type: string, description: Nombre del estado del barrido, nullable: true}
+            barrido_estado_descripcion: {type: string, description: Descripcion del estado del barrido, nullable: true}
+            barrido_estado_permite_edicion: {type: boolean, description: Indica si el estado permite editar el barrido, nullable: true}
+            barrido_estado_permite_registro_monitoreo: {type: boolean, description: Indica si el estado permite registrar monitoreo, nullable: true}
+            barrido_estado_es_estado_final: {type: boolean, description: Indica si el estado finaliza el barrido, nullable: true}
             activo: {type: boolean, description: Estado activo del barrido}
             creador: {type: string, description: Usuario creador, nullable: true}
             creacion: {type: string, format: date-time, description: Fecha de creacion}
             modificador: {type: string, description: Usuario modificador, nullable: true}
             modificacion: {type: string, format: date-time, description: Fecha de modificacion, nullable: true}
       400:
-        description: No se enviaron campos validos para actualizar
+        description: No se enviaron campos validos para actualizar o barrido_estado_id es invalido
       404:
         description: Barrido no encontrado
       500:
         description: Error inesperado al actualizar el barrido
     """
     data = request.get_json(silent=True) or {}
+    if "barrido_estado_id" in data:
+        if data["barrido_estado_id"] is None:
+            return jsonify({"error": "barrido_estado_id no puede ser null"}), 400
+        if not _barrido_estado_existe(data["barrido_estado_id"]):
+            return jsonify({"error": "barrido_estado_id no existe en barrido_estado"}), 400
+
     now = datetime.now(timezone.utc)
 
     updatable_fields = [
@@ -577,6 +661,7 @@ def update_barrido(id):
         "parametro_1",
         "parametro_2",
         "parametro_3",
+        "barrido_estado_id",
         "activo",
     ]
 
