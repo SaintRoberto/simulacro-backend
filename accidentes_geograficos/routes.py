@@ -31,9 +31,19 @@ def _accidente_geografico_tipo_existe(accidente_geografico_tipo_id):
     return row is not None
 
 
+def _evento_tipo_existe(evento_tipo_id):
+    row = db.session.execute(
+        db.text("SELECT 1 FROM public.evento_tipos WHERE id = :id"),
+        {"id": evento_tipo_id},
+    ).fetchone()
+    return row is not None
+
+
 def _serialize_accidente_geografico(row):
     return {
         "id": getattr(row, "id", None),
+        "evento_tipo_id": getattr(row, "evento_tipo_id", None),
+        "evento_tipo_nombre": getattr(row, "evento_tipo_nombre", None),
         "accidente_geografico_tipo_id": getattr(row, "accidente_geografico_tipo_id", None),
         "accidente_geografico_tipo_codigo": getattr(row, "accidente_geografico_tipo_codigo", None),
         "accidente_geografico_tipo_nombre": getattr(row, "accidente_geografico_tipo_nombre", None),
@@ -61,6 +71,8 @@ def _select_accidentes_geograficos(where_clause="", order_by="ag.id ASC"):
         f"""
         SELECT
             ag.id,
+            ag.evento_tipo_id,
+            et.nombre AS evento_tipo_nombre,
             ag.accidente_geografico_tipo_id,
             agt.codigo AS accidente_geografico_tipo_codigo,
             agt.nombre AS accidente_geografico_tipo_nombre,
@@ -81,6 +93,8 @@ def _select_accidentes_geograficos(where_clause="", order_by="ag.id ASC"):
             ag.modificador,
             ag.modificacion
         FROM {TABLE_NAME} ag
+        LEFT JOIN public.evento_tipos et
+            ON et.id = ag.evento_tipo_id
         LEFT JOIN public.accidente_geografico_tipos agt
             ON agt.id = ag.accidente_geografico_tipo_id
         LEFT JOIN public.provincias p
@@ -110,7 +124,7 @@ def get_accidentes_geograficos():
     tags:
       - Accidentes Geograficos
     summary: Listar accidentes geograficos
-    description: Devuelve todos los registros de `accidentes_geograficos`, incluyendo tipo, ubicacion, coordenadas y auditoria.
+    description: Devuelve todos los registros de `accidentes_geograficos`, incluyendo tipo de evento, tipo de accidente geografico, ubicacion, coordenadas y auditoria.
     responses:
       200:
         description: Lista de accidentes geograficos
@@ -120,6 +134,8 @@ def get_accidentes_geograficos():
             type: object
             properties:
               id: {type: integer, description: Identificador unico del accidente geografico}
+              evento_tipo_id: {type: integer, description: ID del tipo de evento relacionado}
+              evento_tipo_nombre: {type: string, description: Nombre del tipo de evento, nullable: true}
               accidente_geografico_tipo_id: {type: integer, description: ID del tipo de accidente geografico}
               accidente_geografico_tipo_codigo: {type: string, description: Codigo del tipo, nullable: true}
               accidente_geografico_tipo_nombre: {type: string, description: Nombre del tipo, nullable: true}
@@ -174,6 +190,34 @@ def get_accidentes_geograficos_by_tipo(accidente_geografico_tipo_id):
     return jsonify([_serialize_accidente_geografico(row) for row in result])
 
 
+@accidentes_geograficos_bp.route("/api/accidentes_geograficos/evento_tipo/<int:evento_tipo_id>", methods=["GET"])
+def get_accidentes_geograficos_by_evento_tipo(evento_tipo_id):
+    """Listar accidentes geograficos por tipo de evento.
+    ---
+    tags:
+      - Accidentes Geograficos
+    summary: Listar accidentes geograficos por tipo de evento
+    description: Devuelve los accidentes geograficos activos asociados al `evento_tipo_id` indicado.
+    parameters:
+      - name: evento_tipo_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del tipo de evento
+    responses:
+      200:
+        description: Lista de accidentes geograficos activos del tipo de evento indicado
+      500:
+        description: Error inesperado al consultar accidentes geograficos por tipo de evento
+    """
+    query = _select_accidentes_geograficos(
+        "WHERE ag.evento_tipo_id = :evento_tipo_id AND COALESCE(ag.activo, true) = true",
+        "ag.nombre ASC, ag.id ASC",
+    )
+    result = db.session.execute(query, {"evento_tipo_id": evento_tipo_id})
+    return jsonify([_serialize_accidente_geografico(row) for row in result])
+
+
 @accidentes_geograficos_bp.route("/api/accidentes_geograficos/tipo_codigo/<string:codigo>", methods=["GET"])
 def get_accidentes_geograficos_by_tipo_codigo(codigo):
     """Listar accidentes geograficos por codigo de tipo.
@@ -206,6 +250,47 @@ def get_accidentes_geograficos_by_tipo_codigo(codigo):
     return jsonify([_serialize_accidente_geografico(row) for row in result])
 
 
+@accidentes_geograficos_bp.route(
+    "/api/accidentes_geograficos/evento_tipo/<int:evento_tipo_id>/tipo_codigo/<string:codigo>",
+    methods=["GET"],
+)
+def get_accidentes_geograficos_by_evento_tipo_by_tipo_codigo(evento_tipo_id, codigo):
+    """Listar accidentes geograficos por tipo de evento y codigo de tipo.
+    ---
+    tags:
+      - Accidentes Geograficos
+    summary: Listar accidentes geograficos por evento y codigo de tipo
+    description: Devuelve los accidentes geograficos activos asociados al `evento_tipo_id` y al `codigo` de `accidente_geografico_tipos`.
+    parameters:
+      - name: evento_tipo_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del tipo de evento
+      - name: codigo
+        in: path
+        type: string
+        required: true
+        description: Codigo del tipo de accidente geografico
+    responses:
+      200:
+        description: Lista de accidentes geograficos activos del evento y codigo de tipo indicados
+      500:
+        description: Error inesperado al consultar accidentes geograficos por evento y codigo de tipo
+    """
+    query = _select_accidentes_geograficos(
+        """
+        WHERE ag.evento_tipo_id = :evento_tipo_id
+          AND UPPER(agt.codigo) = UPPER(:codigo)
+          AND COALESCE(ag.activo, true) = true
+          AND COALESCE(agt.activo, true) = true
+        """,
+        "ag.nombre ASC, ag.id ASC",
+    )
+    result = db.session.execute(query, {"evento_tipo_id": evento_tipo_id, "codigo": codigo})
+    return jsonify([_serialize_accidente_geografico(row) for row in result])
+
+
 @accidentes_geograficos_bp.route("/api/accidentes_geograficos/volcanes", methods=["GET"])
 def get_accidentes_geograficos_volcanes():
     """Listar volcanes.
@@ -229,6 +314,39 @@ def get_accidentes_geograficos_volcanes():
         "ag.nombre ASC, ag.id ASC",
     )
     result = db.session.execute(query)
+    return jsonify([_serialize_accidente_geografico(row) for row in result])
+
+
+@accidentes_geograficos_bp.route("/api/accidentes_geograficos/volcanes/evento_tipo/<int:evento_tipo_id>", methods=["GET"])
+def get_accidentes_geograficos_volcanes_by_evento_tipo(evento_tipo_id):
+    """Listar volcanes por tipo de evento.
+    ---
+    tags:
+      - Accidentes Geograficos
+    summary: Listar volcanes por tipo de evento
+    description: Devuelve los accidentes geograficos activos de tipo `VOLCAN` asociados al `evento_tipo_id` indicado. Estos registros son los valores validos para `barridos.accidente_geografico_id` en eventos de erupcion volcanica.
+    parameters:
+      - name: evento_tipo_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del tipo de evento
+    responses:
+      200:
+        description: Lista de volcanes activos del tipo de evento indicado
+      500:
+        description: Error inesperado al consultar volcanes por tipo de evento
+    """
+    query = _select_accidentes_geograficos(
+        """
+        WHERE ag.evento_tipo_id = :evento_tipo_id
+          AND agt.codigo = 'VOLCAN'
+          AND COALESCE(ag.activo, true) = true
+          AND COALESCE(agt.activo, true) = true
+        """,
+        "ag.nombre ASC, ag.id ASC",
+    )
+    result = db.session.execute(query, {"evento_tipo_id": evento_tipo_id})
     return jsonify([_serialize_accidente_geografico(row) for row in result])
 
 
@@ -307,7 +425,7 @@ def create_accidente_geografico():
     tags:
       - Accidentes Geograficos
     summary: Crear accidente geografico
-    description: Inserta un registro en `accidentes_geograficos` con su tipo, nombre, descripcion, ubicacion opcional, coordenadas y auditoria.
+    description: Inserta un registro en `accidentes_geograficos` con tipo de evento, tipo de accidente geografico, nombre, descripcion, ubicacion opcional, coordenadas y auditoria.
     consumes:
       - application/json
     parameters:
@@ -317,9 +435,11 @@ def create_accidente_geografico():
         schema:
           type: object
           required:
+            - evento_tipo_id
             - accidente_geografico_tipo_id
             - nombre
           properties:
+            evento_tipo_id: {type: integer, description: ID del tipo de evento relacionado}
             accidente_geografico_tipo_id: {type: integer, description: ID del tipo de accidente geografico}
             nombre: {type: string, description: Nombre del accidente geografico}
             descripcion: {type: string, description: Descripcion del accidente geografico, nullable: true}
@@ -335,15 +455,18 @@ def create_accidente_geografico():
       201:
         description: Accidente geografico creado correctamente
       400:
-        description: Campos requeridos faltantes, cuerpo JSON invalido o tipo inexistente
+        description: Campos requeridos faltantes, cuerpo JSON invalido, evento_tipo_id inexistente o tipo inexistente
       500:
         description: Error inesperado al crear el accidente geografico
     """
     data = request.get_json(silent=True) or {}
-    required_fields = ["accidente_geografico_tipo_id", "nombre"]
+    required_fields = ["evento_tipo_id", "accidente_geografico_tipo_id", "nombre"]
     missing_fields = [field for field in required_fields if data.get(field) is None]
     if missing_fields:
         return jsonify({"error": f"Campos requeridos faltantes: {', '.join(missing_fields)}"}), 400
+
+    if not _evento_tipo_existe(data["evento_tipo_id"]):
+        return jsonify({"error": "evento_tipo_id no existe en evento_tipos"}), 400
 
     if not _accidente_geografico_tipo_existe(data["accidente_geografico_tipo_id"]):
         return jsonify({"error": "accidente_geografico_tipo_id no existe en accidente_geografico_tipos"}), 400
@@ -355,6 +478,7 @@ def create_accidente_geografico():
     query = db.text(
         f"""
         INSERT INTO {TABLE_NAME} (
+            evento_tipo_id,
             accidente_geografico_tipo_id,
             nombre,
             descripcion,
@@ -370,6 +494,7 @@ def create_accidente_geografico():
             modificacion
         )
         VALUES (
+            :evento_tipo_id,
             :accidente_geografico_tipo_id,
             :nombre,
             :descripcion,
@@ -392,6 +517,7 @@ def create_accidente_geografico():
         result = db.session.execute(
             query,
             {
+                "evento_tipo_id": data["evento_tipo_id"],
                 "accidente_geografico_tipo_id": data["accidente_geografico_tipo_id"],
                 "nombre": data["nombre"],
                 "descripcion": data.get("descripcion"),
@@ -445,6 +571,7 @@ def update_accidente_geografico(id):
         schema:
           type: object
           properties:
+            evento_tipo_id: {type: integer, description: ID del tipo de evento relacionado}
             accidente_geografico_tipo_id: {type: integer, description: ID del tipo de accidente geografico}
             nombre: {type: string, description: Nombre del accidente geografico}
             descripcion: {type: string, description: Descripcion del accidente geografico, nullable: true}
@@ -459,13 +586,19 @@ def update_accidente_geografico(id):
       200:
         description: Accidente geografico actualizado correctamente
       400:
-        description: No se enviaron campos validos o tipo inexistente
+        description: No se enviaron campos validos, evento_tipo_id inexistente o tipo inexistente
       404:
         description: Accidente geografico no encontrado
       500:
         description: Error inesperado al actualizar el accidente geografico
     """
     data = request.get_json(silent=True) or {}
+    if "evento_tipo_id" in data:
+        if data["evento_tipo_id"] is None:
+            return jsonify({"error": "evento_tipo_id no puede ser null"}), 400
+        if not _evento_tipo_existe(data["evento_tipo_id"]):
+            return jsonify({"error": "evento_tipo_id no existe en evento_tipos"}), 400
+
     if "accidente_geografico_tipo_id" in data:
         if data["accidente_geografico_tipo_id"] is None:
             return jsonify({"error": "accidente_geografico_tipo_id no puede ser null"}), 400
@@ -474,6 +607,7 @@ def update_accidente_geografico(id):
 
     now = datetime.now(timezone.utc)
     updatable_fields = [
+        "evento_tipo_id",
         "accidente_geografico_tipo_id",
         "nombre",
         "descripcion",
