@@ -139,6 +139,39 @@ def get_asistencia_humanitaria_entregada():
     responses:
       200:
         description: Lista de asistencias humanitarias entregadas
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              emergencia_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              recurso_tipo: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_grupo: {type: string}
+              recurso_categoria_id: {type: integer}
+              recurso_categoria: {type: string}
+              institucion_donante_id: {type: integer}
+              institucion_donante: {type: string}
+              provincia_destino_id: {type: integer}
+              provincia_destino: {type: string}
+              canton_destino_id: {type: integer}
+              canton_destino: {type: string}
+              parroquia_destino_id: {type: integer}
+              parroquia_destino: {type: string}
+              sector_destino: {type: string}
+              longitud_destino: {type: number, format: float}
+              latitud_destino: {type: number, format: float}
+              fecha_entrega: {type: string, format: date-time}
+              cantidad_entregada: {type: number}
+              familias_beneficiadas: {type: integer}
+              personas_beneficiadas: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     result = db.session.execute(_select_asistencias())
     return jsonify([_serialize_asistencia(row) for row in result])
@@ -167,6 +200,39 @@ def get_asistencia_humanitaria_entregada_by_emergencia_by_usuario(emergencia_id,
     responses:
       200:
         description: Lista filtrada de asistencias humanitarias entregadas
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              emergencia_id: {type: integer}
+              recurso_tipo_id: {type: integer}
+              recurso_tipo: {type: string}
+              recurso_grupo_id: {type: integer}
+              recurso_grupo: {type: string}
+              recurso_categoria_id: {type: integer}
+              recurso_categoria: {type: string}
+              institucion_donante_id: {type: integer}
+              institucion_donante: {type: string}
+              provincia_destino_id: {type: integer}
+              provincia_destino: {type: string}
+              canton_destino_id: {type: integer}
+              canton_destino: {type: string}
+              parroquia_destino_id: {type: integer}
+              parroquia_destino: {type: string}
+              sector_destino: {type: string}
+              longitud_destino: {type: number, format: float}
+              latitud_destino: {type: number, format: float}
+              fecha_entrega: {type: string, format: date-time}
+              cantidad_entregada: {type: number}
+              familias_beneficiadas: {type: integer}
+              personas_beneficiadas: {type: integer}
+              activo: {type: boolean}
+              creador: {type: string}
+              creacion: {type: string, format: date-time}
+              modificador: {type: string}
+              modificacion: {type: string, format: date-time}
     """
     query = db.text(
         """
@@ -222,9 +288,73 @@ def create_asistencia_humanitaria_entregada():
     description: Inserta un registro en `asistencia_humanitaria_entregada` validando que `recurso_tipo_id` pertenezca a la categoria 1.
     consumes:
       - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - emergencia_id
+            - recurso_tipo_id
+            - institucion_donante_id
+            - provincia_destino_id
+            - canton_destino_id
+            - parroquia_destino_id
+            - sector_destino
+            - familias_beneficiadas
+            - personas_beneficiadas
+          properties:
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            institucion_donante_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            sector_destino: {type: string}
+            longitud_destino: {type: number, format: float}
+            latitud_destino: {type: number, format: float}
+            fecha_entrega: {type: string, format: date-time}
+            cantidad_entregada: {type: number}
+            familias_beneficiadas: {type: integer}
+            personas_beneficiadas: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            modificador: {type: string}
     responses:
       201:
         description: Asistencia humanitaria entregada creada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            recurso_tipo: {type: string}
+            recurso_grupo_id: {type: integer}
+            recurso_grupo: {type: string}
+            recurso_categoria_id: {type: integer}
+            recurso_categoria: {type: string}
+            institucion_donante_id: {type: integer}
+            institucion_donante: {type: string}
+            provincia_destino_id: {type: integer}
+            provincia_destino: {type: string}
+            canton_destino_id: {type: integer}
+            canton_destino: {type: string}
+            parroquia_destino_id: {type: integer}
+            parroquia_destino: {type: string}
+            sector_destino: {type: string}
+            longitud_destino: {type: number, format: float}
+            latitud_destino: {type: number, format: float}
+            fecha_entrega: {type: string, format: date-time}
+            cantidad_entregada: {type: number}
+            familias_beneficiadas: {type: integer}
+            personas_beneficiadas: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: Campos requeridos faltantes o recurso_tipo_id invalido
     """
@@ -349,6 +479,37 @@ def get_asistencia_humanitaria_entregada_item(id):
     responses:
       200:
         description: Asistencia humanitaria entregada encontrada
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            recurso_tipo: {type: string}
+            recurso_grupo_id: {type: integer}
+            recurso_grupo: {type: string}
+            recurso_categoria_id: {type: integer}
+            recurso_categoria: {type: string}
+            institucion_donante_id: {type: integer}
+            institucion_donante: {type: string}
+            provincia_destino_id: {type: integer}
+            provincia_destino: {type: string}
+            canton_destino_id: {type: integer}
+            canton_destino: {type: string}
+            parroquia_destino_id: {type: integer}
+            parroquia_destino: {type: string}
+            sector_destino: {type: string}
+            longitud_destino: {type: number, format: float}
+            latitud_destino: {type: number, format: float}
+            fecha_entrega: {type: string, format: date-time}
+            cantidad_entregada: {type: number}
+            familias_beneficiadas: {type: integer}
+            personas_beneficiadas: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       404:
         description: Asistencia humanitaria entregada no encontrada
     """
@@ -368,9 +529,66 @@ def update_asistencia_humanitaria_entregada(id):
     description: Actualiza parcialmente un registro de `asistencia_humanitaria_entregada`.
     consumes:
       - application/json
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            institucion_donante_id: {type: integer}
+            provincia_destino_id: {type: integer}
+            canton_destino_id: {type: integer}
+            parroquia_destino_id: {type: integer}
+            sector_destino: {type: string}
+            longitud_destino: {type: number, format: float}
+            latitud_destino: {type: number, format: float}
+            fecha_entrega: {type: string, format: date-time}
+            cantidad_entregada: {type: number}
+            familias_beneficiadas: {type: integer}
+            personas_beneficiadas: {type: integer}
+            activo: {type: boolean}
+            modificador: {type: string}
     responses:
       200:
         description: Asistencia humanitaria entregada actualizada correctamente
+        schema:
+          type: object
+          properties:
+            id: {type: integer}
+            emergencia_id: {type: integer}
+            recurso_tipo_id: {type: integer}
+            recurso_tipo: {type: string}
+            recurso_grupo_id: {type: integer}
+            recurso_grupo: {type: string}
+            recurso_categoria_id: {type: integer}
+            recurso_categoria: {type: string}
+            institucion_donante_id: {type: integer}
+            institucion_donante: {type: string}
+            provincia_destino_id: {type: integer}
+            provincia_destino: {type: string}
+            canton_destino_id: {type: integer}
+            canton_destino: {type: string}
+            parroquia_destino_id: {type: integer}
+            parroquia_destino: {type: string}
+            sector_destino: {type: string}
+            longitud_destino: {type: number, format: float}
+            latitud_destino: {type: number, format: float}
+            fecha_entrega: {type: string, format: date-time}
+            cantidad_entregada: {type: number}
+            familias_beneficiadas: {type: integer}
+            personas_beneficiadas: {type: integer}
+            activo: {type: boolean}
+            creador: {type: string}
+            creacion: {type: string, format: date-time}
+            modificador: {type: string}
+            modificacion: {type: string, format: date-time}
       400:
         description: No se enviaron campos para actualizar o recurso_tipo_id invalido
       404:
