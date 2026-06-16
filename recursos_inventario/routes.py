@@ -298,20 +298,25 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(
     return jsonify(items)
 
 @recursos_inventario_bp.route(
-    '/api/recursos_inventario/no-rechazados/coe/<int:coe_id>/mesa/<int:mesa_id>/recurso_tipo/<int:recurso_tipo_id>/usuario/<int:usuario_id_sesion>/requerimiento_estado/<int:requerimiento_estado_id>',
+    '/api/recursos_inventario/mesas-restantes/coe/<int:coe_id>/mesa/<int:mesa_id>/recurso_tipo/<int:recurso_tipo_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/usuario_emisor/<int:usuario_emisor_id>/requerimiento_estado_rechazado/<int:requerimiento_estado_rechazado>/emergencia/<int:emergencia_id>',
     methods=['GET']
 )
-def get_recursos_inventario_no_rechazados(
+def get_recursos_inventario_mesas_restantes(
     coe_id,
     mesa_id,
     recurso_tipo_id,
-    usuario_id_sesion,
-    requerimiento_estado_id
+    provincia_id,
+    canton_id,
+    usuario_emisor_id,
+    requerimiento_estado_rechazado,
+    emergencia_id
 ):
-    """Obtener existencias por COE y mesa excluyendo mesas con rechazos previos
+    """Obtener mesas restantes con existencias del recurso solicitado
     ---
     tags:
       - Recursos Inventario
+    summary: Obtener mesas restantes con inventario disponible
+    description: Devuelve mesas del mismo COE excluyendo la mesa del usuario, y mesas del COE superior relacionadas por grupo, excluyendo las mesas que ya rechazaron el requerimiento para el recurso y emergencia indicados.
     parameters:
       - name: coe_id
         in: path
@@ -328,19 +333,34 @@ def get_recursos_inventario_no_rechazados(
         type: integer
         required: true
         description: ID del tipo de recurso a consultar
-      - name: usuario_id_sesion
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de provincia para filtrar inventario, o 0 para no filtrar
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+        description: ID de canton para filtrar inventario, o 0 para no filtrar
+      - name: usuario_emisor_id
         in: path
         type: integer
         required: true
         description: ID del usuario emisor en sesion
-      - name: requerimiento_estado_id
+      - name: requerimiento_estado_rechazado
         in: path
         type: integer
         required: true
         description: ID del estado de requerimiento que representa rechazo
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la emergencia del requerimiento
     responses:
       200:
-        description: Existencias agrupadas por COE y mesa, excluyendo mesas que ya rechazaron al usuario emisor
+        description: Existencias agrupadas por COE y mesa restante
         schema:
           type: array
           items:
@@ -357,35 +377,48 @@ def get_recursos_inventario_no_rechazados(
             m.id AS mesa_id,
             c.siglas || ' - ' || m.nombre AS mesa_nombre,
             COALESCE(SUM(ri.existencias), 0) AS existencias
-        FROM public.mesas m
+        FROM public.mesas mu
+        INNER JOIN public.mesas m
+                ON (
+                    (
+                        m.coe_id = :coe_id_usuario
+                        AND m.id <> :mesa_id_usuario
+                    )
+
+                    OR
+
+                    (
+                        :coe_id_usuario > 1
+                        AND m.coe_id = :coe_id_usuario - 1
+                        AND m.mesa_grupo_id = mu.mesa_grupo_id
+                    )
+                )
         INNER JOIN public.coes c
-                ON m.coe_id = c.id
+                ON c.id = m.coe_id
         LEFT JOIN public.recursos_inventario ri
                ON ri.coe_id = m.coe_id
               AND ri.mesa_id = m.id
               AND ri.recurso_tipo_id = :recurso_tipo_id
-              AND ri.activo = true
-        WHERE m.activo = true
-          AND (
-                m.coe_id = :coe_id_usuario
-                OR
-                (
-                    :coe_id_usuario > 1
-                    AND m.coe_id = :coe_id_usuario - 1
-                    AND m.id = :mesa_id_usuario
-                )
-              )
+              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+              AND (ri.canton_id = :canton_id OR :canton_id = 0)
+              AND COALESCE(ri.activo, true) = true
+        WHERE mu.id = :mesa_id_usuario
+          AND mu.coe_id = :coe_id_usuario
+          AND COALESCE(mu.activo, true) = true
+          AND COALESCE(m.activo, true) = true
+
+          -- Excluir mesas que ya rechazaron este requerimiento/recurso
           AND NOT EXISTS (
                 SELECT 1
                 FROM public.requerimiento_recursos rr
                 INNER JOIN public.usuario_perfil_coe_dpa_mesa upcdm
                         ON upcdm.usuario_id = rr.usuario_receptor_id
-                       AND upcdm.activo = true
-                WHERE rr.usuario_emisor_id = :usuario_id_sesion
-                  AND rr.requerimiento_estado_id = :requerimiento_estado_id
-                  AND rr.activo = true
-                  AND upcdm.coe_id = m.coe_id
-                  AND upcdm.mesa_id = m.id
+                       AND upcdm.mesa_id = m.id
+                WHERE rr.usuario_emisor_id = :usuario_emisor_id
+                  AND rr.requerimiento_estado_id = :requerimiento_estado_rechazado
+                  AND rr.recurso_tipo_id = :recurso_tipo_id
+                  AND rr.emergencia_id = :emergencia_id
+                  AND COALESCE(rr.activo, true) = true
               )
         GROUP BY
             m.coe_id,
@@ -401,8 +434,11 @@ def get_recursos_inventario_no_rechazados(
         'coe_id_usuario': coe_id,
         'mesa_id_usuario': mesa_id,
         'recurso_tipo_id': recurso_tipo_id,
-        'usuario_id_sesion': usuario_id_sesion,
-        'requerimiento_estado_id': requerimiento_estado_id
+        'provincia_id': provincia_id,
+        'canton_id': canton_id,
+        'usuario_emisor_id': usuario_emisor_id,
+        'requerimiento_estado_rechazado': requerimiento_estado_rechazado,
+        'emergencia_id': emergencia_id
     })
 
     items = []
