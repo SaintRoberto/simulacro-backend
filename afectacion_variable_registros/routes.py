@@ -155,7 +155,6 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
                 parroquia_id: {type: integer}
                 parroquia_nombre: {type: string}
                 evento_id: {type: integer}
-                evento_sector: {type: string}
                 evento_nombre: {type: string}
                 afectacion_variable_id: {type: integer}
                 variable_nombre: {type: string}
@@ -169,7 +168,6 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
           p.id AS parroquia_id,
           p.nombre AS parroquia_nombre,
           e.id AS evento_id,
-          e.sector AS evento_sector,  
           CASE 
               WHEN s.nombre IS NULL OR s.nombre = '' 
                   THEN t.nombre 
@@ -206,6 +204,177 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
           p.nombre,
           e.id,
           v.id;
+    """)
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
+    registros = []
+    for row in result:
+        registros.append({  # type: ignore
+            'id': row.id,
+            'parroquia_id': row.parroquia_id,
+            'parroquia_nombre': row.parroquia_nombre,
+            'evento_id': row.evento_id,
+            'evento_nombre': row.evento_nombre,
+            'afectacion_variable_id': row.afectacion_variable_id,
+            'variable_nombre': row.variable_nombre,
+            'requiere_gis': row.requiere_gis,
+            'cantidad': row.cantidad,
+            'costo': row.costo
+        })
+    return jsonify(registros)
+
+@afectacion_variable_registros_bp.route('/api/afectaciones_registros/eventos/emergencia/<int:emergencia_id>/provincia/<int:provincia_id>/canton/<int:canton_id>/coe/<int:coe_id>/mesa_grupo/<int:mesa_grupo_id>/', 
+methods=['GET'])
+def get_data_afectaciones_registro_by_evento_by_provincia_by_canton_by_coe_by_mesa_grupo(emergencia_id, provincia_id, canton_id, coe_id, mesa_grupo_id):
+    """Obtener data de afectaciones de registros por evento y cantón
+    ---
+    tags:
+      - Afectacion Variable Registros
+    parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+      - name: canton_id
+        in: path
+        type: integer
+        required: true    
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+      - name: mesa_grupo_id
+        in: path
+        type: integer
+        required: true
+    responses:
+        200:
+          description: Lista de registros por evento, provincia, cantón, coe y mesa grupo
+          schema:
+            type: array
+            items:
+              type: object
+              properties:
+                parroquia_id: {type: integer}
+                parroquia_nombre: {type: string}
+                evento_id: {type: integer}
+                evento_sector: {type: string}
+                evento_nombre: {type: string}
+                afectacion_variable_id: {type: integer}
+                variable_nombre: {type: string}
+                requiere_gis: {type: boolean}
+                cantidad: {type: integer}
+                costo: {type: integer}
+    """
+    query = db.text("""
+      WITH eventos_base AS (
+          SELECT
+              e.id AS evento_id,
+              e.emergencia_id,
+              e.provincia_id,
+              e.canton_id,
+              e.parroquia_id,
+              p.nombre AS parroquia_nombre,
+              e.sector AS evento_sector,
+              e.evento_fecha,
+              CASE 
+                  WHEN s.nombre IS NULL OR s.nombre = '' 
+                      THEN t.nombre 
+                  ELSE t.nombre || '/' || s.nombre 
+              END AS evento_nombre
+          FROM public.eventos e
+          INNER JOIN public.parroquias p
+                  ON p.id = e.parroquia_id
+          INNER JOIN public.evento_tipos t
+                  ON t.id = e.evento_tipo_id
+          LEFT JOIN public.evento_subtipos s
+                ON s.id = e.evento_subtipo_id
+          WHERE e.emergencia_id = :emergencia_id
+            AND e.provincia_id = :provincia_id
+            AND e.canton_id = :canton_id
+            AND COALESCE(e.activo, true) = true
+
+            -- Valida que la parroquia pertenezca a la emergencia
+            AND EXISTS (
+                  SELECT 1
+                  FROM public.emergencia_parroquias ep
+                  WHERE ep.emergencia_id = e.emergencia_id
+                    AND ep.parroquia_id = e.parroquia_id
+                    AND COALESCE(ep.activo, true) = true
+            )
+      ),
+
+      variables_base AS (
+          SELECT
+              v.id AS afectacion_variable_id,
+              v.nombre AS variable_nombre,
+              v.requiere_gis,
+              v.requiere_costo
+          FROM public.afectacion_variables v
+          WHERE COALESCE(v.activo, true) = true
+            AND v.coe_id = :coe_id
+            AND v.mesa_grupo_id = :mesa_grupo_id
+      ),
+
+      registros_unicos AS (
+          SELECT DISTINCT ON (
+              r.evento_id,
+              r.afectacion_variable_id
+          )
+              r.id,
+              r.emergencia_id,
+              r.evento_id,
+              r.afectacion_variable_id,
+              r.cantidad,
+              r.costo
+          FROM public.afectacion_variable_registros r
+          INNER JOIN eventos_base eb
+                  ON eb.evento_id = r.evento_id
+          WHERE r.emergencia_id = :emergencia_id
+            AND COALESCE(r.activo, true) = true
+          ORDER BY
+              r.evento_id,
+              r.afectacion_variable_id,
+              r.modificacion DESC NULLS LAST,
+              r.creacion DESC,
+              r.id DESC
+      )
+
+      SELECT
+          r.id AS id,
+
+          eb.parroquia_id,
+          eb.parroquia_nombre,
+
+          eb.evento_id,
+          eb.evento_sector,
+          eb.evento_nombre,
+
+          v.afectacion_variable_id,
+          v.variable_nombre,
+          v.requiere_gis,
+          v.requiere_costo,
+
+          COALESCE(r.cantidad, 0) AS cantidad,
+          COALESCE(r.costo, 0) AS costo,
+
+          CASE 
+              WHEN r.id IS NULL THEN false
+              ELSE true
+          END AS tiene_registro
+
+      FROM eventos_base eb
+      CROSS JOIN variables_base v
+      LEFT JOIN registros_unicos r
+            ON r.evento_id = eb.evento_id
+            AND r.afectacion_variable_id = v.afectacion_variable_id
+      ORDER BY
+          eb.parroquia_nombre,
+          eb.evento_id,
+          v.afectacion_variable_id;
     """)
     result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
     registros = []
