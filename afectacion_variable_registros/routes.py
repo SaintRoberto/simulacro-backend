@@ -155,6 +155,7 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
                 parroquia_id: {type: integer}
                 parroquia_nombre: {type: string}
                 evento_id: {type: integer}
+                evento_sector: {type: string}
                 evento_nombre: {type: string}
                 afectacion_variable_id: {type: integer}
                 variable_nombre: {type: string}
@@ -168,6 +169,7 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
           p.id AS parroquia_id,
           p.nombre AS parroquia_nombre,
           e.id AS evento_id,
+          e.sector AS evento_sector,  
           CASE 
               WHEN s.nombre IS NULL OR s.nombre = '' 
                   THEN t.nombre 
@@ -213,6 +215,7 @@ def get_data_afectaciones_registro_by_evento_by_canton(emergencia_id, canton_id,
             'parroquia_id': row.parroquia_id,
             'parroquia_nombre': row.parroquia_nombre,
             'evento_id': row.evento_id,
+            'evento_sector': row.evento_sector,
             'evento_nombre': row.evento_nombre,
             'afectacion_variable_id': row.afectacion_variable_id,
             'variable_nombre': row.variable_nombre,
