@@ -376,7 +376,7 @@ def get_data_afectaciones_registro_by_evento_by_provincia_by_canton_by_coe_by_me
           eb.evento_id,
           v.afectacion_variable_id;
     """)
-    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'canton_id': canton_id, 'mesa_grupo_id': mesa_grupo_id})
+    result = db.session.execute(query, {'emergencia_id': emergencia_id, 'provincia_id': provincia_id, 'canton_id': canton_id, 'coe_id': coe_id, 'mesa_grupo_id': mesa_grupo_id})
     registros = []
     for row in result:
         registros.append({  # type: ignore
