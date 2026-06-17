@@ -122,91 +122,119 @@ def _get_barrido_monitoreo_by_id(item_id):
 def _get_barrido_monitoreo_by_usuario_by_coe_by_barrido(usuario_id, coe_id_usuario, barrido_id):
     query = db.text(
         """
-        WITH canton_usuario AS (
-            SELECT DISTINCT
-                x.provincia_id,
-                x.canton_id
-            FROM public.usuario_perfil_coe_dpa_mesa x
-            WHERE x.usuario_id = :usuario_id
-              AND x.coe_id = :coe_id_usuario
-              AND x.provincia_id IS NOT NULL
-              AND x.canton_id IS NOT NULL
-              AND COALESCE(x.activo, true) = true
-        ),
-        territorio AS (
-            SELECT DISTINCT
-                cu.provincia_id,
-                cu.canton_id,
-                q.id AS parroquia_id
-            FROM canton_usuario cu
-            INNER JOIN public.parroquias q
-                ON q.provincia_id = cu.provincia_id
-               AND q.canton_id = cu.canton_id
-        )
-        SELECT
-            bm.id,
-            b.id AS barrido_id,
-            b.evento_tipo_id AS barrido_evento_tipo_id,
-            et.nombre AS barrido_evento_tipo_nombre,
-            b.evento_fecha AS barrido_evento_fecha,
-            b.emergencia_id,
-            e.nombre AS emergencia_nombre,
-            bm.monitoreo_fecha,
-            t.provincia_id,
-            p.nombre AS provincia_nombre,
-            t.canton_id,
-            c.nombre AS canton_nombre,
-            t.parroquia_id,
-            q.nombre AS parroquia_nombre,
-            bm.sector,
-            bm.longitud,
-            bm.latitud,
-            bm.intensidad_id,
-            bi.orden AS intensidad_orden,
-            bi.nombre AS intensidad_nombre,
-            bi.descripcion AS intensidad_descripcion,
-            bm.fuente,
-            bm.observaciones,
-            COALESCE(bm.activo, true) AS activo,
-            bm.creador,
-            bm.creacion,
-            bm.modificador,
-            bm.modificacion,
-            CASE
-                WHEN bm.id IS NULL THEN false
-                ELSE true
-            END AS monitoreo_registrado,
-            CASE
-                WHEN bm.id IS NULL THEN 'Pendiente'
-                WHEN bm.intensidad_id IS NULL THEN 'Sin intensidad'
-                ELSE 'Calificado'
-            END AS monitoreo_estado
-        FROM territorio t
-        INNER JOIN public.barridos b
-            ON b.id = :barrido_id
-        LEFT JOIN public.barrido_monitoreo bm
-            ON bm.barrido_id = b.id
-           AND bm.provincia_id = t.provincia_id
-           AND bm.canton_id = t.canton_id
-           AND bm.parroquia_id = t.parroquia_id
-           AND COALESCE(bm.activo, true) = true
-        LEFT JOIN public.emergencias e
-            ON e.id = b.emergencia_id
-        LEFT JOIN public.evento_tipos et
-            ON et.id = b.evento_tipo_id
-        LEFT JOIN public.barrido_intensidad bi
-            ON bi.id = bm.intensidad_id
-           AND bi.evento_tipo_id = b.evento_tipo_id
-        LEFT JOIN public.provincias p
-            ON p.id = t.provincia_id
-        LEFT JOIN public.cantones c
-            ON c.provincia_id = t.provincia_id
-           AND c.id = t.canton_id
-        LEFT JOIN public.parroquias q
-            ON q.provincia_id = t.provincia_id
-           AND q.canton_id = t.canton_id
-           AND q.id = t.parroquia_id
-        ORDER BY t.provincia_id ASC, t.canton_id ASC, t.parroquia_id ASC
+            WITH barrido_base AS (
+                SELECT
+                    b.id,
+                    b.evento_tipo_id,
+                    b.evento_fecha,
+                    b.emergencia_id
+                FROM public.barridos b
+                WHERE b.id = :barrido_id
+            ),
+            canton_usuario AS (
+                SELECT DISTINCT
+                    x.provincia_id,
+                    x.canton_id
+                FROM public.usuario_perfil_coe_dpa_mesa x
+                WHERE x.usuario_id = :usuario_id
+                AND x.coe_id = :coe_id_usuario
+                AND x.provincia_id IS NOT NULL
+                AND x.canton_id IS NOT NULL
+                AND COALESCE(x.activo, true) = true
+            ),
+            territorio AS (
+                SELECT DISTINCT
+                    cu.provincia_id,
+                    cu.canton_id,
+                    q.id AS parroquia_id
+                FROM canton_usuario cu
+                INNER JOIN public.parroquias q
+                    ON q.provincia_id = cu.provincia_id
+                AND q.canton_id = cu.canton_id
+                INNER JOIN barrido_base b
+                    ON true
+                INNER JOIN public.emergencia_parroquias ep
+                    ON ep.emergencia_id = b.emergencia_id
+                AND ep.parroquia_id = q.id
+                AND COALESCE(ep.activo, true) = true
+            )
+            SELECT
+                bm.id,
+                b.id AS barrido_id,
+                b.evento_tipo_id AS barrido_evento_tipo_id,
+                et.nombre AS barrido_evento_tipo_nombre,
+                b.evento_fecha AS barrido_evento_fecha,
+                b.emergencia_id,
+                e.nombre AS emergencia_nombre,
+                bm.monitoreo_fecha,
+
+                t.provincia_id,
+                p.nombre AS provincia_nombre,
+
+                t.canton_id,
+                c.nombre AS canton_nombre,
+
+                t.parroquia_id,
+                q.nombre AS parroquia_nombre,
+
+                bm.sector,
+                bm.longitud,
+                bm.latitud,
+
+                bm.intensidad_id,
+                bi.orden AS intensidad_orden,
+                bi.nombre AS intensidad_nombre,
+                bi.descripcion AS intensidad_descripcion,
+
+                bm.fuente,
+                bm.observaciones,
+
+                COALESCE(bm.activo, true) AS activo,
+                bm.creador,
+                bm.creacion,
+                bm.modificador,
+                bm.modificacion,
+
+                CASE
+                    WHEN bm.id IS NULL THEN false
+                    ELSE true
+                END AS monitoreo_registrado,
+
+                CASE
+                    WHEN bm.id IS NULL THEN 'Pendiente'
+                    WHEN bm.intensidad_id IS NULL THEN 'Sin intensidad'
+                    ELSE 'Calificado'
+                END AS monitoreo_estado
+
+            FROM territorio t
+            INNER JOIN barrido_base b
+                ON true
+            LEFT JOIN public.barrido_monitoreo bm
+                ON bm.barrido_id = b.id
+            AND bm.provincia_id = t.provincia_id
+            AND bm.canton_id = t.canton_id
+            AND bm.parroquia_id = t.parroquia_id
+            AND COALESCE(bm.activo, true) = true
+            LEFT JOIN public.emergencias e
+                ON e.id = b.emergencia_id
+            LEFT JOIN public.evento_tipos et
+                ON et.id = b.evento_tipo_id
+            LEFT JOIN public.barrido_intensidad bi
+                ON bi.id = bm.intensidad_id
+            AND bi.evento_tipo_id = b.evento_tipo_id
+            LEFT JOIN public.provincias p
+                ON p.id = t.provincia_id
+            LEFT JOIN public.cantones c
+                ON c.provincia_id = t.provincia_id
+            AND c.id = t.canton_id
+            LEFT JOIN public.parroquias q
+                ON q.provincia_id = t.provincia_id
+            AND q.canton_id = t.canton_id
+            AND q.id = t.parroquia_id
+            ORDER BY
+                t.provincia_id ASC,
+                t.canton_id ASC,
+                t.parroquia_id ASC;
         """
     )
     return db.session.execute(
@@ -444,6 +472,48 @@ def get_barrido_monitoreo_by_usuario_by_coe_by_barrido(usuario_id, coe_id_usuari
       500:
         description: Error inesperado al consultar monitoreo territorial
     """
+    result = _get_barrido_monitoreo_by_usuario_by_coe_by_barrido(
+        usuario_id,
+        coe_id_usuario,
+        barrido_id,
+    )
+    return jsonify([_serialize_barrido_monitoreo(row) for row in result])
+
+
+@barrido_monitoreo_bp.route(
+    "/api/barrido_monitoreo/usuario/<int:usuario_id>/coe/<int:coe_id_usuario>/barrido/reciente",
+    methods=["GET"],
+)
+def get_barrido_monitoreo_by_usuario_by_coe_by_barrido_reciente(usuario_id, coe_id_usuario):
+    """Listar monitoreo territorial por usuario, COE y barrido reciente.
+    ---
+    tags:
+      - Barrido Monitoreo
+    summary: Listar monitoreo territorial por usuario, COE y barrido reciente
+    description: Busca el barrido activo mas reciente y devuelve la matriz territorial de parroquias asignadas al usuario en `usuario_perfil_coe_dpa_mesa` para el `coe_id_usuario` indicado. Incluye registros existentes de `barrido_monitoreo` cuando ya fueron reportados y marca los pendientes con `monitoreo_registrado=false` y `monitoreo_estado=Pendiente`.
+    parameters:
+      - name: usuario_id
+        in: path
+        type: integer
+        required: true
+        description: Identificador del usuario territorial
+      - name: coe_id_usuario
+        in: path
+        type: integer
+        required: true
+        description: Identificador del COE asociado al perfil territorial del usuario
+    responses:
+      200:
+        description: Lista territorial de monitoreo del barrido activo mas reciente para el usuario y COE indicados
+      404:
+        description: No existe un barrido activo para consultar monitoreo territorial
+      500:
+        description: Error inesperado al consultar monitoreo territorial del barrido reciente
+    """
+    barrido_id = _get_latest_barrido_id()
+    if barrido_id is None:
+        return jsonify({"error": "No existe un barrido activo"}), 404
+
     result = _get_barrido_monitoreo_by_usuario_by_coe_by_barrido(
         usuario_id,
         coe_id_usuario,
