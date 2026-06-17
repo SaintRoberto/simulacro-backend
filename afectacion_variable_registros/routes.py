@@ -394,6 +394,7 @@ def get_data_afectaciones_registro_by_evento_by_provincia_by_canton_by_coe_by_me
         })
     return jsonify(registros)
 
+
 @afectacion_variable_registros_bp.route('/api/afectacion_variable_registros/parroquia/<int:parroquia_id>/emergencia/<int:emergencia_id>/mesa_grupo/<int:mesa_grupo_id>', methods=['GET'])
 def get_data_afectaciones_registro_by_parroquia(parroquia_id, emergencia_id, mesa_grupo_id):
     """Obtener data afectaciones registro por parroquia
