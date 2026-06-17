@@ -54,14 +54,18 @@ def get_afectacion_variables():
         })
     return jsonify(variables)
 
-@afectacion_variables_bp.route('/api/mesa_grupo/<int:mesa_grupo_id>/afectacion_varibles/', methods=['GET'])
-def get_afectacion_variables_by_mesa_grupo(mesa_grupo_id):
+@afectacion_variables_bp.route('/api/mesa_grupo/<int:mesa_grupo_id>/afectacion_varibles/coe/<int:coe_id>', methods=['GET'])
+def get_afectacion_variables_by_mesa_grupo(mesa_grupo_id, coe_id):
     """Listar afectacion_variables por mesa_grupo
     ---
     tags:
       - Afectacion Variables
     parameters:
       - name: mesa_grupo_id
+        in: path
+        type: integer
+        required: true
+      - name: coe_id
         in: path
         type: integer
         required: true
@@ -88,7 +92,7 @@ def get_afectacion_variables_by_mesa_grupo(mesa_grupo_id):
                 modificador: {type: string}
                 modificacion: {type: string}
     """
-    result = db.session.execute(db.text("SELECT * FROM afectacion_variables WHERE mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0"), {'mesa_grupo_id': mesa_grupo_id})
+    result = db.session.execute(db.text("SELECT * FROM afectacion_variables WHERE (mesa_grupo_id = :mesa_grupo_id OR :mesa_grupo_id = 0) AND coe_id = :coe_id"), {'mesa_grupo_id': mesa_grupo_id, 'coe_id': coe_id})
     variables = []
     for row in result:
         variables.append({  # type: ignore
