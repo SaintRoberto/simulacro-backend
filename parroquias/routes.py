@@ -47,13 +47,17 @@ def get_parroquias():
         })
     return jsonify(parroquias)
 
-@parroquias_bp.route('/api/parroquias/canton/<int:canton_id>', methods=['GET'])
-def get_parroquias_by_canton(canton_id):
+@parroquias_bp.route('/api/parroquias/emergencia/<int:emergencia_id>/canton/<int:canton_id>', methods=['GET'])
+def get_parroquias_by_canton(emergencia_id, canton_id):
     """Listar parroquias por canton
     ---
     tags:
       - Parroquias
     parameters:
+      - name: emergencia_id
+        in: path
+        type: integer
+        required: true    
       - name: canton_id
         in: path
         type: integer
@@ -78,7 +82,7 @@ def get_parroquias_by_canton(canton_id):
                 modificador: {type: string}
                 modificacion: {type: string, format: date-time}
     """
-    result = db.session.execute(db.text("SELECT * FROM parroquias WHERE canton_id = :canton_id"), {'canton_id': canton_id})
+    result = db.session.execute(db.text("SELECT p.* FROM parroquias p INNER JOIN emergencia_parroquias ep ON p.id = ep.parroquia_id WHERE p.canton_id = :canton_id AND ep.emergencia_id = :emergencia_id"), {'canton_id': canton_id, 'emergencia_id': emergencia_id})
     parroquias = []
     for row in result:
         parroquias.append({  # type: ignore
