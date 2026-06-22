@@ -23,6 +23,7 @@ def _serialize_requerimiento_huella_log(row):
         "id": _get_optional("id"),
         "requerimiento_recurso_id": _get_optional("requerimiento_recurso_id"),
         "requerimiento_numero": _get_optional("requerimiento_numero"),
+        "requerimiento_numero_original": _get_optional("requerimiento_numero_original"),
         "secuencia": _get_optional("secuencia"),
         "requerimiento_accion_log_id": _get_optional("requerimiento_accion_log_id"),
         "requerimiento_accion": _get_optional("requerimiento_accion"),
@@ -65,6 +66,7 @@ def _build_base_historial_query():
             rhl.id,
             rhl.requerimiento_recurso_id,
             rhl.requerimiento_numero,
+            rhl.requerimiento_numero_original,
             rhl.secuencia,
             rhl.requerimiento_accion_log_id,
             rac.nombre AS requerimiento_accion,
@@ -191,6 +193,32 @@ def _siguiente_secuencia(requerimiento_recurso_id):
     return row.secuencia if row else 1
 
 
+def _resolver_requerimiento_numero_original(
+    requerimiento_recurso_id,
+    requerimiento_numero_original,
+    requerimiento_numero
+):
+    if requerimiento_numero_original is not None:
+        return requerimiento_numero_original
+
+    query = db.text("""
+        SELECT COALESCE(requerimiento_numero_original, requerimiento_numero)
+            AS requerimiento_numero_original
+        FROM public.requerimiento_huella_logs
+        WHERE requerimiento_recurso_id = :requerimiento_recurso_id
+            AND COALESCE(requerimiento_numero_original, requerimiento_numero) IS NOT NULL
+        ORDER BY secuencia ASC, id ASC
+        LIMIT 1
+    """)
+    row = db.session.execute(
+        query,
+        {"requerimiento_recurso_id": requerimiento_recurso_id}
+    ).fetchone()
+    if row is not None:
+        return row.requerimiento_numero_original
+    return requerimiento_numero
+
+
 @requerimiento_huella_logs_bp.route("/api/requerimiento-huella-logs", methods=["GET"])
 def get_requerimiento_huella_logs():
     """Listar historial de huella de requerimientos
@@ -206,6 +234,12 @@ def get_requerimiento_huella_logs():
         in: query
         type: string
         required: false
+        description: Filtra por el numero vigente registrado en el evento
+      - name: requerimiento_numero_original
+        in: query
+        type: string
+        required: false
+        description: Filtra todos los eventos asociados al numero inicial del requerimiento
       - name: usuario_accion_id
         in: query
         type: integer
@@ -246,6 +280,7 @@ def get_requerimiento_huella_logs():
               id: {type: integer}
               requerimiento_recurso_id: {type: integer}
               requerimiento_numero: {type: string}
+              requerimiento_numero_original: {type: string}
               secuencia: {type: integer}
               requerimiento_accion_log_id: {type: integer}
               requerimiento_accion: {type: string}
@@ -288,6 +323,10 @@ def get_requerimiento_huella_logs():
     query_param_map = {
         "requerimiento_recurso_id": "rhl.requerimiento_recurso_id = :requerimiento_recurso_id",
         "requerimiento_numero": "rhl.requerimiento_numero = :requerimiento_numero",
+        "requerimiento_numero_original": (
+            "COALESCE(rhl.requerimiento_numero_original, rhl.requerimiento_numero) "
+            "= :requerimiento_numero_original"
+        ),
         "usuario_accion_id": "rhl.usuario_accion_id = :usuario_accion_id",
         "usuario_emisor_id": "rhl.usuario_emisor_id = :usuario_emisor_id",
         "usuario_receptor_id": "rhl.usuario_receptor_id = :usuario_receptor_id",
@@ -300,7 +339,7 @@ def get_requerimiento_huella_logs():
         value = request.args.get(param_name)
         if value is None:
             continue
-        if param_name == "requerimiento_numero":
+        if param_name in ("requerimiento_numero", "requerimiento_numero_original"):
             params[param_name] = value
         else:
             try:
@@ -376,6 +415,8 @@ def get_requerimiento_huella_logs_by_requerimiento_recurso_id(requerimiento_recu
             properties:
               id: {type: integer}
               requerimiento_recurso_id: {type: integer}
+              requerimiento_numero: {type: string}
+              requerimiento_numero_original: {type: string}
               secuencia: {type: integer}
               requerimiento_accion: {type: string}
               requerimiento_estado: {type: string}
@@ -396,11 +437,58 @@ def get_requerimiento_huella_logs_by_requerimiento_recurso_id(requerimiento_recu
 
 
 @requerimiento_huella_logs_bp.route(
+    "/api/requerimiento-huella-logs/requerimiento-numero-original/<string:requerimiento_numero_original>",
+    methods=["GET"]
+)
+def get_requerimiento_huella_logs_by_requerimiento_numero_original(requerimiento_numero_original):
+    """Obtener el recorrido completo por numero de requerimiento original
+    ---
+    tags:
+      - Requerimiento Huella Logs
+    summary: Consultar la trazabilidad integral de un requerimiento
+    description: Devuelve todos los eventos asociados al numero inicial, incluso cuando el requerimiento haya cambiado de numero antes de ser respondido o rechazado en la brecha.
+    parameters:
+      - name: requerimiento_numero_original
+        in: path
+        type: string
+        required: true
+        description: Numero asignado al requerimiento en su creacion inicial
+    responses:
+      200:
+        description: Recorrido historico ordenado cronologicamente
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              requerimiento_numero: {type: string}
+              requerimiento_numero_original: {type: string}
+              requerimiento_recurso_id: {type: integer}
+              secuencia: {type: integer}
+              requerimiento_accion: {type: string}
+              requerimiento_estado: {type: string}
+              respuesta_estado: {type: string}
+              respuesta_fecha: {type: string}
+    """
+    sql = _build_base_historial_query() + """
+        WHERE COALESCE(rhl.requerimiento_numero_original, rhl.requerimiento_numero)
+            = :requerimiento_numero_original
+        ORDER BY rhl.respuesta_fecha ASC NULLS LAST, rhl.id ASC
+    """
+    result = db.session.execute(
+        db.text(sql),
+        {"requerimiento_numero_original": requerimiento_numero_original}
+    )
+    return jsonify([_serialize_requerimiento_huella_log(row) for row in result])
+
+
+@requerimiento_huella_logs_bp.route(
     "/api/requerimiento-huella-logs/requerimiento-numero/<string:requerimiento_numero>",
     methods=["GET"]
 )
 def get_requerimiento_huella_logs_by_requerimiento_numero(requerimiento_numero):
-    """Obtener historial completo por requerimiento_numero
+    """Obtener historial por numero de requerimiento vigente
     ---
     tags:
       - Requerimiento Huella Logs
@@ -411,7 +499,7 @@ def get_requerimiento_huella_logs_by_requerimiento_numero(requerimiento_numero):
         required: true
     responses:
       200:
-        description: Historial del requerimiento agrupado por numero
+        description: Historial de eventos cuyo numero vigente coincide con el parametro. Para consultar el recorrido completo use requerimiento-numero-original.
         schema:
           type: array
           items:
@@ -419,6 +507,7 @@ def get_requerimiento_huella_logs_by_requerimiento_numero(requerimiento_numero):
             properties:
               id: {type: integer}
               requerimiento_numero: {type: string}
+              requerimiento_numero_original: {type: string}
               requerimiento_recurso_id: {type: integer}
               secuencia: {type: integer}
               requerimiento_accion: {type: string}
@@ -460,6 +549,7 @@ def create_requerimiento_huella_log():
           properties:
             requerimiento_recurso_id: {type: integer}
             requerimiento_numero: {type: string}
+            requerimiento_numero_original: {type: string, description: Numero asignado al requerimiento en su creacion inicial. Si se omite, se conserva el primer numero original conocido para el recurso o se usa requerimiento_numero.}
             secuencia: {type: integer, description: Opcional. Si no se envia se autogenera secuencia incremental}
             requerimiento_accion_log_id: {type: integer}
             requerimiento_estado_id: {type: integer}
@@ -554,11 +644,17 @@ def create_requerimiento_huella_log():
         return jsonify({"error": "secuencia debe ser mayor o igual a 1"}), 400
 
     respuesta_fecha = data.get("respuesta_fecha", datetime.now(timezone.utc))
+    requerimiento_numero_original = _resolver_requerimiento_numero_original(
+        data["requerimiento_recurso_id"],
+        data.get("requerimiento_numero_original"),
+        data.get("requerimiento_numero")
+    )
 
     query = db.text("""
         INSERT INTO public.requerimiento_huella_logs (
             requerimiento_recurso_id,
             requerimiento_numero,
+            requerimiento_numero_original,
             secuencia,
             requerimiento_accion_log_id,
             requerimiento_estado_id,
@@ -582,6 +678,7 @@ def create_requerimiento_huella_log():
         VALUES (
             :requerimiento_recurso_id,
             :requerimiento_numero,
+            :requerimiento_numero_original,
             :secuencia,
             :requerimiento_accion_log_id,
             :requerimiento_estado_id,
@@ -608,6 +705,7 @@ def create_requerimiento_huella_log():
     params = {
         "requerimiento_recurso_id": data["requerimiento_recurso_id"],
         "requerimiento_numero": data.get("requerimiento_numero"),
+        "requerimiento_numero_original": requerimiento_numero_original,
         "secuencia": secuencia,
         "requerimiento_accion_log_id": data["requerimiento_accion_log_id"],
         "requerimiento_estado_id": data["requerimiento_estado_id"],
@@ -680,6 +778,7 @@ def update_requerimiento_huella_log(id):
           properties:
             requerimiento_recurso_id: {type: integer}
             requerimiento_numero: {type: string}
+            requerimiento_numero_original: {type: string, description: Solo puede establecerse si el log aun no tiene numero original; una vez definido es inmutable.}
             secuencia: {type: integer}
             requerimiento_accion_log_id: {type: integer}
             requerimiento_estado_id: {type: integer}
@@ -720,6 +819,7 @@ def update_requerimiento_huella_log(id):
     candidate = {
         "requerimiento_recurso_id": data.get("requerimiento_recurso_id", actual.requerimiento_recurso_id),
         "requerimiento_numero": data.get("requerimiento_numero", actual.requerimiento_numero),
+        "requerimiento_numero_original": actual.requerimiento_numero_original,
         "secuencia": data.get("secuencia", actual.secuencia),
         "requerimiento_accion_log_id": data.get("requerimiento_accion_log_id", actual.requerimiento_accion_log_id),
         "requerimiento_estado_id": data.get("requerimiento_estado_id", actual.requerimiento_estado_id),
@@ -740,6 +840,12 @@ def update_requerimiento_huella_log(id):
         "motivo_id": data.get("motivo_id", actual.motivo_id),
         "respuesta_fecha": data.get("respuesta_fecha", actual.respuesta_fecha),
     }
+
+    if "requerimiento_numero_original" in data:
+        requerimiento_numero_original = data["requerimiento_numero_original"]
+        if actual.requerimiento_numero_original is not None and requerimiento_numero_original != actual.requerimiento_numero_original:
+            return jsonify({"error": "requerimiento_numero_original es inmutable una vez definido"}), 400
+        candidate["requerimiento_numero_original"] = requerimiento_numero_original
 
     if candidate["secuencia"] is None or candidate["secuencia"] < 1:
         return jsonify({"error": "secuencia debe ser mayor o igual a 1"}), 400
@@ -779,6 +885,7 @@ def update_requerimiento_huella_log(id):
         UPDATE public.requerimiento_huella_logs
         SET requerimiento_recurso_id = :requerimiento_recurso_id,
             requerimiento_numero = :requerimiento_numero,
+            requerimiento_numero_original = :requerimiento_numero_original,
             secuencia = :secuencia,
             requerimiento_accion_log_id = :requerimiento_accion_log_id,
             requerimiento_estado_id = :requerimiento_estado_id,
