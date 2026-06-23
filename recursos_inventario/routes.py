@@ -229,14 +229,109 @@ def get_recurso_inventario_disponible(recurso_inventario_id):
 def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(
     coe_id, mesa_id, recurso_tipo_id, provincia_id, canton_id
 ):
-    """Obtener existencias por COE, mesa, tipo de recurso, provincia y cantón"""
+    """Obtener inventario disponible en mesas relacionadas al COE
+    ---
+    tags:
+      - Recursos Inventario
+    summary: Consultar existencias, asignaciones y disponibilidad por mesa
+    description: |
+      Consulta las mesas habilitadas para atender un requerimiento desde la
+      mesa indicada. Incluye las mesas del mismo COE, excepto la mesa del
+      usuario, y las mesas del COE inmediatamente superior que pertenecen al
+      mismo grupo de mesa.
+
+      Las existencias se agrupan por COE y mesa para el tipo de recurso y la
+      cobertura territorial solicitados. Las asignaciones corresponden a
+      respuestas activas con factor igual a 1, es decir, recursos asignados
+      que no han sido devueltos. La disponibilidad se calcula como existencias
+      menos asignaciones. Solo se devuelven mesas con existencias mayores a
+      cero.
+    parameters:
+      - name: coe_id
+        in: path
+        type: integer
+        required: true
+        description: ID del COE del usuario en sesion
+      - name: mesa_id
+        in: path
+        type: integer
+        required: true
+        description: ID de la mesa del usuario en sesion
+      - name: recurso_tipo_id
+        in: path
+        type: integer
+        required: true
+        description: ID del tipo de recurso a consultar
+      - name: provincia_id
+        in: path
+        type: integer
+        required: true
+        description: ID de provincia para filtrar inventario, o 0 para no filtrar
+      - name: canton_id
+        in: path
+        type: integer
+        required: true
+        description: ID de canton para filtrar inventario, o 0 para no filtrar
+    responses:
+      200:
+        description: Inventario, asignaciones vigentes y disponibilidad por mesa
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              coe_id: {type: integer}
+              mesa_id: {type: integer}
+              mesa_nombre: {type: string}
+              existencias: {type: integer}
+              asignadas: {type: integer}
+              disponibles: {type: integer}
+    """
 
     query = db.text("""
+        WITH inventario AS (
+            SELECT
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id,
+                COALESCE(SUM(ri.existencias), 0) AS existencias
+            FROM public.recursos_inventario ri
+            WHERE ri.recurso_tipo_id = :recurso_tipo_id
+              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+              AND (ri.canton_id = :canton_id OR :canton_id = 0)
+              AND COALESCE(ri.activo, true) = true
+            GROUP BY
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id
+        ),
+        asignaciones_no_devueltas AS (
+            SELECT
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id,
+                COALESCE(SUM(rr.cantidad_asignada), 0) AS asignadas
+            FROM public.requerimiento_respuestas rr
+            INNER JOIN public.recursos_inventario ri
+                    ON ri.id = rr.recurso_inventario_id
+            WHERE ri.recurso_tipo_id = :recurso_tipo_id
+              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+              AND (ri.canton_id = :canton_id OR :canton_id = 0)
+              AND COALESCE(ri.activo, true) = true
+              AND COALESCE(rr.activo, true) = true
+              AND COALESCE(rr.factor, 0) = 1
+            GROUP BY
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id
+        )
         SELECT
             m.coe_id,
             m.id AS mesa_id,
             c.siglas || ' - ' || m.nombre AS mesa_nombre,
-            COALESCE(SUM(ri.existencias), 0) AS existencias
+            COALESCE(i.existencias, 0) AS existencias,
+            COALESCE(a.asignadas, 0) AS asignadas,
+            COALESCE(i.existencias, 0) - COALESCE(a.asignadas, 0) AS disponibles
         FROM public.mesas mu
         INNER JOIN public.mesas m
                 ON (
@@ -255,23 +350,19 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(
                 )
         INNER JOIN public.coes c 
                 ON c.id = m.coe_id
-        LEFT JOIN public.recursos_inventario ri
-            ON ri.coe_id = m.coe_id
-            AND ri.mesa_id = m.id
-            AND ri.recurso_tipo_id = :recurso_tipo_id
-            AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
-            AND (ri.canton_id = :canton_id OR :canton_id = 0)
-            AND COALESCE(ri.activo, true) = true
+        LEFT JOIN inventario i
+               ON i.coe_id = m.coe_id
+              AND i.mesa_id = m.id
+              AND i.recurso_tipo_id = :recurso_tipo_id
+        LEFT JOIN asignaciones_no_devueltas a
+               ON a.coe_id = m.coe_id
+              AND a.mesa_id = m.id
+              AND a.recurso_tipo_id = :recurso_tipo_id
         WHERE mu.id = :mesa_id_usuario
           AND mu.coe_id = :coe_id_usuario
           AND COALESCE(mu.activo, true) = true
           AND COALESCE(m.activo, true) = true
-        GROUP BY
-            m.coe_id,
-            m.id,
-            c.siglas,
-            m.nombre
-        HAVING COALESCE(SUM(ri.existencias), 0) > 0
+          AND COALESCE(i.existencias, 0) > 0
         ORDER BY
             m.coe_id,
             m.id;
@@ -292,7 +383,9 @@ def get_recursos_inventario_by_coe_by_mesa_by_recurso_tipo(
             'coe_id': row.coe_id,
             'mesa_id': row.mesa_id,
             'mesa_nombre': row.mesa_nombre,
-            'existencias': row.existencias
+            'existencias': row.existencias,
+            'asignadas': row.asignadas,
+            'disponibles': row.disponibles
         })
 
     return jsonify(items)
