@@ -404,12 +404,22 @@ def get_recursos_inventario_mesas_restantes(
     requerimiento_estado_rechazado,
     emergencia_id
 ):
-    """Obtener mesas restantes con existencias del recurso solicitado
+    """Obtener disponibilidad de un recurso en mesas restantes
     ---
     tags:
       - Recursos Inventario
-    summary: Obtener mesas restantes con inventario disponible
-    description: Devuelve mesas del mismo COE excluyendo la mesa del usuario, y mesas del COE superior relacionadas por grupo, excluyendo las mesas que ya rechazaron el requerimiento para el recurso y emergencia indicados.
+    summary: Consultar inventario y disponibilidad de mesas restantes
+    description: |
+      Devuelve mesas del mismo COE, excepto la mesa del usuario, y mesas del
+      COE inmediatamente superior relacionadas por el mismo grupo de mesa.
+      Excluye las mesas que ya rechazaron el requerimiento para el usuario
+      emisor, recurso y emergencia indicados.
+
+      Las existencias se agrupan por COE y mesa para el tipo de recurso y la
+      cobertura territorial solicitados. Las asignaciones corresponden a
+      respuestas activas con factor igual a 1. La disponibilidad se calcula
+      como existencias menos asignaciones y solo se incluyen mesas con
+      disponibilidad mayor a cero.
     parameters:
       - name: coe_id
         in: path
@@ -445,7 +455,7 @@ def get_recursos_inventario_mesas_restantes(
         in: path
         type: integer
         required: true
-        description: ID del estado de requerimiento que representa rechazo
+        description: ID del estado de requerimiento que representa un rechazo
       - name: emergencia_id
         in: path
         type: integer
@@ -453,7 +463,7 @@ def get_recursos_inventario_mesas_restantes(
         description: ID de la emergencia del requerimiento
     responses:
       200:
-        description: Existencias agrupadas por COE y mesa restante
+        description: Inventario, asignaciones vigentes y disponibilidad por mesa
         schema:
           type: array
           items:
@@ -463,13 +473,53 @@ def get_recursos_inventario_mesas_restantes(
               mesa_id: {type: integer}
               mesa_nombre: {type: string}
               existencias: {type: integer}
+              asignadas: {type: integer}
+              disponibles: {type: integer}
     """
     query = db.text("""
+        WITH inventario AS (
+            SELECT
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id,
+                COALESCE(SUM(ri.existencias), 0) AS existencias
+            FROM public.recursos_inventario ri
+            WHERE ri.recurso_tipo_id = :recurso_tipo_id
+              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+              AND (ri.canton_id = :canton_id OR :canton_id = 0)
+              AND COALESCE(ri.activo, true) = true
+            GROUP BY
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id
+        ),
+        asignaciones AS (
+            SELECT
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id,
+                COALESCE(SUM(rr.cantidad_asignada), 0) AS asignadas
+            FROM public.requerimiento_respuestas rr
+            INNER JOIN public.recursos_inventario ri
+                    ON ri.id = rr.recurso_inventario_id
+            WHERE ri.recurso_tipo_id = :recurso_tipo_id
+              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
+              AND (ri.canton_id = :canton_id OR :canton_id = 0)
+              AND COALESCE(ri.activo, true) = true
+              AND COALESCE(rr.activo, true) = true
+              AND COALESCE(rr.factor, 0) = 1
+            GROUP BY
+                ri.coe_id,
+                ri.mesa_id,
+                ri.recurso_tipo_id
+        )
         SELECT
             m.coe_id,
             m.id AS mesa_id,
             c.siglas || ' - ' || m.nombre AS mesa_nombre,
-            COALESCE(SUM(ri.existencias), 0) AS existencias
+            COALESCE(i.existencias, 0) AS existencias,
+            COALESCE(a.asignadas, 0) AS asignadas,
+            COALESCE(i.existencias, 0) - COALESCE(a.asignadas, 0) AS disponibles
         FROM public.mesas mu
         INNER JOIN public.mesas m
                 ON (
@@ -488,13 +538,14 @@ def get_recursos_inventario_mesas_restantes(
                 )
         INNER JOIN public.coes c
                 ON c.id = m.coe_id
-        LEFT JOIN public.recursos_inventario ri
-               ON ri.coe_id = m.coe_id
-              AND ri.mesa_id = m.id
-              AND ri.recurso_tipo_id = :recurso_tipo_id
-              AND (ri.provincia_id = :provincia_id OR :provincia_id = 0)
-              AND (ri.canton_id = :canton_id OR :canton_id = 0)
-              AND COALESCE(ri.activo, true) = true
+        LEFT JOIN inventario i
+               ON i.coe_id = m.coe_id
+              AND i.mesa_id = m.id
+              AND i.recurso_tipo_id = :recurso_tipo_id
+        LEFT JOIN asignaciones a
+               ON a.coe_id = m.coe_id
+              AND a.mesa_id = m.id
+              AND a.recurso_tipo_id = :recurso_tipo_id
         WHERE mu.id = :mesa_id_usuario
           AND mu.coe_id = :coe_id_usuario
           AND COALESCE(mu.activo, true) = true
@@ -507,18 +558,18 @@ def get_recursos_inventario_mesas_restantes(
                 INNER JOIN public.usuario_perfil_coe_dpa_mesa upcdm
                         ON upcdm.usuario_id = rr.usuario_receptor_id
                        AND upcdm.mesa_id = m.id
+                       AND upcdm.coe_id = m.coe_id
+                       AND COALESCE(upcdm.activo, true) = true
                 WHERE rr.usuario_emisor_id = :usuario_emisor_id
                   AND rr.requerimiento_estado_id = :requerimiento_estado_rechazado
                   AND rr.recurso_tipo_id = :recurso_tipo_id
                   AND rr.emergencia_id = :emergencia_id
                   AND COALESCE(rr.activo, true) = true
               )
-        GROUP BY
-            m.coe_id,
-            m.id,
-            c.siglas,
-            m.nombre
-        HAVING COALESCE(SUM(ri.existencias), 0) > 0
+          AND (
+                COALESCE(i.existencias, 0)
+                - COALESCE(a.asignadas, 0)
+              ) > 0
         ORDER BY
             m.coe_id,
             m.id
@@ -540,7 +591,9 @@ def get_recursos_inventario_mesas_restantes(
             'coe_id': row.coe_id,
             'mesa_id': row.mesa_id,
             'mesa_nombre': row.mesa_nombre,
-            'existencias': row.existencias
+            'existencias': row.existencias,
+            'asignadas': row.asignadas,
+            'disponibles': row.disponibles
         })
     return jsonify(items)
 
