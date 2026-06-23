@@ -24,6 +24,7 @@ def _serialize_requerimiento_huella_log(row):
         "requerimiento_recurso_id": _get_optional("requerimiento_recurso_id"),
         "requerimiento_numero": _get_optional("requerimiento_numero"),
         "requerimiento_numero_original": _get_optional("requerimiento_numero_original"),
+        "requerimiento_respuesta_situacion": _get_optional("requerimiento_respuesta_situacion"),
         "secuencia": _get_optional("secuencia"),
         "requerimiento_accion_log_id": _get_optional("requerimiento_accion_log_id"),
         "requerimiento_accion": _get_optional("requerimiento_accion"),
@@ -67,6 +68,7 @@ def _build_base_historial_query():
             rhl.requerimiento_recurso_id,
             rhl.requerimiento_numero,
             rhl.requerimiento_numero_original,
+            rhl.requerimiento_respuesta_situacion,
             rhl.secuencia,
             rhl.requerimiento_accion_log_id,
             rac.nombre AS requerimiento_accion,
@@ -281,6 +283,7 @@ def get_requerimiento_huella_logs():
               requerimiento_recurso_id: {type: integer}
               requerimiento_numero: {type: string}
               requerimiento_numero_original: {type: string}
+              requerimiento_respuesta_situacion: {type: string}
               secuencia: {type: integer}
               requerimiento_accion_log_id: {type: integer}
               requerimiento_accion: {type: string}
@@ -417,6 +420,7 @@ def get_requerimiento_huella_logs_by_requerimiento_recurso_id(requerimiento_recu
               requerimiento_recurso_id: {type: integer}
               requerimiento_numero: {type: string}
               requerimiento_numero_original: {type: string}
+              requerimiento_respuesta_situacion: {type: string}
               secuencia: {type: integer}
               requerimiento_accion: {type: string}
               requerimiento_estado: {type: string}
@@ -464,6 +468,7 @@ def get_requerimiento_huella_logs_by_requerimiento_numero_original(requerimiento
               id: {type: integer}
               requerimiento_numero: {type: string}
               requerimiento_numero_original: {type: string}
+              requerimiento_respuesta_situacion: {type: string}
               requerimiento_recurso_id: {type: integer}
               secuencia: {type: integer}
               requerimiento_accion: {type: string}
@@ -508,6 +513,7 @@ def get_requerimiento_huella_logs_by_requerimiento_numero(requerimiento_numero):
               id: {type: integer}
               requerimiento_numero: {type: string}
               requerimiento_numero_original: {type: string}
+              requerimiento_respuesta_situacion: {type: string}
               requerimiento_recurso_id: {type: integer}
               secuencia: {type: integer}
               requerimiento_accion: {type: string}
@@ -550,6 +556,7 @@ def create_requerimiento_huella_log():
             requerimiento_recurso_id: {type: integer}
             requerimiento_numero: {type: string}
             requerimiento_numero_original: {type: string, description: Numero asignado al requerimiento en su creacion inicial. Si se omite, se conserva el primer numero original conocido para el recurso o se usa requerimiento_numero.}
+            requerimiento_respuesta_situacion: {type: string, description: Campo opcional de texto con la situacion de la respuesta del requerimiento.}
             secuencia: {type: integer, description: Opcional. Si no se envia se autogenera secuencia incremental}
             requerimiento_accion_log_id: {type: integer}
             requerimiento_estado_id: {type: integer}
@@ -655,6 +662,7 @@ def create_requerimiento_huella_log():
             requerimiento_recurso_id,
             requerimiento_numero,
             requerimiento_numero_original,
+            requerimiento_respuesta_situacion,
             secuencia,
             requerimiento_accion_log_id,
             requerimiento_estado_id,
@@ -679,6 +687,7 @@ def create_requerimiento_huella_log():
             :requerimiento_recurso_id,
             :requerimiento_numero,
             :requerimiento_numero_original,
+            :requerimiento_respuesta_situacion,
             :secuencia,
             :requerimiento_accion_log_id,
             :requerimiento_estado_id,
@@ -706,6 +715,7 @@ def create_requerimiento_huella_log():
         "requerimiento_recurso_id": data["requerimiento_recurso_id"],
         "requerimiento_numero": data.get("requerimiento_numero"),
         "requerimiento_numero_original": requerimiento_numero_original,
+        "requerimiento_respuesta_situacion": data.get("requerimiento_respuesta_situacion"),
         "secuencia": secuencia,
         "requerimiento_accion_log_id": data["requerimiento_accion_log_id"],
         "requerimiento_estado_id": data["requerimiento_estado_id"],
@@ -779,6 +789,7 @@ def update_requerimiento_huella_log(id):
             requerimiento_recurso_id: {type: integer}
             requerimiento_numero: {type: string}
             requerimiento_numero_original: {type: string, description: Solo puede establecerse si el log aun no tiene numero original; una vez definido es inmutable.}
+            requerimiento_respuesta_situacion: {type: string, description: Campo opcional de texto con la situacion de la respuesta del requerimiento.}
             secuencia: {type: integer}
             requerimiento_accion_log_id: {type: integer}
             requerimiento_estado_id: {type: integer}
@@ -820,6 +831,10 @@ def update_requerimiento_huella_log(id):
         "requerimiento_recurso_id": data.get("requerimiento_recurso_id", actual.requerimiento_recurso_id),
         "requerimiento_numero": data.get("requerimiento_numero", actual.requerimiento_numero),
         "requerimiento_numero_original": actual.requerimiento_numero_original,
+        "requerimiento_respuesta_situacion": data.get(
+            "requerimiento_respuesta_situacion",
+            actual.requerimiento_respuesta_situacion
+        ),
         "secuencia": data.get("secuencia", actual.secuencia),
         "requerimiento_accion_log_id": data.get("requerimiento_accion_log_id", actual.requerimiento_accion_log_id),
         "requerimiento_estado_id": data.get("requerimiento_estado_id", actual.requerimiento_estado_id),
@@ -886,6 +901,7 @@ def update_requerimiento_huella_log(id):
         SET requerimiento_recurso_id = :requerimiento_recurso_id,
             requerimiento_numero = :requerimiento_numero,
             requerimiento_numero_original = :requerimiento_numero_original,
+            requerimiento_respuesta_situacion = :requerimiento_respuesta_situacion,
             secuencia = :secuencia,
             requerimiento_accion_log_id = :requerimiento_accion_log_id,
             requerimiento_estado_id = :requerimiento_estado_id,
