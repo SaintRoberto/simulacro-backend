@@ -1137,6 +1137,7 @@ def get_requerimiento_recursos_rechazados(usuario_emisor_id, requerimiento_estad
             'requerimiento_estado_id': requerimiento_estado_id
         }
     )
+    
     rows = []
     for row in result:
         row_mapping = row._mapping
