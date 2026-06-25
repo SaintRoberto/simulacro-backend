@@ -31,7 +31,7 @@ def get_recurso_tipos():
               modificacion: {type: string}
     """
     query = db.text("""
-      SELECT g.recurso_categoria_id, t.*
+      SELECT g.recurso_categoria_id, g.id AS recurso_grupo_id, g.nombre AS recurso_grupo_nombre, t.*
       FROM public.recurso_tipos t
       INNER JOIN public.recurso_grupos g ON t.recurso_grupo_id = g.id
       ORDER BY t.id ASC 
@@ -44,6 +44,7 @@ def get_recurso_tipos():
             'id': row.id,
             'recurso_categoria_id': getattr(row, 'recurso_categoria_id', None),
             'recurso_grupo_id': getattr(row, 'recurso_grupo_id', None),
+            'recurso_grupo_nombre': getattr(row, 'recurso_grupo_nombre', None), 
             'nombre': row.nombre,
             'descripcion': row.descripcion,
             'activo': row.activo,
