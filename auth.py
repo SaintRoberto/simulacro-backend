@@ -9,7 +9,7 @@ from passlib.hash import bcrypt
 # Load secret from env or fallback (do NOT use fallback in production)
 JWT_SECRET = os.environ.get('JWT_SECRET', 'change_this_secret_in_production')
 JWT_ALGORITHM = 'HS256'
-JWT_EXP_DELTA_SECONDS = int(os.environ.get('JWT_EXP_SECONDS', 3600))  # 1 hour default
+JWT_EXP_DELTA_SECONDS = int(os.environ.get('JWT_EXP_SECONDS', 28800))  # 1 hour default
 
 def hash_password(password: str) -> str:
     return bcrypt.hash(password)
