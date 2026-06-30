@@ -218,6 +218,7 @@ WHITELIST_PATHS = [
     '/api/usuarios/login',
     '/api/usuarios',  # allow user creation (POST) - if you want it public
     '/api/admin/eventos_historico_cache/refresh',
+    '/api/admin/eventos_historico_cache/status',
     '/eventos_historico',
     '/eventos_historico_json',
     '/eventos_dashboard_json',
