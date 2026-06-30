@@ -18,6 +18,10 @@ CACHE_LOCK_NAME = "eventos_historico_json_cache_refresh"
 MAX_JSON_LIMIT = 1000
 
 
+class CacheRefreshInProgress(Exception):
+    pass
+
+
 def _get_mysql_impl():
     try:
         import pymysql  # type: ignore
@@ -172,28 +176,19 @@ def _close_quietly(resource):
         pass
 
 
-@eventos_historico_csv_bp.route("/api/admin/eventos_historico_cache/refresh", methods=["POST"])
-def refresh_eventos_historico_cache():
-    ok, msg = _validate_token()
-    if not ok:
-        return jsonify({"error": msg}), 401
-
+def _refresh_eventos_historico_cache(mysql_impl):
     conn = None
     cur = None
     lock_acquired = False
 
     try:
-        mysql_impl = _get_mysql_impl()
         conn = _open_mysql_connection(mysql_impl)
         cur = _open_mysql_cursor(conn, mysql_impl)
         _execute_session_timeouts(cur)
 
         lock_result = _acquire_refresh_lock(cur)
         if lock_result != 1:
-            return jsonify({
-                "error": "Refresh de cache ya en ejecucion",
-                "detail": "Intente nuevamente cuando termine el proceso actual."
-            }), 409
+            raise CacheRefreshInProgress()
         lock_acquired = True
 
         source_view = _quote_identifier(SOURCE_VIEW)
@@ -224,6 +219,78 @@ def refresh_eventos_historico_cache():
         if hasattr(conn, "commit"):
             conn.commit()
 
+        return row_count
+    except Exception:
+        if conn is not None and hasattr(conn, "rollback"):
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        raise
+    finally:
+        if lock_acquired and cur is not None:
+            try:
+                _release_refresh_lock(cur)
+            except Exception:
+                current_app.logger.exception("No se pudo liberar lock de cache de eventos historico")
+        _close_quietly(cur)
+        _close_quietly(conn)
+
+
+def _fetch_eventos_historico_cache_page(mysql_impl, last_id, limit):
+    conn = None
+    cur = None
+
+    try:
+        conn = _open_mysql_connection(mysql_impl)
+        cur = _open_mysql_cursor(conn, mysql_impl)
+        sql = (
+            f"SELECT * FROM {_quote_identifier(CACHE_TABLE)} "
+            "WHERE `__cache_id` > %s "
+            "ORDER BY `__cache_id` "
+            "LIMIT %s"
+        )
+        cur.execute(sql, (last_id, limit))
+
+        raw_columns = [d[0] for d in cur.description]
+        cache_id_index = raw_columns.index("__cache_id")
+        columns = [column for column in raw_columns if column != "__cache_id"]
+        rows = cur.fetchall()
+
+        data_rows = []
+        next_last_id = last_id
+        for row in rows:
+            next_last_id = row[cache_id_index]
+            data_rows.append([
+                _format_value(value)
+                for index, value in enumerate(row)
+                if index != cache_id_index
+            ])
+
+        return {
+            "limit": limit,
+            "count": len(data_rows),
+            "last_id": last_id,
+            "next_last_id": next_last_id,
+            "has_more": len(data_rows) == limit,
+            "columns": columns,
+            "rows": data_rows,
+        }
+    finally:
+        _close_quietly(cur)
+        _close_quietly(conn)
+
+
+@eventos_historico_csv_bp.route("/api/admin/eventos_historico_cache/refresh", methods=["POST"])
+def refresh_eventos_historico_cache():
+    ok, msg = _validate_token()
+    if not ok:
+        return jsonify({"error": msg}), 401
+
+    try:
+        mysql_impl = _get_mysql_impl()
+        row_count = _refresh_eventos_historico_cache(mysql_impl)
+
         return jsonify({
             "success": True,
             "cache_table": CACHE_TABLE,
@@ -233,25 +300,17 @@ def refresh_eventos_historico_cache():
     except ImportError:
         current_app.logger.exception("No MySQL client library installed")
         return jsonify({"error": "No MySQL client library installed"}), 500
+    except CacheRefreshInProgress:
+        return jsonify({
+            "error": "Refresh de cache ya en ejecucion",
+            "detail": "Intente nuevamente cuando termine el proceso actual."
+        }), 409
     except Exception as exc:
-        if conn is not None and hasattr(conn, "rollback"):
-            try:
-                conn.rollback()
-            except Exception:
-                pass
         current_app.logger.exception("Error refrescando cache de eventos historico")
         return jsonify({
             "error": "No se pudo refrescar la cache de eventos historico",
             "detail": str(exc)
         }), 500
-    finally:
-        if lock_acquired and cur is not None:
-            try:
-                _release_refresh_lock(cur)
-            except Exception:
-                current_app.logger.exception("No se pudo liberar lock de cache de eventos historico")
-        _close_quietly(cur)
-        _close_quietly(conn)
 
 
 @eventos_historico_csv_bp.route("/api/public/eventos_historico_json", methods=["GET"])
@@ -312,10 +371,27 @@ def eventos_historico_json():
         return jsonify({"error": "No MySQL client library installed"}), 500
     except Exception as exc:
         if _is_missing_table_error(exc):
-            return jsonify({
-                "error": "Cache de eventos historico no disponible",
-                "detail": "Ejecute primero el refresh de cache."
-            }), 503
+            try:
+                _close_quietly(cur)
+                _close_quietly(conn)
+                cur = None
+                conn = None
+                row_count = _refresh_eventos_historico_cache(mysql_impl)
+                payload = _fetch_eventos_historico_cache_page(mysql_impl, last_id, limit)
+                payload["cache_refreshed"] = True
+                payload["cache_rows"] = row_count
+                return jsonify(payload)
+            except CacheRefreshInProgress:
+                return jsonify({
+                    "error": "Cache de eventos historico en construccion",
+                    "detail": "Otro request esta creando la cache. Intente nuevamente en unos minutos."
+                }), 202
+            except Exception as refresh_exc:
+                current_app.logger.exception("Error creando cache de eventos historico desde endpoint publico")
+                return jsonify({
+                    "error": "No se pudo crear la cache de eventos historico",
+                    "detail": str(refresh_exc)
+                }), 500
         current_app.logger.exception("Error consultando cache de eventos historico")
         return jsonify({
             "error": "No se pudo consultar la cache de eventos historico",
