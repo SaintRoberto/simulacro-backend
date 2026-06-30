@@ -1,7 +1,6 @@
 import csv
 import io
 import os
-import threading
 from datetime import date, datetime
 
 from flask import Blueprint, Response, current_app, jsonify, request, stream_with_context
@@ -101,7 +100,7 @@ def _validate_token():
         configured = getattr(app_config, "EVENTOS_HISTORICO_TOKEN", None)
     if configured is None:
         return True, None
-    provided = request.args.get("token")
+    provided = request.args.get("token") or request.args.get("api_key")
     if not provided:
         return False, "Token requerido"
     if provided != configured:
@@ -283,30 +282,6 @@ def _fetch_eventos_historico_cache_page(mysql_impl, last_id, limit):
         _close_quietly(conn)
 
 
-def _run_cache_refresh_background(app, mysql_impl):
-    with app.app_context():
-        try:
-            row_count = _refresh_eventos_historico_cache(mysql_impl)
-            current_app.logger.info(
-                "Cache de eventos historico creada desde endpoint publico: %s filas",
-                row_count
-            )
-        except CacheRefreshInProgress:
-            current_app.logger.info("Refresh de cache de eventos historico ya estaba en ejecucion")
-        except Exception:
-            current_app.logger.exception("Error creando cache de eventos historico en background")
-
-
-def _start_cache_refresh_background(mysql_impl):
-    app = current_app._get_current_object()
-    thread = threading.Thread(
-        target=_run_cache_refresh_background,
-        args=(app, mysql_impl),
-        daemon=True
-    )
-    thread.start()
-
-
 @eventos_historico_csv_bp.route("/api/admin/eventos_historico_cache/refresh", methods=["POST"])
 def refresh_eventos_historico_cache():
     ok, msg = _validate_token()
@@ -397,23 +372,10 @@ def eventos_historico_json():
         return jsonify({"error": "No MySQL client library installed"}), 500
     except Exception as exc:
         if _is_missing_table_error(exc):
-            try:
-                _close_quietly(cur)
-                _close_quietly(conn)
-                cur = None
-                conn = None
-                _start_cache_refresh_background(mysql_impl)
-                return jsonify({
-                    "status": "building_cache",
-                    "message": "Cache de eventos historico en construccion",
-                    "detail": "Se inicio la creacion de la cache. Intente llamar este mismo endpoint nuevamente en unos minutos."
-                }), 202
-            except Exception as refresh_exc:
-                current_app.logger.exception("Error creando cache de eventos historico desde endpoint publico")
-                return jsonify({
-                    "error": "No se pudo crear la cache de eventos historico",
-                    "detail": str(refresh_exc)
-                }), 500
+            return jsonify({
+                "error": "Cache de eventos historico no disponible",
+                "detail": "Ejecute primero POST /api/admin/eventos_historico_cache/refresh."
+            }), 503
         current_app.logger.exception("Error consultando cache de eventos historico")
         return jsonify({
             "error": "No se pudo consultar la cache de eventos historico",
