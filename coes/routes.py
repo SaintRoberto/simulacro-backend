@@ -2,6 +2,56 @@ from flask import request, jsonify
 from coes import coes_bp
 from models import db
 from datetime import datetime, timezone
+
+
+@coes_bp.route('/api/coes/listado', methods=['GET'])
+def get_coes_listado():
+    """Listar COE para selección.
+    ---
+    tags:
+      - COES
+    summary: Listar COE (id, nombre y siglas)
+    description: Devuelve el catálogo de COE ordenado por identificador, incluyendo únicamente los campos necesarios para listas de selección.
+    responses:
+      200:
+        description: Lista de COE
+        schema:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - nombre
+              - siglas
+            properties:
+              id:
+                type: integer
+                example: 1
+              nombre:
+                type: string
+                example: COE Nacional
+              siglas:
+                type: string
+                example: COE-N
+      401:
+        description: Token JWT ausente, inválido o expirado
+    security:
+      - Bearer: []
+    """
+    result = db.session.execute(
+        db.text("SELECT id, nombre, siglas FROM coes ORDER BY id ASC")
+    )
+
+    return jsonify([
+        {
+            'id': row.id,
+            'nombre': row.nombre,
+            'siglas': row.siglas,
+        }
+        for row in result
+    ])
+
+
 @coes_bp.route('/api/coes', methods=['GET'])
 def get_coes():
     result = db.session.execute(db.text("SELECT * FROM coes"))

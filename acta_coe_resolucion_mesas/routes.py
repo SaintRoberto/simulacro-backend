@@ -391,8 +391,8 @@ def get_usuario_by_acta_coe_resolucion_mesa(coe_id, provincia_id, canton_id, mes
             SELECT usuario_id
             FROM public.usuario_perfil_coe_dpa_mesa
             WHERE coe_id = :coe_id 
-            AND provincia_id = :provincia_id 
-            AND canton_id = :canton_id 
+            AND (provincia_id = :provincia_id OR provincia_id = 0)
+            AND (canton_id = :canton_id OR canton_id = 0)
             AND mesa_id = :mesa_id
             LIMIT 1
         """
