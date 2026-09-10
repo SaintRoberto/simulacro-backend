@@ -360,7 +360,7 @@ def get_datos_login(usuario_id):
       FROM public.usuarios u 
       INNER JOIN public.usuario_perfil_coe_dpa_mesa ux ON u.id = ux.usuario_id
       INNER JOIN public.perfiles pf ON ux.perfil_id = pf.id
-      INNER JOIN public.coes c ON ux.coe_id = c.id
+      INNER JOIN public.coes c ON ux.coe_id = c.id OR ux.coe_id = 0
       LEFT JOIN public.provincias p ON ux.provincia_id = p.id
       LEFT JOIN public.cantones k ON ux.provincia_id = k.provincia_id AND ux.canton_id = k.id
       LEFT JOIN public.mesas m ON ux.mesa_id = m.id
