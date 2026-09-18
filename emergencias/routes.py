@@ -74,6 +74,7 @@ def get_emergencias_by_usuario(usuario):
       e.nombre        AS emergencia,
       u.usuario,
       u.descripcion,
+      e.dashboard,
       CASE
         WHEN x.provincia_id = 0 AND x.canton_id = 0 THEN 'NACIONAL'
         WHEN x.canton_id = 0 THEN 'PROVINCIAL'
@@ -105,7 +106,8 @@ def get_emergencias_by_usuario(usuario):
             'usuario': row.usuario,
             'descripcion': row.descripcion,
             'ambito': row.ambito,
-            'identificador': row.identificador
+            'identificador': row.identificador,
+            'dashboard': row.dashboard
         })
     return jsonify(emergencias)
 
