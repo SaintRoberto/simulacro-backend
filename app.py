@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request, g
 from flask_sqlalchemy import SQLAlchemy
 from config import DATABASE_URL, FRONTEND_ORIGIN
 from flasgger import Swagger
+from flasgger.base import APIDocsView
 from flask_cors import CORS
 from auth import decode_token
 
@@ -41,6 +42,43 @@ swagger_template = {
     "security": [
         {"Bearer": []}
     ]
+}
+
+
+PUBLIC_REPORT_SWAGGER_PATHS = {
+    '/api/public/acciones_respuesta/<int:emergencia_id>',
+    '/api/public/eventos_lluvias',
+}
+
+
+def _is_public_swagger_rule(rule):
+    """Include login and the two documented public reports."""
+    return (
+        rule.rule in PUBLIC_REPORT_SWAGGER_PATHS
+        or rule.rule == '/api/usuarios/login'
+    )
+
+
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec_1",
+            "route": "/apispec_1.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+            "name": "API completa",
+        },
+        {
+            "endpoint": "apispec_public",
+            "route": "/apispec_public.json",
+            "rule_filter": _is_public_swagger_rule,
+            "model_filter": lambda tag: True,
+        },
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/",
 }
 
 
@@ -120,6 +158,7 @@ from reportes.recursos_movilizados import recursos_movilizados_script_bp
 from reportes.geoJson_afectaciones import geoJson_afectaciones_script_bp
 from reportes.geoJson_asistencias import geoJson_asistencias_script_bp
 from reportes.geoJson_afectaciones_vs_asistencias import geoJson_afectaciones_vs_asistencias_script_bp
+from reportes.eventos_lluvias import eventos_lluvias_bp
 from coes_activados import coes_activados_bp
 from barridos import barridos_bp
 from barrido_estado import barrido_estado_bp
@@ -200,6 +239,7 @@ app.register_blueprint(recursos_movilizados_script_bp)
 app.register_blueprint(geoJson_afectaciones_script_bp)
 app.register_blueprint(geoJson_asistencias_script_bp)
 app.register_blueprint(geoJson_afectaciones_vs_asistencias_script_bp)  # <-- corregido para evitar conflicto de rutas
+app.register_blueprint(eventos_lluvias_bp)
 app.register_blueprint(coes_activados_bp)
 app.register_blueprint(barridos_bp)
 app.register_blueprint(barrido_estado_bp)
@@ -210,7 +250,22 @@ app.register_blueprint(accidentes_geograficos_bp)
 
 
 # Initialize Swagger after all blueprints are registered so Flasgger picks up docstrings from new modules
-swagger = Swagger(app, template=swagger_template)
+swagger = Swagger(app, template=swagger_template, config=swagger_config)
+
+# A separate Swagger UI that exposes only the public-report specification.
+public_swagger_ui_config = {
+    **swagger_config,
+    "title": "API de Reportes Publicos",
+    "specs": [swagger_config["specs"][1]],
+}
+app.add_url_rule(
+    "/apidocs-public/",
+    endpoint="public_api_docs",
+    view_func=APIDocsView.as_view(
+        "public_api_docs_view",
+        view_args={"config": public_swagger_ui_config},
+    ),
+)
 
 # Global before_request: require JWT for all endpoints except whitelist
 WHITELIST_PATHS = [

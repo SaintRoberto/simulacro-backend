@@ -473,7 +473,55 @@ def get_usuario_nivel_superior(usuario_id_origen):
 
 @usuarios_bp.route('/api/usuarios/login', methods=['POST'])
 def login_usuario():
-   
+    """Autenticar un usuario y generar un token JWT.
+    ---
+    tags:
+      - Autenticacion
+    summary: Iniciar sesion
+    description: Valida las credenciales y devuelve un token JWT.
+    security: []
+    consumes:
+      - application/json
+    produces:
+      - application/json
+    parameters:
+      - in: body
+        name: credenciales
+        required: true
+        schema:
+          type: object
+          required:
+            - usuario
+            - clave
+          properties:
+            usuario:
+              type: string
+              example: usuario
+            clave:
+              type: string
+              format: password
+              example: clave-segura
+    responses:
+      200:
+        description: Credenciales procesadas correctamente
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+            token:
+              type: string
+            id:
+              type: integer
+            usuario:
+              type: string
+            descripcion:
+              type: string
+      400:
+        description: Datos faltantes o invalidos
+      404:
+        description: Usuario no encontrado
+    """
     data = request.get_json()
     if not data:
         return jsonify({'error': 'Datos requeridos'}), 400
