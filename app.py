@@ -1,4 +1,7 @@
-from flask import Flask, jsonify, request, g
+from pathlib import Path
+
+import flasgger
+from flask import Flask, jsonify, request, g, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from config import DATABASE_URL, FRONTEND_ORIGIN
 from flasgger import Swagger
@@ -77,9 +80,32 @@ swagger_config = {
         },
     ],
     "static_url_path": "/apidocs-public/flasgger_static",
+    "favicon": "/apidocs-public/assets/favicon",
+    "swagger_ui_css": "/apidocs-public/assets/swagger-ui-css",
+    "swagger_ui_bundle_js": "/apidocs-public/assets/swagger-ui-bundle-js",
+    "swagger_ui_standalone_preset_js": "/apidocs-public/assets/swagger-ui-standalone-preset-js",
+    "jquery_js": "/apidocs-public/assets/jquery-js",
     "swagger_ui": True,
     "specs_route": "/apidocs/",
 }
+
+FLASGGER_STATIC_DIR = Path(flasgger.__file__).resolve().parent / "ui3" / "static"
+PUBLIC_SWAGGER_ASSETS = {
+    "favicon": "favicon-32x32.png",
+    "swagger-ui-css": "swagger-ui.css",
+    "swagger-ui-bundle-js": "swagger-ui-bundle.js",
+    "swagger-ui-standalone-preset-js": "swagger-ui-standalone-preset.js",
+    "jquery-js": "lib/jquery.min.js",
+}
+
+
+@app.get("/apidocs-public/assets/<asset_name>")
+def public_swagger_asset(asset_name):
+    """Serve Swagger UI assets through URLs that are proxied to Flask."""
+    filename = PUBLIC_SWAGGER_ASSETS.get(asset_name)
+    if filename is None:
+        return jsonify({"error": "Swagger asset not found"}), 404
+    return send_from_directory(FLASGGER_STATIC_DIR, filename)
 
 
 
