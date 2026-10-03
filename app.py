@@ -71,12 +71,12 @@ swagger_config = {
         },
         {
             "endpoint": "apispec_public",
-            "route": "/apispec_public.json",
+            "route": "/apidocs-public/apispec_public.json",
             "rule_filter": _is_public_swagger_rule,
             "model_filter": lambda tag: True,
         },
     ],
-    "static_url_path": "/flasgger_static",
+    "static_url_path": "/apidocs-public/flasgger_static",
     "swagger_ui": True,
     "specs_route": "/apidocs/",
 }
