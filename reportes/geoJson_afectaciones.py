@@ -110,7 +110,7 @@ def get_geoJson_afectaciones():
     cur = _open_mysql_cursor(conn, mysql_impl)
 
     try:
-        sql = "SELECT * FROM dmeva.`RED-M-2026-GeoJSON-Afectaciones` LIMIT %s OFFSET %s"
+        sql = "SELECT * FROM dmeva.`RED-M-2026-GeoJSON-Afectaciones` WHERE STR_TO_DATE(FechaDelEvento, '%d/%m/%Y') >= '2026-08-29' LIMIT %s OFFSET %s"
         cur.execute(sql, (limit, offset))
 
         columns = [d[0] for d in cur.description]
