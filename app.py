@@ -302,6 +302,8 @@ WHITELIST_PATHS = [
     '/api/admin/eventos_historico_cache/status',
     '/api/admin/eventos_dashboard_cache/refresh',
     '/api/admin/eventos_dashboard_cache/status',
+    '/api/admin/asistencia_humanitaria_cache/refresh',
+    '/api/admin/asistencia_humanitaria_cache/status',
     '/eventos_historico',
     '/eventos_historico_json',
     '/eventos_dashboard_json',
