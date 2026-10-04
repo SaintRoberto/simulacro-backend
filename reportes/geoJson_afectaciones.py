@@ -97,6 +97,18 @@ from flask import jsonify, request
 
 @geoJson_afectaciones_script_bp.route("/api/public/get_geoJson_afectaciones", methods=["GET"])
 def get_geoJson_afectaciones():
+    return _get_geoJson_afectaciones_response(include_date_filter=True)
+
+
+@geoJson_afectaciones_script_bp.route(
+    "/api/public/get_geoJson_afectaciones_hsitorico_2026",
+    methods=["GET"],
+)
+def get_geoJson_afectaciones_hsitorico_2026():
+    return _get_geoJson_afectaciones_response(include_date_filter=False)
+
+
+def _get_geoJson_afectaciones_response(include_date_filter):
     ok, msg = _validate_token()
     if not ok:
         return jsonify({"error": msg}), 401
@@ -110,8 +122,14 @@ def get_geoJson_afectaciones():
     cur = _open_mysql_cursor(conn, mysql_impl)
 
     try:
-        sql = "SELECT * FROM dmeva.`RED-M-2026-GeoJSON-Afectaciones` WHERE STR_TO_DATE(FechaDelEvento, '%%d/%%m/%%Y') >= %s LIMIT %s OFFSET %s"
-        cur.execute(sql, ("2026-08-29", limit, offset))
+        if include_date_filter:
+            sql = "SELECT * FROM dmeva.`RED-M-2026-GeoJSON-Afectaciones` WHERE STR_TO_DATE(FechaDelEvento, '%%d/%%m/%%Y') >= %s LIMIT %s OFFSET %s"
+            params = ("2026-08-29", limit, offset)
+        else:
+            sql = "SELECT * FROM dmeva.`RED-M-2026-GeoJSON-Afectaciones` LIMIT %s OFFSET %s"
+            params = (limit, offset)
+
+        cur.execute(sql, params)
 
         columns = [d[0] for d in cur.description]
         rows = cur.fetchall()
