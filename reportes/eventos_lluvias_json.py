@@ -1,5 +1,5 @@
 import os
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
 from flask import Blueprint, current_app, jsonify, request
@@ -11,7 +11,9 @@ from config import MYSQL_HOST, MYSQL_PASS, MYSQL_PORT, MYSQL_USER
 eventos_lluvias_json_bp = Blueprint("eventos_lluvias_json", __name__)
 
 SOURCE_SCHEMA = "dmeva"
-SOURCE_VIEW = "RED-M-2026-Sitrep-EventosPorLluvias 20260829+"
+SOURCE_PROCEDURE = "spEventosLluvia-rango"
+START_DATETIME = "2026-08-29 00:00:00"
+ECUADOR_TIMEZONE = timezone(timedelta(hours=-5))
 MAX_JSON_LIMIT = 1000
 
 
@@ -84,6 +86,11 @@ def _format_value(value):
     return value
 
 
+def _current_cutoff():
+    """Devuelve la fecha y hora actual de Ecuador para p_corte."""
+    return datetime.now(ECUADOR_TIMEZONE).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def _validate_api_key():
     configured = os.environ.get("PUBLIC_API_KEYS")
     if configured is None:
@@ -116,7 +123,7 @@ def _parse_int_arg(name, default, minimum=None, maximum=None):
 
 @eventos_lluvias_json_bp.route("/api/public/eventos_lluvias_json", methods=["GET"])
 def eventos_lluvias_json():
-    """Consulta paginada de la vista de eventos por lluvias.
+    """Consulta paginada de eventos por lluvias mediante procedimiento almacenado.
     ---
     tags:
       - Reportes Publicos
@@ -149,7 +156,7 @@ def eventos_lluvias_json():
       401:
         description: API key ausente o invalida
       500:
-        description: Error consultando la vista
+        description: Error consultando el procedimiento almacenado
     """
     ok, message = _validate_api_key()
     if not ok:
@@ -167,13 +174,15 @@ def eventos_lluvias_json():
         mysql_impl = _get_mysql_impl()
         conn = _open_mysql_connection(mysql_impl)
         cursor = _open_mysql_cursor(conn, mysql_impl)
+        cutoff = _current_cutoff()
         cursor.execute(
-            f"SELECT * FROM `{SOURCE_SCHEMA}`.`{SOURCE_VIEW}` LIMIT %s OFFSET %s",
-            (limit, last_id),
+            f"CALL `{SOURCE_SCHEMA}`.`{SOURCE_PROCEDURE}`(%s, %s)",
+            (START_DATETIME, cutoff),
         )
 
         columns = [description[0] for description in cursor.description]
-        rows = cursor.fetchall()
+        all_rows = cursor.fetchall()
+        rows = all_rows[last_id:last_id + limit]
         data_rows = [
             [_format_value(row.get(column)) for column in columns]
             for row in rows
@@ -185,7 +194,7 @@ def eventos_lluvias_json():
             "count": len(data_rows),
             "last_id": last_id,
             "next_last_id": next_last_id,
-            "has_more": len(data_rows) == limit,
+            "has_more": next_last_id < len(all_rows),
             "columns": columns,
             "rows": data_rows,
         })
@@ -194,7 +203,7 @@ def eventos_lluvias_json():
     except Exception as exc:
         current_app.logger.exception("Error consultando eventos por lluvias")
         return jsonify({
-            "error": "No se pudo consultar la vista de eventos por lluvias",
+            "error": "No se pudo consultar el procedimiento de eventos por lluvias",
             "detail": str(exc),
         }), 500
     finally:
