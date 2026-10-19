@@ -184,8 +184,10 @@ from reportes.recursos_movilizados import recursos_movilizados_script_bp
 from reportes.geoJson_afectaciones import geoJson_afectaciones_script_bp
 from reportes.geoJson_asistencias import geoJson_asistencias_script_bp
 from reportes.geoJson_afectaciones_vs_asistencias import geoJson_afectaciones_vs_asistencias_script_bp
+from reportes.geoJson_afectaciones_vs_asistencias_fecha import geoJson_afectaciones_vs_asistencias_fecha_bp
 from reportes.eventos_lluvias import eventos_lluvias_bp
 from reportes.eventos_lluvias_json import eventos_lluvias_json_bp
+from reportes.eventos_lluvias_geojson import eventos_lluvias_geojson_bp
 from coes_activados import coes_activados_bp
 from barridos import barridos_bp
 from barrido_estado import barrido_estado_bp
@@ -266,8 +268,10 @@ app.register_blueprint(recursos_movilizados_script_bp)
 app.register_blueprint(geoJson_afectaciones_script_bp)
 app.register_blueprint(geoJson_asistencias_script_bp)
 app.register_blueprint(geoJson_afectaciones_vs_asistencias_script_bp)  # <-- corregido para evitar conflicto de rutas
+app.register_blueprint(geoJson_afectaciones_vs_asistencias_fecha_bp)
 app.register_blueprint(eventos_lluvias_bp)
 app.register_blueprint(eventos_lluvias_json_bp)
+app.register_blueprint(eventos_lluvias_geojson_bp)
 app.register_blueprint(coes_activados_bp)
 app.register_blueprint(barridos_bp)
 app.register_blueprint(barrido_estado_bp)
