@@ -51,6 +51,7 @@ swagger_template = {
 PUBLIC_REPORT_SWAGGER_PATHS = {
     '/api/public/acciones_respuesta/<int:emergencia_id>',
     '/api/public/eventos_lluvias',
+    '/api/public/get_geoJson_sgiar_geovisor_2026',
 }
 
 
