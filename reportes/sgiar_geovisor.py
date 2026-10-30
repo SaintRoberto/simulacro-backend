@@ -19,11 +19,8 @@ SOURCE_PROCEDURE = "spSGIAR-GeoVisor-2026"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def _parse_datetime_field(payload, name):
-    value = payload.get(name, "")
-    if not isinstance(value, str):
-        raise ValueError(f"{name} debe ser texto")
-    value = value.strip()
+def _parse_datetime_arg(name):
+    value = request.args.get(name, "").strip()
     if not value:
         raise ValueError(f"El parametro {name} es requerido")
 
@@ -58,7 +55,7 @@ def _to_coordinate(value):
 
 @sgiar_geovisor_bp.route(
     "/api/public/get_geoJson_sgiar_geovisor_2026",
-    methods=["POST"],
+    methods=["GET"],
 )
 def get_geojson_sgiar_geovisor_2026():
     """Consulta el GeoVisor SGIAR 2026 por rango de fechas.
@@ -71,24 +68,21 @@ def get_geojson_sgiar_geovisor_2026():
     security: []
     parameters:
       - in: query
+        name: fecha_inicio
+        type: string
+        required: true
+        description: Fecha inicial con formato YYYY-MM-DD HH:MM:SS
+        default: "2026-08-29 00:00:00"
+      - in: query
+        name: fecha_fin
+        type: string
+        required: true
+        description: Fecha final con formato YYYY-MM-DD HH:MM:SS
+        default: "2026-10-30 23:59:59"
+      - in: query
         name: api_key
         type: string
         required: true
-      - in: body
-        name: body
-        required: true
-        schema:
-          type: object
-          required:
-            - fecha_inicio
-            - fecha_fin
-          properties:
-            fecha_inicio:
-              type: string
-              example: "2026-08-29 00:00:00"
-            fecha_fin:
-              type: string
-              example: "2026-10-30 23:59:59"
     responses:
       200:
         description: FeatureCollection consultada correctamente
@@ -104,14 +98,8 @@ def get_geojson_sgiar_geovisor_2026():
         return jsonify({"error": message}), 401
 
     try:
-        payload = request.get_json(silent=True)
-        if not isinstance(payload, dict):
-            raise ValueError("El cuerpo debe ser un objeto JSON")
-
-        start_datetime, start_value = _parse_datetime_field(
-            payload, "fecha_inicio"
-        )
-        end_datetime, end_value = _parse_datetime_field(payload, "fecha_fin")
+        start_datetime, start_value = _parse_datetime_arg("fecha_inicio")
+        end_datetime, end_value = _parse_datetime_arg("fecha_fin")
         if start_datetime > end_datetime:
             raise ValueError("fecha_inicio no puede ser mayor a fecha_fin")
     except ValueError as exc:
