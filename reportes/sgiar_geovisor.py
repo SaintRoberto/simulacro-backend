@@ -16,19 +16,22 @@ sgiar_geovisor_bp = Blueprint("sgiar_geovisor", __name__)
 
 SOURCE_SCHEMA = "dmeva"
 SOURCE_PROCEDURE = "spSGIAR-GeoVisor-2026"
-DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+INPUT_DATETIME_FORMAT = "%Y-%m-%dT%H:%M"
+SP_DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-def _parse_datetime_arg(name):
+def _parse_datetime_arg(name, end_of_minute=False):
     value = request.args.get(name, "").strip()
     if not value:
         raise ValueError(f"El parametro {name} es requerido")
 
     try:
-        return datetime.strptime(value, DATETIME_FORMAT), value
+        parsed = datetime.strptime(value, INPUT_DATETIME_FORMAT)
+        parsed = parsed.replace(second=59 if end_of_minute else 0)
+        return parsed, parsed.strftime(SP_DATETIME_FORMAT)
     except ValueError as exc:
         raise ValueError(
-            f"{name} debe tener el formato YYYY-MM-DD HH:MM:SS"
+            f"{name} debe tener el formato YYYY-MM-DDTHH:MM"
         ) from exc
 
 
@@ -71,14 +74,14 @@ def get_geojson_sgiar_geovisor_2026():
         name: fecha_inicio
         type: string
         required: true
-        description: Fecha inicial con formato YYYY-MM-DD HH:MM:SS
-        default: "2026-08-29 00:00:00"
+        description: Fecha inicial con formato YYYY-MM-DDTHH:MM
+        default: "2026-08-29T00:00"
       - in: query
         name: fecha_fin
         type: string
         required: true
-        description: Fecha final con formato YYYY-MM-DD HH:MM:SS
-        default: "2026-10-30 23:59:59"
+        description: Fecha final con formato YYYY-MM-DDTHH:MM
+        default: "2026-10-30T23:59"
       - in: query
         name: api_key
         type: string
@@ -99,7 +102,9 @@ def get_geojson_sgiar_geovisor_2026():
 
     try:
         start_datetime, start_value = _parse_datetime_arg("fecha_inicio")
-        end_datetime, end_value = _parse_datetime_arg("fecha_fin")
+        end_datetime, end_value = _parse_datetime_arg(
+            "fecha_fin", end_of_minute=True
+        )
         if start_datetime > end_datetime:
             raise ValueError("fecha_inicio no puede ser mayor a fecha_fin")
     except ValueError as exc:
