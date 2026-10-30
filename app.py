@@ -188,6 +188,7 @@ from reportes.geoJson_afectaciones_vs_asistencias_fecha import geoJson_afectacio
 from reportes.eventos_lluvias import eventos_lluvias_bp
 from reportes.eventos_lluvias_json import eventos_lluvias_json_bp
 from reportes.eventos_lluvias_geojson import eventos_lluvias_geojson_bp
+from reportes.sgiar_geovisor import sgiar_geovisor_bp
 from coes_activados import coes_activados_bp
 from barridos import barridos_bp
 from barrido_estado import barrido_estado_bp
@@ -272,6 +273,7 @@ app.register_blueprint(geoJson_afectaciones_vs_asistencias_fecha_bp)
 app.register_blueprint(eventos_lluvias_bp)
 app.register_blueprint(eventos_lluvias_json_bp)
 app.register_blueprint(eventos_lluvias_geojson_bp)
+app.register_blueprint(sgiar_geovisor_bp)
 app.register_blueprint(coes_activados_bp)
 app.register_blueprint(barridos_bp)
 app.register_blueprint(barrido_estado_bp)
