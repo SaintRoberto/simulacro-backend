@@ -17,8 +17,6 @@ sgiar_geovisor_bp = Blueprint("sgiar_geovisor", __name__)
 SOURCE_SCHEMA = "dmeva"
 SOURCE_PROCEDURE = "spSGIAR-GeoVisor-2026"
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-DEFAULT_LIMIT = 5000
-MAX_LIMIT = 10000
 
 
 def _parse_datetime_field(payload, name):
@@ -35,19 +33,6 @@ def _parse_datetime_field(payload, name):
         raise ValueError(
             f"{name} debe tener el formato YYYY-MM-DD HH:MM:SS"
         ) from exc
-
-
-def _parse_positive_int_field(payload, name, default, maximum=None):
-    try:
-        value = int(payload.get(name, default))
-    except (TypeError, ValueError) as exc:
-        raise ValueError(f"{name} debe ser numerico") from exc
-
-    if value < 1:
-        raise ValueError(f"{name} debe ser mayor o igual a 1")
-    if maximum is not None and value > maximum:
-        raise ValueError(f"{name} no puede ser mayor a {maximum}")
-    return value
 
 
 def _find_column(columns, expected_name):
@@ -104,13 +89,6 @@ def get_geojson_sgiar_geovisor_2026():
             fecha_fin:
               type: string
               example: "2026-10-30 23:59:59"
-            page:
-              type: integer
-              default: 1
-            limit:
-              type: integer
-              default: 5000
-              maximum: 10000
     responses:
       200:
         description: FeatureCollection consultada correctamente
@@ -136,11 +114,6 @@ def get_geojson_sgiar_geovisor_2026():
         end_datetime, end_value = _parse_datetime_field(payload, "fecha_fin")
         if start_datetime > end_datetime:
             raise ValueError("fecha_inicio no puede ser mayor a fecha_fin")
-
-        page = _parse_positive_int_field(payload, "page", 1)
-        limit = _parse_positive_int_field(
-            payload, "limit", DEFAULT_LIMIT, MAX_LIMIT
-        )
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
@@ -156,9 +129,7 @@ def get_geojson_sgiar_geovisor_2026():
         )
 
         columns = [description[0] for description in cursor.description]
-        all_rows = cursor.fetchall()
-        offset = (page - 1) * limit
-        rows = all_rows[offset:offset + limit]
+        rows = cursor.fetchall()
 
         latitude_column = _find_column(columns, "latitud")
         longitude_column = _find_column(columns, "longitud")
@@ -197,11 +168,7 @@ def get_geojson_sgiar_geovisor_2026():
             "metadata": {
                 "fecha_inicio": start_value,
                 "fecha_fin": end_value,
-                "page": page,
-                "limit": limit,
                 "count": len(features),
-                "total": len(all_rows),
-                "has_more": offset + len(features) < len(all_rows),
                 "latitude_column": latitude_column,
                 "longitude_column": longitude_column,
             },
