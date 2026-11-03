@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 from models import db
 from config import PUBLIC_API_KEYS as CONFIG_PUBLIC_API_KEYS
 
@@ -17,6 +17,51 @@ def _validate_api_key():
     if provided not in allowed:
         return False, 'Invalid API key'
     return True, None
+
+
+@afectaciones_public_bp.route(
+    '/api/public/matar_conexiones', methods=['GET', 'POST']
+)
+def matar_conexiones():
+    """Ejecuta el procedimiento que finaliza las conexiones configuradas.
+
+    ---
+    tags:
+      - Reportes Publicos
+    parameters:
+      - name: api_key
+        in: query
+        type: string
+        required: true
+        description: API key publica
+    responses:
+      200:
+        description: Procedimiento ejecutado correctamente
+      401:
+        description: API key ausente o invalida
+      500:
+        description: Error ejecutando el procedimiento almacenado
+    """
+    ok, msg = _validate_api_key()
+    if not ok:
+        return jsonify({'error': msg}), 401
+
+    try:
+        db.session.execute(db.text("CALL dmeva.matar_conexiones()"))
+        db.session.commit()
+        return jsonify({
+            'estado': 'OK',
+            'mensaje': 'Procedimiento matar_conexiones ejecutado correctamente',
+        }), 200
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            'Error ejecutando el procedimiento dmeva.matar_conexiones'
+        )
+        return jsonify({
+            'estado': 'ERROR',
+            'mensaje': 'No se pudo ejecutar el procedimiento matar_conexiones',
+        }), 500
 
 
 @afectaciones_public_bp.route('/api/public/afectaciones_version1', methods=['GET'])
