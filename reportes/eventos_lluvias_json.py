@@ -163,7 +163,7 @@ def eventos_lluvias_json():
         return jsonify({"error": message}), 401
 
     try:
-        limit = _parse_int_arg("limit", 1000, minimum=1, maximum=None)
+        limit = _parse_int_arg("limit", MAX_JSON_LIMIT, minimum=1, maximum=MAX_JSON_LIMIT)
         last_id = _parse_int_arg("last_id", 0, minimum=0)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
