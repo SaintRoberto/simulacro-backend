@@ -14,7 +14,7 @@ SOURCE_SCHEMA = "dmeva"
 SOURCE_PROCEDURE = "spEventosLluvia-rango"
 START_DATETIME = "2026-08-29 00:00:00"
 ECUADOR_TIMEZONE = timezone(timedelta(hours=-5))
-MAX_JSON_LIMIT = 1000
+MAX_JSON_LIMIT = 100000
 
 
 def _get_mysql_impl():
@@ -163,7 +163,7 @@ def eventos_lluvias_json():
         return jsonify({"error": message}), 401
 
     try:
-        limit = _parse_int_arg("limit", 1000, minimum=1, maximum=MAX_JSON_LIMIT)
+        limit = _parse_int_arg("limit", 1000, minimum=1, maximum=None)
         last_id = _parse_int_arg("last_id", 0, minimum=0)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
