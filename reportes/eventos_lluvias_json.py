@@ -108,7 +108,7 @@ def _validate_api_key():
     return True, None
 
 
-def _parse_int_arg(name, default, minimum=None, maximum=None):
+def _parse_int_arg(name, default, minimum=None, maximum=MAX_JSON_LIMIT):
     raw_value = request.args.get(name, default)
     try:
         value = int(raw_value)
